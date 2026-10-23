@@ -1,0 +1,13 @@
+version: 2
+models:
+  - name: stg_salesforce__accounts
+    columns:
+      - name: account_id
+        tests: [unique, not_null]
+  - name: stg_salesforce__opportunities
+    columns:
+      - name: opportunity_id
+        tests: [unique, not_null]
+      - name: account_id
+        tests:
+          - relationships: { to: ref('stg_salesforce__accounts'), field: account_id }

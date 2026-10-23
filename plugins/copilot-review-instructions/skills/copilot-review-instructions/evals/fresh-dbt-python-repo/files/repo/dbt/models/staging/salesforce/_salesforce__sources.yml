@@ -1,0 +1,9 @@
+version: 2
+sources:
+  - name: salesforce
+    schema: raw_salesforce
+    loaded_at_field: _loaded_at
+    freshness: { warn_after: { count: 24, period: hour } }
+    tables:
+      - name: account
+      - name: opportunity

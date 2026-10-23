@@ -1,0 +1,16 @@
+name: sales_analytics
+version: "1.0.0"
+profile: sales_analytics
+model-paths: ["models"]
+macro-paths: ["macros"]
+models:
+  sales_analytics:
+    staging:
+      +materialized: view
+      +schema: staging
+    intermediate:
+      +materialized: ephemeral
+    marts:
+      +materialized: table
+      finance:
+        +schema: finance

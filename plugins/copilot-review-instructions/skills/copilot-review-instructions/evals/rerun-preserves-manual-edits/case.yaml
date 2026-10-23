@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: rerun-preserves-manual-edits
+expected_outcome: |
+  A re-run on a repo that already has instruction files from an earlier run plus a manual edit by a teammate.
+  The existing rules, including the teammate's "select *" rule, stay word for word; new rules for swallowed
+  exceptions (Python) and source() outside staging (dbt) are added with targeted edits in the right scoped files;
+  the files pass the linter and the change is committed on a feature branch.
+context:
+  scaffold_script: place-files.sh

@@ -1,0 +1,10 @@
+schema_version: "1.1"
+name: fresh-dbt-python-repo
+expected_outcome: |
+  A first run on an Azure DevOps dbt + Python repo with no instruction files. The result is a short repo-wide
+  .github/copilot-instructions.md plus path-scoped dbt and Python instruction files with narrow applyTo globs,
+  10-20 checkable rules grounded in the repo's real code and the user's pain points, nothing that repeats the
+  project-wide instructions or what sqlfluff/ruff enforce, committed on a feature branch, and a final reply that
+  explains the rules only take effect after merging into the target branch.
+context:
+  scaffold_script: place-files.sh

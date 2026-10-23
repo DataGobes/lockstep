@@ -1,0 +1,5 @@
+[sqlfluff]
+dialect = databricks
+templater = dbt
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = lower

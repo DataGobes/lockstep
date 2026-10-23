@@ -1,0 +1,10 @@
+version: 2
+models:
+  - name: stg_erp__orders
+    columns:
+      - name: order_id
+        tests: [unique, not_null]
+  - name: stg_erp__customers
+    columns:
+      - name: customer_id
+        tests: [unique, not_null]

@@ -1,0 +1,17 @@
+{
+  "name": "datagobes-copilot-skills",
+  "owner": { "name": "DataGobes" },
+  "metadata": {
+    "description": "Team skills for working with GitHub Copilot code review. Installable in Claude Code and GitHub Copilot CLI.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "copilot-review-instructions",
+      "source": "./plugins/copilot-review-instructions",
+      "description": "Generate and maintain repo-specific Copilot code review instructions (.github/copilot-instructions.md and path-scoped *.instructions.md) on top of project-wide rules.",
+      "version": "0.1.0",
+      "keywords": ["copilot", "code-review", "azure-devops", "instructions"]
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+version: 2
+sources:
+  - name: erp
+    schema: raw_erp
+    loaded_at_field: _loaded_at
+    tables:
+      - name: orders
+      - name: customers

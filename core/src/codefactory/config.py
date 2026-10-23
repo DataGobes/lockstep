@@ -78,7 +78,8 @@ class Config:
 
     @property
     def jira_key_regex(self) -> re.Pattern[str]:
-        return re.compile(rf"^{self.jira_key_pattern}$")
+        # Use with fullmatch(); wrapping in ^...$ would break alternations and inline flags.
+        return re.compile(self.jira_key_pattern)
 
     def without_source(self) -> Config:
         return replace(self, source=None)
@@ -105,11 +106,15 @@ _TOP_LEVEL_KEYS = {
 
 def load_config(root: Path) -> Config:
     path = Path(root) / CONFIG_FILE
-    if not path.is_file():
-        return Config()
     try:
-        raw = tomllib.loads(path.read_text(encoding="utf-8"))
-    except (OSError, tomllib.TOMLDecodeError) as e:
+        text = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return Config()  # only a missing file means defaults; a directory or unreadable file is an error
+    except OSError as e:
+        raise ConfigError(f"{path}: cannot read {CONFIG_FILE}: {e}") from e
+    try:
+        raw = tomllib.loads(text)
+    except tomllib.TOMLDecodeError as e:
         raise ConfigError(f"{path}: cannot parse {CONFIG_FILE}: {e}") from e
 
     top: dict[str, Any] = {}
@@ -162,8 +167,10 @@ def _validate(path: Path, cfg: Config) -> None:
         if name == "branch_pattern" and "id" not in regex.groupindex:
             raise ConfigError(f"{path}: branch_pattern needs a named group (?P<id>...)")
     bad = [t for t in cfg.tracks if t not in TRACKS]
-    if bad or not cfg.tracks:
-        raise ConfigError(f"{path}: tracks must be a non-empty subset of {list(TRACKS)}, got {list(cfg.tracks)}")
+    if bad or not cfg.tracks or len(set(cfg.tracks)) != len(cfg.tracks):
+        raise ConfigError(
+            f"{path}: tracks must be a non-empty subset of {list(TRACKS)} without duplicates, got {list(cfg.tracks)}"
+        )
     s = cfg.pr_size
     if not 0 < s.warn_lines <= s.fail_lines:
         raise ConfigError(f"{path}: pr_size needs 0 < warn_lines <= fail_lines")

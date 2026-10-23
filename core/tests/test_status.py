@@ -73,3 +73,20 @@ def test_track_must_be_enabled_in_config(tmp_path):
     for track in ("ai", "mixed"):
         with pytest.raises(SpecStatusError, match="track"):
             parse_status(f"status: draft\npii: no\ntrack: {track}\n", cfg)
+
+
+@pytest.mark.parametrize(
+    "pattern, ok, bad",
+    [
+        (r"PROJ-\\d+|OPS-\\d+", ["PROJ-1", "OPS-22"], ["PROJ-123-invalid", "XOPS-1"]),
+        (r"(?i)proj-\\d+", ["PROJ-1", "proj-2"], ["PROJ-1x"]),
+    ],
+)
+def test_jira_pattern_is_matched_whole(tmp_path, pattern, ok, bad):
+    (tmp_path / "factory.toml").write_text(f'[jira]\nkey_pattern = "{pattern}"\n', encoding="utf-8")
+    cfg = load_config(tmp_path)
+    for key in ok:
+        assert parse_status(f"status: approved\npii: no\ntrack: data\njira: {key}\n", cfg).jira == key
+    for key in bad:
+        with pytest.raises(SpecStatusError, match="jira"):
+            parse_status(f"status: approved\npii: no\ntrack: data\njira: {key}\n", cfg)

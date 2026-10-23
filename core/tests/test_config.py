@@ -48,6 +48,7 @@ def test_template_loads_and_matches_defaults():
         ('[factory]\nbranch_pattern = "feature/(\\\\d+)"\n', "id"),
         ('[factory]\nbranch_pattern = "("\n', "branch_pattern"),
         ('[factory]\ntracks = ["data", "web"]\n', "tracks"),
+        ('[factory]\ntracks = ["data", "data"]\n', "tracks"),
         ('[protect]\nglobs = "tests/**"\n', "protect.globs"),
         ("this is not toml", "factory.toml"),
     ],
@@ -61,3 +62,9 @@ def test_branch_regex_is_compiled(tmp_path):
     cfg = load_config(tmp_path)
     m = cfg.branch_regex.match("feature/0042-churn-features")
     assert m and m.group("id") == "0042"
+
+
+def test_directory_named_like_config_is_an_error(tmp_path):
+    (tmp_path / "factory.toml").mkdir()
+    with pytest.raises(ConfigError, match="cannot read"):
+        load_config(tmp_path)

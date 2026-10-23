@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from dataclasses import asdict, dataclass
 
-from .config import Config
+from .config import TRACKS, Config
 
 LIFECYCLE = ("draft", "approved", "tests-locked", "implemented")
 LOCKED_STATES = ("tests-locked", "implemented")
@@ -69,12 +69,12 @@ def parse_status(text: str, cfg: Config) -> SpecStatus:
     if pii not in ("yes", "no"):
         raise SpecStatusError(f"pii must be 'yes' or 'no', got {pii!r}")
     track = values["track"]
-    allowed_tracks = [t for t in TRACK_VALUES if t in cfg.tracks or (t == "mixed" and len(cfg.tracks) > 1)]
+    allowed_tracks = [t for t in TRACK_VALUES if t in cfg.tracks or (t == "mixed" and set(TRACKS) <= set(cfg.tracks))]
     if track not in allowed_tracks:
         raise SpecStatusError(f"track must be one of {', '.join(allowed_tracks)} for this repo, got {track!r}")
 
     jira = values.get("jira")
-    if jira is not None and not cfg.jira_key_regex.match(jira):
+    if jira is not None and not cfg.jira_key_regex.fullmatch(jira):
         raise SpecStatusError(f"jira {jira!r} does not match {cfg.jira_key_pattern}")
     if status != "draft" and jira is None:
         raise SpecStatusError(f"jira is required once status is {status!r}")

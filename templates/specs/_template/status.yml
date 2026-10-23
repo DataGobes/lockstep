@@ -1,0 +1,5 @@
+status: draft          # draft | approved | tests-locked | implemented
+pii: no                # yes = Copilot-only routing
+track: data            # data | ai | mixed
+jira:                  # Jira issue key, required from approved onwards
+locked_at_commit:      # commit SHA, filled when status becomes tests-locked

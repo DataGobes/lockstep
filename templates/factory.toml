@@ -1,0 +1,32 @@
+# Code factory settings for this repo. Every key is optional: delete a line to use
+# the default shown. Unknown keys are an error, so a typo never disables a gate.
+
+[factory]
+core_version = "0.1"   # code factory core this repo is pinned to
+specs_dir = "specs"
+# Branch -> spec id. Must capture the id in a group named "id".
+branch_pattern = '^(?:feature|bugfix|hotfix|test|spec)/(?P<id>\d{4})-'
+tracks = ["data", "ai"]   # remove one if the repo has only one track; "mixed" needs both
+
+[jira]
+key_pattern = '[A-Z][A-Z0-9]+-\d+'
+
+[protect]
+# Read-only for agents once the active spec is tests-locked. New files stay allowed.
+globs = [
+  "tests/**",
+  "**/*.unit_tests.yml",
+  "evals/thresholds.yml",
+  "evals/datasets/**",
+  "**/__snapshots__/**",
+]
+
+[pii]
+# Field names the prompt hook treats as personal data.
+columns = ["email", "phone", "iban", "first_name", "last_name", "full_name", "date_of_birth", "address"]
+
+[pr_size]
+warn_lines = 400
+fail_lines = 800
+max_files = 100   # Copilot code review's hard limit
+ignore = ["target/**", "**/*.lock", "uv.lock", "**/manifest.json"]

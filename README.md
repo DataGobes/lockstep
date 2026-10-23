@@ -62,6 +62,18 @@ the A/B procedure in
 On Azure DevOps, repo rules also **override** project rules when they conflict, so the skill flags every conflict and
 lists deliberate overrides in the PR description.
 
+## Shared core (`core/`)
+
+The `codefactory` Python package (stdlib only, Python 3.11+) holds the logic that hooks and Azure Pipelines both run, so
+the two can never disagree. It starts with:
+
+- `codefactory.config`: loads a repo's `factory.toml` (template in [`templates/factory.toml`](templates/factory.toml)).
+  Unknown keys are errors, so a typo never switches a gate off.
+- `codefactory.spec`: finds the active spec from the branch name (`feature/0042-*` -> `specs/0042-*/status.yml`).
+  Try it with `PYTHONPATH=core/src python3 -m codefactory.spec`.
+
+Run the tests with `cd core && uv run --with pytest python -m pytest`.
+
 ## Repo layout
 
 ```

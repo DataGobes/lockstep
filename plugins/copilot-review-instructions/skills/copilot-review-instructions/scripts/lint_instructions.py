@@ -33,6 +33,9 @@ UNSUPPORTED = [
      "Copilot cannot block, approve or reject a PR"),
     (r"\bchangelog\b.*\b(generate|write|add)\b|\b(generate|write|add)\b.*\bchangelog entr", "changing Copilot's core function is not supported"),
 ]
+# A blanket precedence claim silently overrules every project rule (repo already wins on Azure DevOps).
+BLANKET_OVERRIDE = re.compile(r"\b(this file|these (rules|instructions))\b.{0,40}\b(wins?|takes? precedence|overrides?|supersedes?)\b"
+                              r"|\b(project|org(anization)?)[- ]wide (rules|instructions)\b.{0,60}\b(don'?t|do not|no longer) apply\b", re.I)
 VAGUE = [
     r"\bbest practices?\b", r"\bSOLID\b", r"\bclean code\b", r"\bbe (more )?(accurate|consistent|thorough|careful)\b",
     r"\bdon'?t miss\b", r"\bhigh[- ]quality\b", r"\bwhere (appropriate|applicable|needed)\b", r"\bas (appropriate|needed)\b",
@@ -229,6 +232,9 @@ def main():
                 report("ERROR", path, n, "external link; Copilot code review does not follow links, inline the content")
 
         for n, rule in rules + prose:
+            if BLANKET_OVERRIDE.search(rule):
+                report("WARN", path, n, "blanket override of project-wide rules; override single rules, scoped, and list them "
+                                        f"in the PR description: {rule[:80]}")
             low = rule.lower()
             for rx, why in UNSUPPORTED:
                 if re.search(rx, low):

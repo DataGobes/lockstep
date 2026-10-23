@@ -101,4 +101,7 @@ Rewrite or drop a rule if it:
 - needs context outside the diff and the files it touches;
 - restates a project-level rule in other words;
 - describes how Copilot should write its comments;
+- declares that this file overrides the project-wide instructions in general ("where they disagree, this file wins").
+  On Azure DevOps repo rules already win, so a blanket line like that silently overrules every project rule. Override
+  one rule at a time, scoped to the paths it concerns, and list each override in the PR description;
 - can't name a single file in this repo where it applies.

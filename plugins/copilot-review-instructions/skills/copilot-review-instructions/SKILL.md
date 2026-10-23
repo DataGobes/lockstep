@@ -81,6 +81,9 @@ Conflicts with project rules: <none | item + your recommendation>
 Snippets: rules #3, #7 get bad/good examples from <file>
 ```
 
+If the user asked for something specific (e.g. "cover these two misses"), list those rules first as **Requested**, and put
+any further rules you'd suggest under **Optional extras**, so a targeted request doesn't quietly grow into a rewrite.
+On a targeted re-run, write only the Requested rules unless the user picks extras.
 Apply what the user changes, and wait for an explicit go-ahead.
 
 ### 6. Write the files

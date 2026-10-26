@@ -6,7 +6,10 @@ pin a tag (`--ref v0.1.0`); upgrading is running `/bootstrap-repo` again with a 
 To release: add the version's section here, run `python3 tools/check_release.py --set-version <version>`, merge, then
 tag the merge commit `v<version>`.
 
-## Unreleased
+## 0.2.0
+
+Ready for the pilot: gates start in warn mode, and red tests never reach main. Both follow points Mohammed
+raised.
 
 - **Red tests stay off main:** the test PR now merges into `feature/<id>-<slug>` instead of main, and only the green
   implementation merges into main (with squash merge, main's history never has a red commit). The tests lock at the

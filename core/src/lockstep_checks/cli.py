@@ -11,7 +11,7 @@ from pathlib import Path
 
 from .config import Config, ConfigError, load_config
 from .gitdiff import GitError, base_ref
-from .report import Finding, emit
+from .report import Finding, apply_mode, emit
 from .spec import SpecError, current_branch
 
 TITLE_ENV = "LOCKSTEP_PR_TITLE"
@@ -42,8 +42,8 @@ def run(check: str, description: str, fn: Callable[[PrContext], list[Finding]], 
             branch=args.branch or current_branch(root),
             title=args.title if args.title is not None else os.environ.get(TITLE_ENV),
         )
-        findings = fn(ctx)
-    except (ConfigError, SpecError, GitError) as e:
+        findings = apply_mode(fn(ctx), ctx.cfg.enforcement.mode(check))
+    except (ConfigError, SpecError, GitError) as e:  # a broken config or spec fails in any mode
         findings = [Finding("error", str(e))]
     return emit(findings, check)
 

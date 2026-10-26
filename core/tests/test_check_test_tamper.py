@@ -90,3 +90,22 @@ def test_end_to_end(repo, capsys):
     out = capsys.readouterr().out
     assert code == 1
     assert "tests/test_a.py" in out and "tests/test_b.py" not in out
+
+
+def test_warn_mode_passes_and_says_it_would_block(repo, capsys):
+    repo.commit(
+        {"tests/test_a.py": "def test_a():\n    assert 1\n", "lockstep.toml": '[enforcement]\ndefault = "warn"\n'}
+    )
+    repo.branch("feature/0042-x")
+    repo.commit({"tests/test_a.py": "def test_a():\n    assert True\n"})
+    code = run("check_test_tamper", "", _run, ["--root", str(repo.root), "--base", "main", "--title", "MXAAI-1 x"])
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "WARNING check_test_tamper: tests/test_a.py: would block (warn mode): modifies" in out
+
+
+def test_broken_config_fails_even_in_warn_mode(repo, capsys):
+    repo.commit({"lockstep.toml": '[enforcement]\ndefault = "warn"\nwarn_lines = 1\n'})
+    code = run("check_test_tamper", "", _run, ["--root", str(repo.root), "--base", "main"])
+    assert code == 1
+    assert "enforcement.warn_lines" in capsys.readouterr().out

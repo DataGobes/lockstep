@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from lockstep_checks.hooks import Event, guard_bash, protect_tests, run
+from lockstep_checks.hooks import Event, events, guard_bash, protect_tests, run
 
 SHIM = Path(__file__).resolve().parents[1] / "hooks" / "run-hook.sh"
 LOCKED = "status: tests-locked\npii: no\ntrack: data\njira: MXAAI-42\nlocked_at_commit: abc1234\n"
@@ -201,3 +201,57 @@ def test_shim_skips_an_old_python3_for_a_newer_versioned_one(locked_repo, tmp_pa
         check=False,
     )
     assert p.returncode == 0, p.stderr
+
+
+# enforcement modes and the event log
+
+WARN = '[enforcement]\ndefault = "warn"\n'
+
+
+def payload(root: Path, rel: str) -> str:
+    return json.dumps({"tool_name": "Edit", "tool_input": {"file_path": rel}, "cwd": str(root)})
+
+
+def logged(root: Path) -> list[dict]:
+    path = events.log_path(root)
+    return [json.loads(line) for line in path.read_text().splitlines()] if path.is_file() else []
+
+
+def test_enforce_blocks_and_logs(locked_repo, capsys):
+    assert run(protect_tests.hook, stdin=payload(locked_repo.root, "tests/test_a.py")) == 2
+    assert "BLOCKED by lockstep" in capsys.readouterr().err
+    [e] = logged(locked_repo.root)
+    assert (e["hook"], e["action"], e["branch"]) == ("protect_tests", "blocked", "feature/0042-churn")
+
+
+def test_warn_mode_allows_locked_test_edit_and_logs(locked_repo, capsys):
+    locked_repo.commit({"lockstep.toml": WARN})
+    assert run(protect_tests.hook, stdin=payload(locked_repo.root, "tests/test_a.py")) == 0
+    assert "WARN MODE, allowed this time" in capsys.readouterr().err
+    assert [e["action"] for e in logged(locked_repo.root)] == ["warned"]
+
+
+def test_warn_mode_still_blocks_dangerous_commands(locked_repo):
+    locked_repo.commit({"lockstep.toml": WARN})
+    cmd = json.dumps({"tool_name": "Bash", "tool_input": {"command": "git push -f"}, "cwd": str(locked_repo.root)})
+    assert run(guard_bash.hook, stdin=cmd) == 2
+    assert [e["action"] for e in logged(locked_repo.root)] == ["blocked"]
+
+
+def test_broken_config_blocks_in_warn_mode(locked_repo, capsys):
+    locked_repo.commit({"lockstep.toml": '[enforcement]\ndefault = "maybe"\n'})
+    assert run(protect_tests.hook, stdin=payload(locked_repo.root, "tests/test_a.py")) == 2
+    assert "blocking to be safe" in capsys.readouterr().err
+
+
+def test_allowed_calls_are_not_logged(locked_repo):
+    assert run(protect_tests.hook, stdin=payload(locked_repo.root, "src/app.py")) == 0
+    assert logged(locked_repo.root) == []
+
+
+def test_event_summary_counts_per_hook(locked_repo, capsys):
+    locked_repo.commit({"lockstep.toml": WARN})
+    for _ in range(2):
+        run(protect_tests.hook, stdin=payload(locked_repo.root, "tests/test_a.py"))
+    out = events.summary(events.log_path(locked_repo.root))
+    assert out[1].split() == ["protect_tests", "warned", "2"]

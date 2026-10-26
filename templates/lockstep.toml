@@ -60,7 +60,7 @@ living = false
 spec_pr_above_criteria = 8
 # - any of these traits: "design" (the research and design step), "contract" (status.yml contract: yes, for a
 #   change to an enforced data contract or an interface others use), "pii" (status.yml pii: yes).
-spec_pr_for = ["design", "contract"]
+spec_pr_for = ["design", "contract", "pii"]
 
 [enforcement]
 # "enforce" blocks. "warn" lets the change through, reports that it would have been blocked, and counts it

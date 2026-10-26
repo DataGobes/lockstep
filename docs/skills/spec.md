@@ -14,8 +14,8 @@ a large or risky spec gets a spec PR of its own first.
   the criteria) and `design.md` (interfaces, data flow, test seams, after them), reviewed in a spec PR of its own.
 - *When does a spec get its own spec PR?* When it is large or risky enough that the criteria should be agreed
   before anyone writes tests. `[specs]` in `lockstep.toml` sets the lines: more than `spec_pr_above_criteria`
-  criteria (8 by default), or a trait in `spec_pr_for` (by default the research and design step, and `contract: yes`
-  for a change to an enforced contract or an interface others use; add `pii` to include personal data). Set
+  criteria (8 by default), or a trait in `spec_pr_for` (by default the research and design step, `contract: yes` for a
+  change to an enforced contract or an interface others use, and `pii: yes` for personal data). Set
   `spec_pr_above_criteria = 0` for a spec PR every time. `PYTHONPATH=.lockstep/src python3 -m
   lockstep_checks.spec_pr <id>` says which way a spec goes, and you can always ask for a spec PR anyway.
 - *EARS or Given/When/Then?* Either. `[specs] ac_format` in `lockstep.toml` can require one for the whole repo

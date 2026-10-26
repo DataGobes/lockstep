@@ -92,7 +92,7 @@ class Specs:
     spec_pr_above_criteria: int = 8
     # "design": it takes the research and design step. "contract": its status.yml says contract: yes (it changes an
     # enforced data contract or another interface others consume). "pii": it touches personal data.
-    spec_pr_for: tuple[str, ...] = ("design", "contract")
+    spec_pr_for: tuple[str, ...] = ("design", "contract", "pii")
 
 
 @dataclass(frozen=True)

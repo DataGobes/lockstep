@@ -46,8 +46,8 @@ It picks the next free id (checking origin/main too, so run `git fetch origin` f
 **One PR by default.** The spec goes into the test PR with its failing tests, so one review covers both and the spec
 reaches main only with its green implementation. A large or risky spec gets a spec PR of its own first, into main,
 so its criteria are agreed before anyone writes tests: `lockstep.toml` sets the lines in `[specs]`
-(`spec_pr_above_criteria`, 8 by default, and `spec_pr_for`: the research and design step and `contract: yes` by
-default, `pii: yes` if the repo adds it). Step 8 checks which applies; the user may always ask for a spec PR anyway.
+(`spec_pr_above_criteria`, 8 by default, and `spec_pr_for`: by default the research and design step, `contract: yes`
+and `pii: yes`). Step 8 checks which applies; the user may always ask for a spec PR anyway.
 
 ## 4a. Large work: research first
 

@@ -179,10 +179,9 @@ def test_design_and_contract_specs_need_a_spec_pr_by_default(tmp_path, trait, wh
     assert why in errors(spec_in_test_pr(tmp_path, 1, **{trait: True}))[0]
 
 
-def test_pii_needs_a_spec_pr_only_when_the_repo_says_so(tmp_path):
-    assert spec_in_test_pr(tmp_path, 1, pii=True) == []
-    found = errors(spec_in_test_pr(tmp_path / "strict", 1, 'spec_pr_for = ["pii"]', pii=True))
-    assert "pii: yes" in found[0]
+def test_pii_needs_a_spec_pr_by_default_and_a_repo_can_drop_it(tmp_path):
+    assert "pii: yes" in errors(spec_in_test_pr(tmp_path, 1, pii=True))[0]
+    assert spec_in_test_pr(tmp_path / "relaxed", 1, 'spec_pr_for = ["design", "contract"]', pii=True) == []
 
 
 def test_traits_left_out_of_spec_pr_for_allow_one_pr(tmp_path):

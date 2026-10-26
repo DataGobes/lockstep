@@ -55,8 +55,8 @@ tag the merge commit `v<version>`.
   phase is still proven, and red tests still stay off main. A large or risky spec gets a spec PR of its own first,
   by the lines in `[specs]`: more criteria than `spec_pr_above_criteria` (8 by default; 0 restores a spec PR for
   every spec), or a trait in `spec_pr_for` (by default `design`, the research and design step, and `contract`, the
-  new `contract: yes` in `status.yml` for a change to an enforced data contract or an interface others use; `pii` can
-  be added). `check_spec_required` fails a test PR that brings a spec over a line, and the new `lockstep_checks.spec_pr
+  new `contract: yes` in `status.yml` for a change to an enforced data contract or an interface others use, and `pii`,
+  for personal data). `check_spec_required` fails a test PR that brings a spec over a line, and the new `lockstep_checks.spec_pr
   <id>` tells the `spec` skill which way to go. `new_spec.py` now starts the spec on `test/<id>-<slug>` and takes
   `--contract`. Replaces the unreleased opt-in quick lane (`quick_max_criteria`). After Kiro's Quick Spec and BMAD's
   scale-adaptive tracks.

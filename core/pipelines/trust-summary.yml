@@ -1,0 +1,64 @@
+# Lockstep trust summary for Azure Pipelines: a steps template. Report only, it never fails the PR.
+# A product repo includes it in a job that runs after every other PR job, whether they passed or failed:
+#
+#   steps:
+#     - template: .lockstep/pipelines/trust-summary.yml
+#
+# It downloads the lockstep-evidence-* artifacts the other jobs published, adds the lock commit from git, and posts
+# one comment on the PR (updated in place on later runs, created closed so it never blocks "resolve all comments").
+# The build service needs "Contribute to pull requests" on the repository; without it the step warns and keeps the
+# summary as the lockstep-summary artifact. See docs/trust-summary.md.
+
+parameters:
+  - name: lockstepDir
+    displayName: Folder that holds the Lockstep core, relative to the repo root
+    type: string
+    default: .lockstep
+  - name: pythonVersion
+    type: string
+    default: "3.11"
+
+steps:
+  # The lock commit and the spec's criteria come from git, so this job needs the full history too.
+  - checkout: self
+    fetchDepth: 0
+    fetchTags: false
+
+  - task: UsePythonVersion@0
+    displayName: "Summary: use Python ${{ parameters.pythonVersion }}"
+    inputs:
+      versionSpec: ${{ parameters.pythonVersion }}
+
+  - task: DownloadPipelineArtifact@2
+    displayName: "Summary: download the evidence"
+    condition: always()
+    continueOnError: true
+    inputs:
+      buildType: current
+      itemPattern: lockstep-evidence-*/**
+      targetPath: $(Pipeline.Workspace)/lockstep-evidence
+
+  - script: python -m lockstep_checks.ado_pr_title
+    displayName: "Summary: read PR title"
+    condition: always()
+    continueOnError: true
+    env:
+      PYTHONPATH: $(Build.SourcesDirectory)/${{ parameters.lockstepDir }}/src
+      SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+
+  - script: >-
+      python -m lockstep_checks.trust_summary --post
+      --evidence "$(Pipeline.Workspace)/lockstep-evidence"
+      --artifact-dir "$(Build.ArtifactStagingDirectory)/lockstep-summary"
+    displayName: "Summary: post the Lockstep summary on the PR"
+    condition: always()
+    continueOnError: true
+    env:
+      PYTHONPATH: $(Build.SourcesDirectory)/${{ parameters.lockstepDir }}/src
+      SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+
+  - publish: $(Build.ArtifactStagingDirectory)/lockstep-summary
+    artifact: lockstep-summary
+    displayName: "Summary: keep the summary as an artifact"
+    condition: always()
+    continueOnError: true

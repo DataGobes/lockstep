@@ -3,7 +3,8 @@
 In a pipeline (``TF_BUILD=True``) findings become ``##vso[task.logissue]`` commands,
 so they show as errors and warnings on the PR with the file and line, and the run is
 tagged ``lockstep-blocked-<check>`` or ``lockstep-would-block-<check>`` so the team can
-count, across PRs, how often each check fired.
+count, across PRs, how often each check fired. With ``LOCKSTEP_EVIDENCE_DIR`` set, each check's findings also go to
+the ``checks`` evidence file the trust summary reads.
 """
 
 from __future__ import annotations
@@ -11,8 +12,10 @@ from __future__ import annotations
 import os
 import sys
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass, replace
+from dataclasses import asdict, dataclass, replace
 from typing import Literal, TextIO
+
+from .evidence import evidence_dir, record_check
 
 
 @dataclass(frozen=True)
@@ -56,6 +59,9 @@ def emit(
             where = f"{f.path}:{f.line}: " if f.path and f.line else f"{f.path}: " if f.path else ""
             print(f"{f.level.upper()} {check}: {where}{f.message}", file=out)
     errors = sum(f.level == "error" for f in findings)
+    folder = evidence_dir(env)
+    if folder is not None and check.startswith("check_"):
+        record_check(folder, check, [asdict(f) for f in findings])
     if in_pipeline:
         name = check.removeprefix("check_")
         if errors:

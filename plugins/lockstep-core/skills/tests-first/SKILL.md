@@ -86,7 +86,8 @@ Then run `PYTHONPATH=.lockstep/src python3 -m lockstep_checks.check_ac_traceabil
   --write` and add `specs/living/` to this commit: the criteria move from "Coming" to "In force", which becomes true
   when the feature branch merges into main.
 - Ask before pushing. Open the PR from `test/<id>-<slug>` **into `feature/<id>-<slug>`, not main**. The title starts
-  with the Jira key; the description has the AC → test → result table from step 4, with each failure reason, and says
+  with the Jira key; the description says which criteria the red report covered (the pipeline's Lockstep summary
+  comment shows each test red as expected, so don't paste the table), and says
   the PR is a **spec and test PR** (the default; it asks the reviewer to check the criteria first, then the tests)
   or a **test PR** (after a spec PR). Review fixes to the spec and the tests go on the test branch; they are allowed
   until it merges.

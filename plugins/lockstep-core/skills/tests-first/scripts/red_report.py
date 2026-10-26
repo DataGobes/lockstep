@@ -22,7 +22,6 @@ import sys
 import tempfile
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
 PROBLEMS = {"passes", "skipped", "wrong-reason", "collection-error", "not-run"}
 
 
@@ -47,8 +46,11 @@ def run_pytest(root: Path, pytest_cmd: str, extra: list[str]) -> dict[str, dict]
     with tempfile.TemporaryDirectory() as tmp:
         report = Path(tmp) / "red.json"
         env = dict(os.environ, LOCKSTEP_RED_REPORT=str(report))
-        env["PYTHONPATH"] = os.pathsep.join(filter(None, [str(HERE), env.get("PYTHONPATH")]))
-        cmd = [*shlex.split(pytest_cmd), "-p", "lockstep_red", "-q", "-p", "no:cacheprovider", *extra]
+        env.pop("LOCKSTEP_EVIDENCE_DIR", None)  # a local red report is not pipeline evidence
+        core = str(root / ".lockstep" / "src")  # the plugin lives in the Lockstep core
+        env["PYTHONPATH"] = os.pathsep.join(filter(None, [core, env.get("PYTHONPATH")]))
+        cmd = [*shlex.split(pytest_cmd), "-p", "lockstep_checks.pytest_evidence", "-q", "-p", "no:cacheprovider"]
+        cmd += extra
         subprocess.run(cmd, cwd=root, env=env, check=False)
         if not report.exists():
             raise SystemExit(f"red_report: pytest wrote no report; check that `{pytest_cmd}` runs pytest")

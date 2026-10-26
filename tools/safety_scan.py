@@ -61,6 +61,7 @@ _RULES: tuple[tuple[str, re.Pattern[str], set[str] | None, str], ...] = tuple(
 # (path, kind) -> why it is intended
 ALLOWED: dict[tuple[str, str], str] = {
     ("core/src/lockstep_checks/ado_pr_title.py", "network"): "reads the PR title from the Azure DevOps REST API in CI",
+    ("core/src/lockstep_checks/trust_summary.py", "network"): "posts the PR summary comment with the Azure DevOps API",
 }
 
 

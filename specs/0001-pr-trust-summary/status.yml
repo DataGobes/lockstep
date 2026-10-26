@@ -1,4 +1,4 @@
-status: tests-locked   # draft | approved | tests-locked | implemented
+status: implemented    # draft | approved | tests-locked | implemented
 pii: no                # yes = Copilot-only routing
 track: mixed           # data | ai | mixed
 jira:                  # none: Lockstep's own repo has no Jira project ([jira] required = false)

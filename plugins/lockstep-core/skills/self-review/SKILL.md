@@ -66,9 +66,10 @@ Fix what you can, rerun the checks from the implement skill, and run step 1 and 
 
 Use the repo's `.azuredevops/pull_request_template.md`:
 
-- **AC → test → result:** run
-  `python3 ../tests-first/scripts/red_report.py --root <repo> --spec <id> --expect green --pytest "<repo's pytest>"`
-  and paste its table; add rows for dbt and eval tests by hand.
+- **Lockstep summary:** don't paste a results table. The pipeline posts the summary comment from its own run. To check
+  before pushing, run
+  `python3 ../tests-first/scripts/red_report.py --root <repo> --spec <id> --expect green --pytest "<repo's pytest>"`;
+  dbt and eval tests you check by hand.
 - **Self-review:** the two reports, under their own headings, with what you fixed.
 - **Assumptions:** every decision you made that the spec doesn't state.
 - **Agent used** and **PR type: implementation**; tick only the checklist items that are true.

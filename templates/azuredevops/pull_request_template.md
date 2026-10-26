@@ -11,11 +11,12 @@ Prefixes the checks read: [test-change] for a deliberate change to locked tests,
 
 <One or two sentences.>
 
-## AC → test → result
+## Lockstep summary
 
-| AC | Test | Result |
-|----|------|--------|
-| 0042/AC-001 | tests/test_x.py::test_y | passes |
+The pipeline posts the Lockstep summary comment on this PR: each criterion with its tests and their results in this
+run, the commit where the tests locked, the test-tamper check, changed-line coverage and the mutation score. Don't
+paste a results table here: the summary is computed from the pipeline run, not written by the author or the agent.
+If a line in it is not clean, say why under "What and why".
 
 ## Self-review
 

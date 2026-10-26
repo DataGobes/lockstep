@@ -1,7 +1,10 @@
 """pytest plugin: record, per test, the criteria it names and why it failed.
 
-Loaded by red_report.py with ``-p lockstep_red``; writes JSON to $LOCKSTEP_RED_REPORT at the end of the run.
-A red test must fail on an assertion or NotImplementedError, not because it cannot import or call the code.
+  pytest -p lockstep_checks.pytest_evidence
+
+At the end of the run it writes the tests as JSON to $LOCKSTEP_RED_REPORT (the tests-first skill's red report), and
+to the quality evidence in $LOCKSTEP_EVIDENCE_DIR (the trust summary). A red test must fail on an assertion or
+NotImplementedError, not because it cannot import or call the code.
 """
 
 from __future__ import annotations
@@ -10,6 +13,8 @@ import json
 import os
 
 import pytest
+
+from .evidence import evidence_dir, read, write
 
 EXPECTED = {"AssertionError", "NotImplementedError"}
 WRONG = {"ImportError", "ModuleNotFoundError", "SyntaxError", "NameError", "AttributeError", "TypeError"}
@@ -64,3 +69,8 @@ def pytest_sessionfinish(session):
     if path:
         with open(path, "w", encoding="utf-8") as f:
             json.dump(_tests, f, indent=2)
+    folder = evidence_dir()
+    if folder is not None:
+        data = read(folder, "quality")
+        data["signals"].setdefault("tests", {}).update(_tests)  # a second pytest run in the same job adds to it
+        write(folder, data)

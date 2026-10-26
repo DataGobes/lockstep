@@ -21,6 +21,13 @@
       "keywords": ["lockstep", "dbt", "databricks", "lineage"]
     },
     {
+      "name": "lockstep-ai",
+      "source": "./plugins/lockstep-ai",
+      "description": "Lockstep skills for the AI track: write and check golden eval cases that trace to acceptance criteria and hold no personal data.",
+      "version": "0.1.0",
+      "keywords": ["lockstep", "evals", "llm", "golden-dataset"]
+    },
+    {
       "name": "copilot-review-instructions",
       "source": "./plugins/copilot-review-instructions",
       "description": "Generate and maintain repo-specific Copilot code review instructions (.github/copilot-instructions.md and path-scoped *.instructions.md) on top of project-wide rules.",

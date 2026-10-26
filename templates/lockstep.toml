@@ -45,6 +45,10 @@ no_spec_needed = ["specs/**", "docs/**", "**/*.md"]
 # How acceptance criteria are written: "ears" (AC-001 WHEN ... THE SYSTEM SHALL ...), "given-when-then"
 # (a title, then GIVEN / WHEN / THEN steps under it), or "any" (either). check_ac_traceability holds specs to it.
 ac_format = "any"
+# Large specs get a research step (options, trade-offs, a decision) and a design step (interfaces, data flow, test
+# seams) before approval: research.md and design.md next to spec.md. Specs with at least this many criteria need
+# them; 0 turns the rule off. Any spec can opt in alone with `design: yes` in its status.yml.
+design_from_criteria = 0
 
 [enforcement]
 # "enforce" blocks. "warn" lets the change through, reports that it would have been blocked, and counts it

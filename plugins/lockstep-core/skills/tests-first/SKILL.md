@@ -23,7 +23,8 @@ Paths below are relative to this skill's folder. The scripts need Python 3.11+ a
 
 First agree the **seams**: where each criterion is tested from, such as a public function, a dbt model's output or a
 prompt's response, so the tests check behaviour and survive refactoring. One seam per criterion is usual. These
-locked tests are acceptance tests; the implementation adds its own unit tests later, one slice at a time.
+locked tests are acceptance tests; the implementation adds its own unit tests later, one slice at a time. If the
+spec has a `design.md`, its section 5 already names the seams: use them, and raise any that no longer fit.
 
 From section 5 of the spec (test and eval plan), list each criterion with its seam, test type and location. Include the
 edge cases the criterion's WHEN / IF conditions imply: empty input, the boundary values, duplicates, a failing

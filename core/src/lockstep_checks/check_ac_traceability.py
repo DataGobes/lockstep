@@ -7,8 +7,8 @@ Tests name a criterion with the spec id, because every spec numbers from AC-001:
   eval case       ac field or column: 0042/AC-001
 
 Specs with status tests-locked or implemented must have a test for every active
-criterion. ``--spec-only`` lints the specs only (sections, criteria, open questions):
-that is the gate for a spec PR.
+criterion. ``--spec-only`` lints the specs only (sections, criteria, open questions,
+and research.md and design.md where a spec needs them): that is the gate for a spec PR.
 """
 
 from __future__ import annotations
@@ -23,6 +23,7 @@ from pathlib import Path
 
 from .cli import run
 from .config import Config
+from .designdoc import design_problems
 from .report import Finding
 from .spec import SpecError, list_specs, load_status
 from .specdoc import SpecDoc, parse_spec
@@ -145,6 +146,8 @@ def check_traceability(root: Path, cfg: Config, spec_only: bool) -> list[Finding
             for line, q in doc.open_questions():
                 msg = f"open question must be resolved before '{status.status}': {q}"
                 findings.append(Finding("error", msg, rel_md, line))
+        for name, line, msg in design_problems(spec_dir, status, doc, cfg):
+            findings.append(Finding("error", msg, (spec_dir / name).relative_to(root).as_posix(), line))
         docs[spec_id] = (spec_dir, doc, status.tests_locked)
     findings.extend(_check_cross_spec_pointers(root, docs))
     if spec_only:

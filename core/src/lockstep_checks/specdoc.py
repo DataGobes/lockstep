@@ -44,10 +44,11 @@ class SpecDoc:
     text: dict[str, list[str]] = field(default_factory=dict)  # active AC id -> its lines, steps included
 
     def open_questions(self) -> list[tuple[int, str]]:
-        return [(n, t.strip()) for n, t in self.sections.get(7, []) if _LIST_ITEM.match(t)]
+        return list_items(self.sections.get(7, []))
 
 
-def parse_spec(text: str, ac_format: str = "any") -> SpecDoc:
+def parse_sections(text: str) -> dict[int, list[tuple[int, str]]]:
+    """Numbered ``## <n>. Title`` sections -> their (line number, text) lines, code blocks left out."""
     sections: dict[int, list[tuple[int, str]]] = {}
     current: int | None = None
     in_code = False
@@ -64,7 +65,15 @@ def parse_spec(text: str, ac_format: str = "any") -> SpecDoc:
             current = None
         elif current is not None:
             sections[current].append((n, line))
+    return sections
 
+
+def list_items(lines: list[tuple[int, str]]) -> list[tuple[int, str]]:
+    return [(n, t.strip()) for n, t in lines if _LIST_ITEM.match(t)]
+
+
+def parse_spec(text: str, ac_format: str = "any") -> SpecDoc:
+    sections = parse_sections(text)
     problems: list[tuple[int | None, str]] = []
     for number, title in REQUIRED_SECTIONS.items():
         if number not in sections:

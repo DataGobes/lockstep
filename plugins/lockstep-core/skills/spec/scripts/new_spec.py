@@ -45,9 +45,9 @@ def used_ids(root: Path, specs_dir: str) -> set[int]:
     return {int(m[1]) for name in names if (m := _ID.match(name))}
 
 
-def fill_status(text: str, track: str, pii: str, jira: str | None) -> str:
+def fill_status(text: str, track: str, pii: str, jira: str | None, design: str | None = None) -> str:
     lines = text.splitlines()
-    for key, value in (("pii", pii), ("track", track), ("jira", jira)):
+    for key, value in (("pii", pii), ("track", track), ("jira", jira), ("design", design)):
         for i, line in enumerate(lines):
             if value is not None and re.match(rf"{key}:(\s|$)", line):
                 hash_at = line.find("#")
@@ -75,6 +75,7 @@ def create(
     specs_dir: str = "specs",
     spec_id: str | None = None,
     slug: str | None = None,
+    design: bool = False,
 ) -> dict:
     template = root / specs_dir / "_template"
     if not (template / "spec.md").is_file() or not (template / "status.yml").is_file():
@@ -86,10 +87,18 @@ def create(
         raise SpecError(f"spec id {spec_id} is already used")
     slug = slug or slugify(title)
     folder = root / specs_dir / f"{spec_id}-{slug}"
-    shutil.copytree(template, folder)
+    # design/ holds research.md and design.md, for specs that take the research and design step.
+    shutil.copytree(template, folder, ignore=shutil.ignore_patterns("design"))
+    if design and (template / "design").is_dir():
+        for doc in sorted((template / "design").glob("*.md")):
+            (folder / doc.name).write_text(
+                doc.read_text(encoding="utf-8").replace("<short title>", title), encoding="utf-8"
+            )
     spec_md, status = folder / "spec.md", folder / "status.yml"
     spec_md.write_text(fill_spec(spec_md.read_text(encoding="utf-8"), spec_id, title), encoding="utf-8")
-    status.write_text(fill_status(status.read_text(encoding="utf-8"), track, pii, jira), encoding="utf-8")
+    status.write_text(
+        fill_status(status.read_text(encoding="utf-8"), track, pii, jira, "yes" if design else None), encoding="utf-8"
+    )
     return {"id": spec_id, "spec_dir": folder.relative_to(root).as_posix(), "branch": f"spec/{spec_id}-{slug}"}
 
 
@@ -103,6 +112,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--id", dest="spec_id", help="use this id instead of the next free one")
     ap.add_argument("--slug", help="folder slug (default: from the title)")
     ap.add_argument("--specs-dir", default="specs")
+    ap.add_argument("--design", action="store_true", help="add research.md and design.md (large specs)")
     args = ap.parse_args(argv)
     if args.jira and not _JIRA.fullmatch(args.jira):
         ap.error("--jira takes an issue key such as MXAAI-123")
@@ -112,7 +122,15 @@ def main(argv: list[str] | None = None) -> int:
         ap.error("--slug takes lower-case words joined by hyphens")
     try:
         result = create(
-            args.root.resolve(), args.title, args.track, args.pii, args.jira, args.specs_dir, args.spec_id, args.slug
+            args.root.resolve(),
+            args.title,
+            args.track,
+            args.pii,
+            args.jira,
+            args.specs_dir,
+            args.spec_id,
+            args.slug,
+            args.design,
         )
     except SpecError as e:
         print(f"new_spec: {e}", file=sys.stderr)

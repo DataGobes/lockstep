@@ -34,6 +34,9 @@ means the same as a block: stop and say why.
 6. **Contracts are versioned, not edited.** A dbt model with `contract: enforced` changes only through a new model
    version that a spec describes.
 7. **Small batches.** Aim for 400 changed lines or fewer per PR, and never more than 100 files.
+8. **Build only what a criterion needs.** No helpers, abstractions, config flags or extension points that no
+   criterion uses yet; no new dependency where the standard library or a pinned one does. Code no criterion needs is
+   dead code: delete it. (After SDTRD's YAGNI rules.)
 
 Business terms mean what `GLOSSARY.md` says. Use its terms in specs, tests and code, not the synonyms it lists to avoid.
 
@@ -73,7 +76,7 @@ Use the spec id, because every spec numbers from AC-001:
 - Flag a test whose expected value is computed by the code under test or a copy of its logic; expected values come from a literal, a worked example or the spec.
 - Flag implementation code that branches on literal values from test fixtures, or on signs of a test run such as `PYTEST_CURRENT_TEST` or an environment named `test`.
 - In a PR whose title starts with `[test-change]`, flag loosened assertions, wider tolerances, lower eval thresholds and removed expected rows, and ask which criterion justifies each one.
-- Flag scope creep: refactors, renames or formatting changes in files the change does not need, mixed into a feature or fix.
+- Flag scope creep: refactors, renames or formatting changes in files the change does not need, and speculative code no criterion uses (unused helpers, abstractions, config flags, new dependencies), mixed into a feature or fix.
 - Flag a changed column, type or constraint in a dbt model with `contract: enforced`; it needs a new model version instead.
 - Flag log lines, print statements and exception messages that include row values or person-related columns (names, emails, addresses, phone numbers); log ids and counts instead.
 - Flag error masking: a broad `except` that continues, or `coalesce` / `try_cast` that hides bad input without a test that covers it.

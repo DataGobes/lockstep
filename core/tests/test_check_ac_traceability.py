@@ -180,3 +180,43 @@ def test_cli_spec_only(tmp_path, capsys):
     write(tmp_path, spec_files(state="approved", questions="- open?\n"))
     assert main(["--root", str(tmp_path), "--spec-only"]) == 1
     assert "open question" in capsys.readouterr().out
+
+
+def test_superseded_warning_names_the_replacement(tmp_path):
+    write(tmp_path, spec_files(state="approved"))
+    write(tmp_path, {"tests/test_x.py": '@pytest.mark.ac("0042/AC-002")\n'})
+    assert "point the test at 0042/AC-003" in messages(check(tmp_path), "warning")[0]
+
+
+def test_pointer_to_an_inactive_criterion_in_the_same_spec_is_an_error():
+    doc = parse_spec("## 3. Acceptance criteria\n- AC-001 x\n- ~~AC-002~~ superseded by AC-009\n")
+    assert doc.replacements == {"AC-002": (None, "AC-009")}
+    assert "AC-002 is superseded by AC-009, which is not an active criterion here" in [m for _, m in doc.problems]
+
+
+def later_spec(old_line: str) -> dict[str, str]:
+    files = spec_files(state="approved")
+    old = files["specs/0042-churn/spec.md"].replace("- ~~AC-002~~ superseded by AC-003", old_line)
+    return {**files, "specs/0042-churn/spec.md": old, **spec_files(spec_id="0057", state="approved")}
+
+
+def test_cross_spec_pointer_to_an_active_criterion_passes(tmp_path):
+    write(tmp_path, later_spec("- ~~AC-002~~ superseded by 0057/AC-001"))
+    assert messages(check(tmp_path, spec_only=True)) == []
+    write(tmp_path, {"tests/test_x.py": '@pytest.mark.ac("0042/AC-002")\n'})
+    assert "point the test at 0057/AC-001" in messages(check(tmp_path), "warning")[0]
+
+
+@pytest.mark.parametrize(
+    ("line", "error"),
+    [
+        ("- ~~AC-002~~ superseded by 0099/AC-001", "AC-002 is superseded by 0099/AC-001, but there is no spec 0099"),
+        (
+            "- ~~AC-002~~ superseded by 0057/AC-002",
+            "AC-002 is superseded by 0057/AC-002, which is not an active criterion of spec 0057",
+        ),
+    ],
+)
+def test_cross_spec_pointer_must_name_a_real_active_criterion(tmp_path, line, error):
+    write(tmp_path, later_spec(line))
+    assert any(m.endswith(error) for m in messages(check(tmp_path, spec_only=True)))

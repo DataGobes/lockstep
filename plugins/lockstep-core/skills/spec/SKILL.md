@@ -55,6 +55,10 @@ Fill all seven sections of `spec.md`, keeping the template's headings. One to tw
    One behaviour per criterion: split any "and". Name concrete values, limits and units (rows, minutes, euros, a
    score). Cover the unwanted cases the issue implies: empty input, duplicates, late data, a failing upstream.
    Non-functional criteria need a number: "< 15 min on staging", not "fast".
+
+   **Changing an earlier spec's behaviour:** never edit or delete its criteria. In the earlier spec, strike each one
+   this spec replaces and point to the new one: `- ~~AC-003~~ superseded by <this id>/AC-001`. Commit that edit in
+   this spec PR. Tests that name the old criterion then get a warning; moving them is a `[test-change]` PR.
 4. **Interfaces and data contract:** inputs, outputs, whether a dbt contract is enforced (a change there needs a new
    model version), and downstream consumers. Ask the user for lineage rather than querying data yourself.
 5. **Test and eval plan:** one row per criterion: test type (pytest, dbt unit test, dbt data test, eval case) and

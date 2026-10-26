@@ -47,8 +47,8 @@ def base_ref(arg: str | None, env: Mapping[str, str] | None = None) -> str:
     return "origin/main"
 
 
-def changed_files(root: Path, base: str) -> list[ChangedFile]:
-    spec = f"{base}...HEAD"
+def changed_files(root: Path, base: str, head: str = "HEAD") -> list[ChangedFile]:
+    spec = f"{base}...{head}"
     statuses = _name_status(_git(root, "diff", "-M", "--name-status", "-z", spec))
     counts = _numstat(_git(root, "diff", "-M", "--numstat", "-z", spec))
     added = _added_lines(_git(root, "diff", "-M", "-U0", "--no-color", "--no-ext-diff", spec))

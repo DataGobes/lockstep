@@ -1,7 +1,8 @@
 """PreToolUse on file edits: once the active spec is tests-locked, existing tests are read-only.
 
 A file is protected when it matches ``[protect] globs`` and already exists on the base
-branch (origin/main). New test files stay allowed. On a branch without a spec the edit
+branch (origin/main) or, on a feature branch, at the commit where the test PR locked the
+spec's tests (lock.py). New test files stay allowed. On a branch without a spec the edit
 is allowed with a warning; CI's check_test_tamper is the backstop either way.
 """
 
@@ -14,6 +15,7 @@ from pathlib import Path
 
 from ..config import load_config
 from ..gitdiff import base_ref
+from ..lock import lock_commit
 from ..paths import matches_any
 from ..spec import SpecError, current_branch, resolve_spec
 from . import Decision, Event, repo_root, run
@@ -86,6 +88,7 @@ def hook(event: Event) -> Decision:
         return Decision.allow()
 
     base = base_ref(None)
+    lock = lock_commit(root, base, spec, cfg)
     warnings = []
     existing = []
     for rel in protected:
@@ -93,7 +96,7 @@ def hook(event: Event) -> Decision:
         if on_base is None:
             on_base = _exists_on(root, "HEAD", rel)
             warnings.append(f"{base} is not fetched; judged {rel} against HEAD instead")
-        if on_base:
+        if on_base or (lock and _exists_on(root, lock, rel)):
             existing.append(rel)
     if not existing:
         return Decision.allow(*warnings)

@@ -3,9 +3,13 @@
 
   python3 start_implement.py --root <repo> --spec 0042 [--dry-run]
 
-Ready means: the spec on origin/main has status tests-locked (the test PR is merged, so the lock is real), it is not
-marked pii: yes, and no other branch or worktree for this spec exists (one implementation per spec at a time).
-Creates ../<repo>-<id> as a git worktree on feature/<id>-<slug>, branched from origin/main. Prints JSON. Stdlib only.
+Ready means: the spec is on origin/main (the spec PR merged), its status on origin/feature/<id>-<slug> is
+tests-locked (the test PR merged into the feature branch, so the lock is real; red tests never go to main), it is not
+marked pii: yes, and no worktree has the feature branch checked out (one implementation per spec at a time).
+Creates ../<repo>-<id> as a git worktree on feature/<id>-<slug>. Prints JSON. Stdlib only.
+
+Specs locked on main by Lockstep 0.1 (the test PR went to main) have no feature branch yet; the branch is then
+created from origin/main.
 """
 
 from __future__ import annotations
@@ -29,49 +33,59 @@ def git(root: Path, *args: str, check: bool = True) -> str:
     return p.stdout
 
 
-def spec_on_main(root: Path, spec_id: str, specs_dir: str) -> tuple[str, dict[str, str]]:
+def spec_folder(root: Path, spec_id: str, specs_dir: str) -> str:
     names = git(root, "ls-tree", "--name-only", f"origin/main:{specs_dir}", check=False).split()
     folders = [n for n in names if n.startswith(f"{spec_id}-")]
     if not folders:
-        raise NotReady(f"spec {spec_id} is not on origin/main yet; merge the spec and test PRs first")
+        raise NotReady(f"spec {spec_id} is not on origin/main yet; merge the spec PR first")
     if len(folders) > 1:
         raise NotReady(f"spec id {spec_id} has more than one folder on main: {', '.join(folders)}")
-    text = git(root, "show", f"origin/main:{specs_dir}/{folders[0]}/status.yml")
+    return folders[0]
+
+
+def read_status(root: Path, ref: str, path: str) -> dict[str, str]:
     values = {}
-    for line in text.splitlines():
+    for line in git(root, "show", f"{ref}:{path}").splitlines():
         m = re.match(r"^(\w+):\s*([^#]*?)\s*(?:#.*)?$", line)
         if m:
             values[m[1]] = m[2].strip("'\"")
-    return folders[0], values
+    return values
 
 
-def other_work(root: Path, spec_id: str) -> list[str]:
-    branches = git(root, "for-each-ref", "--format=%(refname:short)", "refs/heads", "refs/remotes").split()
-    pattern = re.compile(rf"(?:^|/)feature/{spec_id}-")
-    return [b for b in branches if pattern.search(b)]
+def has_ref(root: Path, ref: str) -> bool:
+    return bool(git(root, "rev-parse", "--verify", "-q", ref, check=False).strip())
+
+
+def checked_out(root: Path, branch: str) -> bool:
+    return f"branch refs/heads/{branch}\n" in git(root, "worktree", "list", "--porcelain") + "\n"
 
 
 def start(root: Path, spec_id: str, specs_dir: str = "specs", dry_run: bool = False) -> dict:
     git(root, "fetch", "--quiet", "origin", check=False)
-    folder, status = spec_on_main(root, spec_id, specs_dir)
+    folder = spec_folder(root, spec_id, specs_dir)
+    branch = f"feature/{folder}"
+    source = f"origin/{branch}" if has_ref(root, f"origin/{branch}") else "origin/main"
+    status = read_status(root, source, f"{specs_dir}/{folder}/status.yml")
     if status.get("status") not in ("tests-locked", "implemented"):
         raise NotReady(
-            f"spec {spec_id} on main is '{status.get('status')}'; the test PR must merge first (tests-locked)"
+            f"spec {spec_id} on {source} is '{status.get('status')}'; "
+            f"the test PR must merge into {branch} first (tests-locked)"
         )
     if status.get("status") == "implemented":
         raise NotReady(f"spec {spec_id} is already implemented; a change needs a new spec")
     if status.get("pii") == "yes":
         raise NotReady(f"spec {spec_id} is marked pii: yes; implement it in the company Copilot")
-    taken = other_work(root, spec_id)
-    if taken:
-        raise NotReady(f"spec {spec_id} already has implementation work: {', '.join(taken)}; continue there")
-    slug = folder.split("-", 1)[1]
-    branch = f"feature/{spec_id}-{slug}"
+    if checked_out(root, branch):
+        raise NotReady(f"spec {spec_id} already has implementation work: {branch} is checked out; continue there")
     worktree = root.parent / f"{root.name}-{spec_id}"
     if worktree.exists():
         raise NotReady(f"{worktree} already exists")
     if not dry_run:
-        git(root, "worktree", "add", "--quiet", "-b", branch, str(worktree), "origin/main")
+        if has_ref(root, f"refs/heads/{branch}"):
+            git(root, "worktree", "add", "--quiet", str(worktree), branch)
+        else:
+            track = "--track" if source != "origin/main" else "--no-track"
+            git(root, "worktree", "add", "--quiet", track, "-b", branch, str(worktree), source)
     return {"spec": spec_id, "spec_dir": f"{specs_dir}/{folder}", "branch": branch, "worktree": str(worktree)}
 
 

@@ -65,6 +65,22 @@ def test_next_step_follows_status_and_branches(tmp_path):
     assert found["0003"].skill == "self-review"
 
 
+def test_feature_branch_status_wins_once_the_test_pr_merged_there(tmp_path):
+    # Red tests stay off main: main says approved, the feature branch has the lock.
+    root = make_repo(tmp_path)
+    git(root, "checkout", "-q", "-b", "feature/0002-tests")
+    write(root, {"specs/0002-tests/status.yml": STATUS.format("tests-locked", "no")})
+    git(root, "commit", "-qam", "Merged PR 7: tests for 0002")
+    git(root, "checkout", "-q", "main")
+    step = by_spec(root)["0002"]
+    assert (step.status, step.skill) == ("tests-locked", "implement")
+    git(root, "checkout", "-q", "feature/0002-tests")
+    write(root, {"src/churn.py": "x = 1\n"})
+    git(root, "add", "-A")
+    git(root, "commit", "-qm", "first slice")
+    assert by_spec(root)["0002"].skill == "self-review"
+
+
 def test_merged_status_wins_over_the_working_tree(tmp_path):
     root = make_repo(tmp_path)
     write(root, {"specs/0002-tests/status.yml": STATUS.format("tests-locked", "no")})

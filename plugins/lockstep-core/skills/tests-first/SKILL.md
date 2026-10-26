@@ -1,6 +1,6 @@
 ---
 name: tests-first
-description: Turn an approved Lockstep spec into failing tests, one or more per acceptance criterion, prove each fails for the right reason, and open the test PR that locks them. Use when a spec's status is approved and someone wants to write the tests, start the red phase, "write tests for spec 0042", or lock the tests before implementation.
+description: Turn an approved Lockstep spec into failing tests, one or more per acceptance criterion, prove each fails for the right reason, and open the test PR into the feature branch that locks them. Use when a spec's status is approved and someone wants to write the tests, start the red phase, "write tests for spec 0042", or lock the tests before implementation.
 ---
 
 # Write the failing tests for a spec
@@ -15,7 +15,9 @@ Paths below are relative to this skill's folder. The scripts need Python 3.11+ a
 - Find the spec: from the branch name, or ask for its id. Read `specs/<id>-<slug>/spec.md` and `status.yml`.
 - `status` must be `approved`. If it is `draft`, stop: the spec PR comes first.
 - **If `pii: yes` and you are Claude, stop** and say this spec is worked on in the company Copilot.
-- Work on a new branch `test/<id>-<slug>` from an up-to-date main. Never on main.
+- Red tests never go to main: the test PR merges into the spec's feature branch, and only the green implementation
+  merges into main. From an up-to-date main, create `feature/<id>-<slug>` if it doesn't exist yet and push it
+  unchanged (ask first), then work on a new branch `test/<id>-<slug>` from it. Never on main.
 
 ## 2. Plan the tests
 
@@ -72,10 +74,12 @@ Then run `PYTHONPATH=.lockstep/src python3 -m lockstep_checks.check_ac_traceabil
 
 - Commit the tests and stubs as `<KEY> Add failing tests for spec <id>`.
 - In a second commit, set `status: tests-locked` in `status.yml` and `locked_at_commit:` to the SHA of the first
-  commit. The lock starts when a human approves and merges this PR.
-- Ask before pushing. The PR title starts with the Jira key; the description has the AC → test → result table from
-  step 4, with each failure reason, and says the PR is a **test PR**.
+  commit. The lock starts when a human approves and merges this PR into the feature branch.
+- Ask before pushing. Open the PR from `test/<id>-<slug>` **into `feature/<id>-<slug>`, not main**. The title starts
+  with the Jira key; the description has the AC → test → result table from step 4, with each failure reason, and says
+  the PR is a **test PR**. Review fixes to the tests go on the test branch; they are allowed until it merges.
 
-Tell the user what comes next: a reviewer checks that the tests match the criteria (the PR's path-based required
-reviewer covers `tests/`). After merge, any change to these tests needs a `[test-change]` PR, and the implementation
-starts on `feature/<id>-<slug>`.
+Tell the user what comes next: a reviewer checks that the tests match the criteria (the feature branch's path-based
+required reviewer covers `tests/`). Merge it with a squash or a merge commit, not a rebase. After merge, any change to
+these tests needs a `[test-change]` PR, and the implementation continues on `feature/<id>-<slug>`, which merges into
+main only when everything is green.

@@ -8,6 +8,12 @@ tag the merge commit `v<version>`.
 
 ## Unreleased
 
+- **Red tests stay off main:** the test PR now merges into `feature/<id>-<slug>` instead of main, and only the green
+  implementation merges into main (with squash merge, main's history never has a red commit). The tests lock at the
+  commit where the test PR merged into the feature branch: `protect_tests` and `check_test_tamper` protect them from
+  there, review fixes inside the test PR stay allowed, and the commit order proves the tests came first. `tests-first`,
+  `implement`, `/lockstep` and the branch policy script (now also for `feature/*`) follow the new flow; specs locked on
+  main under 0.1 keep working. Rule credited to Mohammed (from SDTRD): no broken code on main.
 - **Warn mode:** `[enforcement]` in `lockstep.toml` sets each gate to `warn` (let it through, report that it would
   have been blocked, count it) or `enforce` (block). New repos start in warn; a repo without the table enforces, as
   before. CI tags each run `lockstep-would-block-<check>` or `lockstep-blocked-<check>`, and the hooks log to

@@ -98,7 +98,7 @@ findings show up on the PR with file and line. Common options: `--base` (default
 
 | Check | Fails when |
 |---|---|
-| `check_test_tamper` | an existing file under `[protect] globs` is modified, renamed or deleted, or a change adds skip/xfail, `# noqa`, `type: ignore`, or disables or downgrades a dbt test. A title starting with `[test-change]` turns these into warnings. |
+| `check_test_tamper` | an existing file under `[protect] globs` is modified, renamed or deleted, or a change adds skip/xfail, `# noqa`, `type: ignore`, or disables or downgrades a dbt test. On a feature branch, the spec's own tests are protected from the commit where the test PR merged into it. A title starting with `[test-change]` turns these into warnings. |
 | `check_ac_traceability` | a tests-locked spec has a criterion without a test, a test names an unknown spec or criterion, or a spec is malformed. `--spec-only` lints specs only. |
 | `check_pr_size` | more than 800 changed lines (unless `[large-approved]` is in the title) or more than 100 files. Warns above 400. Generated files don't count. |
 | `check_jira_key` | the title and branch have no issue key of a `[jira] projects` project, have several keys, or the key differs from the spec's. |
@@ -168,7 +168,7 @@ allows and exit 2 blocks. Hooks fail closed: a crash, bad input or a missing Pyt
 
 | Hook | Event | Blocks when |
 |---|---|---|
-| `protect_tests` | PreToolUse on Edit, Write, MultiEdit, NotebookEdit | the active spec is tests-locked and the file matches `[protect] globs` and exists on origin/main. New files are allowed. Copilot's `apply_patch` payloads are parsed too. |
+| `protect_tests` | PreToolUse on Edit, Write, MultiEdit, NotebookEdit | the active spec is tests-locked and the file matches `[protect] globs` and exists on origin/main, or on a feature branch at the commit where the test PR merged. New files are allowed. Copilot's `apply_patch` payloads are parsed too. |
 | `guard_bash` | PreToolUse on Bash, PowerShell | the command targets prod, force-pushes, deletes main, skips tests with `-k`/`--deselect`/`--ignore`, or rewrites history while on main. |
 
 A prompt-screening PII hook is parked: naming a column such as `email` in a prompt is not sending its data, so a

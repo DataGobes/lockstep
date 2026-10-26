@@ -5,8 +5,8 @@
 
 A spec's phase comes from its status.yml on its feature branch if it has one (the test PR merges there, so red tests
 never reach main), else on the base branch (what is merged), else from the working tree for a spec that isn't merged
-yet, plus the branches that exist for it: spec/, test/ or feature/<id>-<slug>. Stdlib only; reads the specs with the
-core in .lockstep/src.
+yet, plus the branches that exist for it: spec/, test/, feature/ or baseline/<id>-<slug>. Stdlib only; reads the
+specs with the core in .lockstep/src.
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-PREFIXES = ("spec", "test", "feature")
+PREFIXES = ("spec", "test", "feature", "baseline")
 
 
 @dataclass
@@ -61,8 +61,17 @@ def spec_branches(root: Path) -> dict[str, list[str]]:
     return found
 
 
-def decide(status: str, branches: list[str], implementing: bool = False) -> tuple[str, str | None]:
+def decide(
+    status: str, branches: list[str], implementing: bool = False, baseline: bool = False
+) -> tuple[str, str | None]:
     has = {b.split("/")[0] for b in branches}
+    if baseline and status in ("draft", "approved"):
+        if "baseline" in has:
+            return (
+                "baseline in progress: pin each criterion with a test that passes today, then open the PR",
+                "baseline",
+            )
+        return "describe what the code does today and pin it with passing tests", "baseline"
     if status == "draft":
         return "finish the spec and its interview, then open the spec PR for review", "spec"
     if status == "approved":
@@ -106,7 +115,8 @@ def steps(root: Path, base: str) -> list[Step]:
             implementing = (
                 locked_at is None or (git(root, "rev-list", "--count", f"{locked_at}..{ref}") or "0").strip() != "0"
             )
-        nxt, skill = decide(st.status, mine, implementing)
+        # getattr: a repo's vendored core older than 0.4 has no baseline specs
+        nxt, skill = decide(st.status, mine, implementing, getattr(st, "baseline", False))
         if st.pii and skill:
             nxt += " (pii: yes, so in Copilot only)"
         out.append(Step(spec_id, st.status, st.pii, mine, nxt, skill))

@@ -82,3 +82,9 @@ def test_cli_prints_json_and_fails_on_an_unknown_ref(tmp_path, capsys):
     ]
     assert hotspots.main(["--root", str(root), "--ref", "origin/main"]) == 1
     assert "is origin/main fetched?" in capsys.readouterr().err
+
+
+def test_lockstep_setup_files_are_not_areas():
+    for path in (".claude/settings.json", "lockstep.toml", "azure-pipelines-pr.yml", "scripts/ado/branch-policy.sh"):
+        assert not hotspots.is_code(path), path
+    assert hotspots.is_code("src/app/pricing.py")

@@ -35,6 +35,12 @@ NOT_CODE = (
     "uv.lock",
     ".github/*",
     ".azuredevops/*",
+    # What bootstrap-repo writes: config and pipelines, not behaviour to pin.
+    ".claude/*",
+    "lockstep.toml",
+    "azure-pipelines*.yml",
+    "scripts/ado/*",
+    ".gitignore",
 )
 
 

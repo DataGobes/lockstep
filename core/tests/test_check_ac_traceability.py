@@ -297,3 +297,44 @@ def test_cross_spec_pointer_to_an_active_criterion_passes(tmp_path):
 def test_cross_spec_pointer_must_name_a_real_active_criterion(tmp_path, line, error):
     write(tmp_path, later_spec(line))
     assert any(m.endswith(error) for m in messages(check(tmp_path, spec_only=True)))
+
+
+SMELLY = """\
+## 3. Acceptance criteria
+- AC-001 WHEN a score is requested THE SYSTEM SHALL return it quickly and/or cache it.
+- AC-002 WHEN a score is requested THE SYSTEM should log it.
+- AC-003 WHEN a score is stale THE SYSTEM SHALL refresh it AND THE SYSTEM SHALL log the refresh.
+- AC-004 (non-functional) THE pipeline SHALL finish soon.
+- AC-005 WHEN a score is requested THE SYSTEM SHALL return it quickly and/or cache it.
+- AC-006 WHEN a score is requested THE SYSTEM SHALL return it within 200 ms.
+  - Observed in: `src/score.py:12` (some notes)
+"""
+
+
+def smells(text):
+    from lockstep_checks.specdoc import criteria_smells
+
+    return [msg for _, msg in criteria_smells(parse_spec(text))]
+
+
+def test_criteria_smells_flag_hard_to_test_wording():
+    found = smells(SMELLY)
+    assert "AC-001 uses 'and/or', 'quickly'; name a value a test can check, or define the term in GLOSSARY.md" in found
+    assert any(m.startswith("AC-002 says 'should'") for m in found)
+    assert any(m.startswith("AC-003 has more than one SHALL") for m in found)
+    assert any(m.startswith("AC-004 is non-functional but names no number") for m in found)
+    assert "AC-005 repeats AC-001; merge them or make the difference explicit" in found
+    assert not any(m.startswith("AC-006") for m in found)
+
+
+def test_template_criteria_have_no_smells():
+    assert smells(TEMPLATE) == []
+
+
+@pytest.mark.parametrize(("state", "warned"), [("draft", True), ("approved", True), ("tests-locked", False)])
+def test_smells_are_warnings_until_the_tests_lock(tmp_path, state, warned):
+    spec = SPEC.format(questions="").replace("return it.", "return it quickly.")
+    root = write(tmp_path, {"specs/0042-churn/spec.md": spec, "specs/0042-churn/status.yml": status(state)})
+    found = check(root, spec_only=True)
+    assert messages(found) == []
+    assert any("'quickly'" in m for m in messages(found, "warning")) is warned

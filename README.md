@@ -172,7 +172,7 @@ allows and exit 2 blocks. Hooks fail closed: a crash, bad input or a missing Pyt
 
 | Hook | Event | Blocks when |
 |---|---|---|
-| `protect_tests` | PreToolUse on Edit, Write, MultiEdit, NotebookEdit | the active spec is tests-locked and the file matches `[protect] globs` and exists on origin/main, or on a feature branch at the commit where the test PR merged. New files are allowed. Copilot's `apply_patch` payloads are parsed too. |
+| `protect_tests` | PreToolUse on Edit, Write, MultiEdit, NotebookEdit, and on Bash, PowerShell for commands that write the files they name (`sed -i`, `>`, `rm`, `mv`, `cp`, `git checkout --`) | the active spec is tests-locked and the file matches `[protect] globs` and exists on origin/main, or on a feature branch at the commit where the test PR merged. New files are allowed. Copilot's `apply_patch` payloads are parsed too. |
 | `team_rules` | PreToolUse on edits and on Bash, PowerShell | an edit adds text, or a command matches, one of the team's `[[rules]]` in `lockstep.toml`. Does nothing when there are none. |
 | `guard_bash` | PreToolUse on Bash, PowerShell | the command targets prod, force-pushes, deletes main, skips tests with `-k`/`--deselect`/`--ignore`, or rewrites history while on main. |
 

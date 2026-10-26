@@ -180,3 +180,24 @@ def test_hook_guards_the_implement_worktree_from_the_main_checkout(repo, tmp_pat
         }
     )
     assert run_hook(protect_tests.hook, stdin=new) == 0
+
+
+def bash_event(root, command):
+    return json.dumps({"tool_name": "Bash", "tool_input": {"command": command}, "cwd": str(root)})
+
+
+def test_shell_writes_to_a_locked_test_are_blocked_like_edits(repo):
+    stacked(repo)
+    for cmd in (
+        "sed -i 's/== 3/== 4/' tests/test_churn.py",
+        "cat /dev/null > tests/test_churn.py",
+        "rm tests/test_churn.py",
+        "git checkout main -- tests/test_churn.py",
+    ):
+        assert run_hook(protect_tests.hook, stdin=bash_event(repo.root, cmd)) == 2, cmd
+    for cmd in (
+        "python -m pytest tests/test_churn.py > out.txt",
+        "cat tests/test_churn.py",
+        "echo x > tests/test_new.py",
+    ):
+        assert run_hook(protect_tests.hook, stdin=bash_event(repo.root, cmd)) == 0, cmd

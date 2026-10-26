@@ -178,7 +178,8 @@ def test_the_setup_pr_uses_its_own_config(repo, capsys):
         {"tests/test_a.py": "def test_a():\n    assert True\n", "lockstep.toml": '[enforcement]\ndefault = "warn"\n'}
     )
     assert run("check_test_tamper", "", _run, ["--root", str(repo.root), "--base", "main", "--title", "x"]) == 0
-    assert "would block (warn mode)" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "would block (warn mode)" in out and "this PR changes lockstep.toml" not in out
 
 
 def test_lint_and_type_ignores_in_product_code_are_warnings_for_the_reviewer():

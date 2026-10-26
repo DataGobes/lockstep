@@ -110,7 +110,7 @@ def check_test_tamper(
                     else:
                         raw.append(Finding("error", f"added line {label}: {text.strip()}", path=f.path, line=line_no))
                     break
-    if any(f.path == CONFIG_FILE for f in files):
+    if any(f.path == CONFIG_FILE and f.existed_on_base for f in files):  # the setup PR adds it
         raw.append(
             Finding(
                 "warning",

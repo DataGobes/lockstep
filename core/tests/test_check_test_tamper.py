@@ -147,3 +147,9 @@ def test_baseline_tags_still_cannot_skip_a_test():
     files = [tagged("tests/test_a.py", ['@pytest.mark.ac("0042/AC-001")', "@pytest.mark.skip"])]
     found = errors(check_test_tamper(files, CFG, "MXAAI-1 x", branch="baseline/0042-a"))
     assert any("skips or xfails" in f.message for f in found)
+
+
+def test_the_vendored_core_may_name_the_markers_it_looks_for():
+    # A bootstrap or upgrade PR copies lockstep_checks into .lockstep/, whose source mentions `# noqa`.
+    core = changed(".lockstep/src/lockstep_checks/check_test_tamper.py", "A", ["skip/xfail markers, ``# noqa``"])
+    assert check_test_tamper([core], CFG, None) == []

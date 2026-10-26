@@ -22,11 +22,14 @@ from .cli import PrContext, main_for
 from .config import Config
 from .gitdiff import ChangedFile, changed_files
 from .lock import branch_tip, lock_commit
-from .paths import matches_any
+from .paths import matches, matches_any
 from .report import Finding
 from .spec import resolve_spec
 
 OVERRIDE = "[test-change]"
+# The vendored core (bootstrap-repo copies it): its own source names the markers it looks for. Changes to it need the
+# test reviewer group, by branch policy.
+VENDORED = ".lockstep/**"
 ADOPT_BRANCH = "baseline/"
 
 _REF = r"\d+/AC-\d+"
@@ -92,6 +95,8 @@ def check_test_tamper(
             action = {"D": "deletes", "R": f"renames (to {f.path})"}.get(f.status, "modifies")
             raw.append(Finding("error", f"{action} {what}", path=f.base_path))
     for f in files:
+        if matches(f.path, VENDORED):
+            continue
         for line_no, text in f.added_lines:
             for suffixes, pattern, label in _WEAKENERS:
                 if f.path.endswith(suffixes) and pattern.search(text):

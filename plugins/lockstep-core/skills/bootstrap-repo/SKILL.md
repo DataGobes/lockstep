@@ -73,7 +73,7 @@ only what is missing, and show the user the diff:
 ## 6. Prove it works
 
 - Run every check: `PYTHONPATH=.lockstep/src python3 -m lockstep_checks.check_<name>` for `pr_size`, `spec_required`,
-  `test_tamper`, `ac_traceability` and `review_rules`. They should pass on the `chore/` branch; `jira_key` fails until the branch or title has a key.
+  `test_tamper`, `ac_traceability` and `review_rules`. They should pass on the `chore/` branch (the vendored `.lockstep/` doesn't count towards the PR size or the tamper scan); `jira_key` fails until the branch or title has a key.
 - Smoke-test a hook: `echo '{"tool_name":"Bash","tool_input":{"command":"databricks bundle deploy -t prod"}}' |
   .lockstep/hooks/run-hook.sh guard_bash` must exit 2. With `git status` as the command it must exit 0.
 

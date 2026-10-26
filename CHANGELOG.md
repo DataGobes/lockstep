@@ -8,6 +8,12 @@ tag the merge commit `v<version>`.
 
 ## Unreleased
 
+- **Fresh eyes and evidence:** the `spec` skill has a reader with none of the conversation check the spec for
+  undefined terms, untestable criteria and contradictions before the spec PR (after Google's Elephant-Goldfish
+  model). `implement` gives long plans a fresh context per slice with a review between slices, and no skill reports a
+  pass it didn't just run and show (after superpowers' subagent-driven development and verification before
+  completion). `bugfix` traces the root cause to `path:line` before fixing, and stops after three failed fixes (after
+  superpowers' systematic debugging).
 - **Baseline specs for existing code:** a spec with `kind: baseline` in `status.yml` describes what an area of the
   code does today and pins it with tests that pass today, in one PR from `baseline/<id>-<slug>` into main. Its
   lifecycle is draft, approved, implemented (never tests-locked). `check_spec_required` holds a baseline PR to tests,

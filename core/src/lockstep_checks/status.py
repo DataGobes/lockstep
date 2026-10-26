@@ -75,7 +75,9 @@ def parse_status(text: str, cfg: Config) -> SpecStatus:
 
     jira = values.get("jira")
     if jira is not None and not cfg.jira_key_regex.fullmatch(jira):
-        raise SpecStatusError(f"jira {jira!r} does not match {cfg.jira_key_pattern}")
+        raise SpecStatusError(
+            f"jira {jira!r} is not an issue key of {'/'.join(cfg.jira_projects)} (e.g. {cfg.jira_projects[0]}-123)"
+        )
     if status != "draft" and jira is None:
         raise SpecStatusError(f"jira is required once status is {status!r}")
 

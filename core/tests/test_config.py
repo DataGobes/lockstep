@@ -2,13 +2,13 @@ from pathlib import Path
 
 import pytest
 
-from codefactory.config import ConfigError, load_config
+from lockstep_checks.config import ConfigError, load_config
 
-TEMPLATE = Path(__file__).resolve().parents[2] / "templates" / "factory.toml"
+TEMPLATE = Path(__file__).resolve().parents[2] / "templates" / "lockstep.toml"
 
 
 def write(tmp_path: Path, text: str) -> Path:
-    (tmp_path / "factory.toml").write_text(text, encoding="utf-8")
+    (tmp_path / "lockstep.toml").write_text(text, encoding="utf-8")
     return tmp_path
 
 
@@ -24,7 +24,7 @@ def test_missing_file_gives_defaults(tmp_path):
 
 def test_file_overrides_only_given_keys(tmp_path):
     cfg = load_config(write(tmp_path, "[pr_size]\nwarn_lines = 300\n"))
-    assert cfg.source == tmp_path / "factory.toml"
+    assert cfg.source == tmp_path / "lockstep.toml"
     assert cfg.pr_size.warn_lines == 300
     assert cfg.pr_size.fail_lines == 800
 
@@ -45,12 +45,16 @@ def test_template_loads_and_matches_defaults():
         ('[pr_size]\nwarn_lines = "400"\n', "pr_size.warn_lines"),
         ("[pr_size]\nwarn_lines = 900\nfail_lines = 800\n", "warn_lines"),
         ("[pr_size]\nmax_files = 101\n", "max_files"),
-        ('[factory]\nbranch_pattern = "feature/(\\\\d+)"\n', "id"),
-        ('[factory]\nbranch_pattern = "("\n', "branch_pattern"),
-        ('[factory]\ntracks = ["data", "web"]\n', "tracks"),
-        ('[factory]\ntracks = ["data", "data"]\n', "tracks"),
+        ('[lockstep]\nbranch_pattern = "feature/(\\\\d+)"\n', "id"),
+        ('[lockstep]\nbranch_pattern = "("\n', "branch_pattern"),
+        ('[lockstep]\ntracks = ["data", "web"]\n', "tracks"),
+        ('[lockstep]\ntracks = ["data", "data"]\n', "tracks"),
         ('[protect]\nglobs = "tests/**"\n', "protect.globs"),
-        ("this is not toml", "factory.toml"),
+        ('[jira]\nprojects = ["mxaai"]\n', "jira.projects"),
+        ("[jira]\nprojects = []\n", "jira.projects"),
+        ('[jira]\nprojects = ["MXAAI", "MXAAI"]\n', "jira.projects"),
+        ('[jira]\nkey_pattern = "X-1"\n', "jira.key_pattern"),
+        ("this is not toml", "lockstep.toml"),
     ],
 )
 def test_invalid_config_is_rejected(tmp_path, text, fragment):
@@ -65,6 +69,13 @@ def test_branch_regex_is_compiled(tmp_path):
 
 
 def test_directory_named_like_config_is_an_error(tmp_path):
-    (tmp_path / "factory.toml").mkdir()
+    (tmp_path / "lockstep.toml").mkdir()
     with pytest.raises(ConfigError, match="cannot read"):
         load_config(tmp_path)
+
+
+def test_default_jira_project_is_mxaai(tmp_path):
+    cfg = load_config(tmp_path)
+    assert cfg.jira_projects == ("MXAAI",)
+    assert cfg.jira_key_regex.search("MXAAI-42 Add churn features").group() == "MXAAI-42"
+    assert cfg.jira_key_regex.search("feature/0042-mxaai-42") is None

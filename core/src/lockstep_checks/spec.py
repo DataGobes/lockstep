@@ -1,7 +1,7 @@
 """Find the spec a branch works on: branch name -> ``specs/<id>-<slug>/`` -> status.yml.
 
 Every hook, skill and CI check asks this module which spec is active, so the
-rule lives in one place. Run ``python -m codefactory.spec`` to see the answer as
+rule lives in one place. Run ``python -m lockstep_checks.spec`` to see the answer as
 JSON, which is also how the bash hook shims read it.
 
 States:
@@ -102,7 +102,7 @@ def resolve_spec(root: Path, branch: str | None, cfg: Config) -> Resolution:
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(prog="python -m codefactory.spec", description=__doc__.splitlines()[0])
+    ap = argparse.ArgumentParser(prog="python -m lockstep_checks.spec", description=__doc__.splitlines()[0])
     ap.add_argument("--root", type=Path, default=Path.cwd(), help="repo root (default: current directory)")
     ap.add_argument("--branch", help="branch name (default: from Azure Pipelines env or git)")
     args = ap.parse_args(argv)
@@ -112,7 +112,7 @@ def main(argv: list[str] | None = None) -> int:
         branch = args.branch or current_branch(root)
         result = resolve_spec(root, branch, cfg)
     except (ConfigError, SpecError) as e:
-        print(f"codefactory: {e}", file=sys.stderr)
+        print(f"lockstep_checks: {e}", file=sys.stderr)
         return 1
     print(json.dumps(result.to_dict(), indent=2))
     return 0

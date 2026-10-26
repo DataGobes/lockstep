@@ -64,13 +64,13 @@ lists deliberate overrides in the PR description.
 
 ## Shared core (`core/`)
 
-The `codefactory` Python package (stdlib only, Python 3.11+) holds the logic that hooks and Azure Pipelines both run, so
+The `lockstep-checks` Python package (import name `lockstep_checks`; stdlib only, Python 3.11+) holds the logic that hooks and Azure Pipelines both run, so
 the two can never disagree. It starts with:
 
-- `codefactory.config`: loads a repo's `factory.toml` (template in [`templates/factory.toml`](templates/factory.toml)).
-  Unknown keys are errors, so a typo never switches a gate off.
-- `codefactory.spec`: finds the active spec from the branch name (`feature/0042-*` -> `specs/0042-*/status.yml`).
-  Try it with `PYTHONPATH=core/src python3 -m codefactory.spec`.
+- `lockstep_checks.config`: loads a repo's `lockstep.toml` (template in [`templates/lockstep.toml`](templates/lockstep.toml)).
+  Unknown keys are errors, so a typo never switches a gate off. Jira project keys are set in `[jira] projects` (default `MXAAI`).
+- `lockstep_checks.spec`: finds the active spec from the branch name (`feature/0042-*` -> `specs/0042-*/status.yml`).
+  Try it with `PYTHONPATH=core/src python3 -m lockstep_checks.spec`.
 
 Run the tests with `cd core && uv run --with pytest python -m pytest`.
 

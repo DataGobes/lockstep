@@ -26,4 +26,6 @@ Run on a developer machine once protect-tests exists (it cannot be run from a cl
 1. VS Code, Copilot agent mode: ask it to edit a file under a locked `tests/`. Expect a block with our message.
 2. Same in Copilot CLI, and once with a prompt that makes it use `apply_patch`.
 3. Ask both to run `databricks bundle deploy -t prod`. Expect guard-bash to block.
-4. Record the exact `tool_input` payloads (log stdin to a temp file) and add them as fixtures to the hook tests.
+4. Confirm Copilot expands `${CLAUDE_PROJECT_DIR:-.}` in the hook command from `templates/claude-settings.json`
+   (if it runs commands without a shell, the hook path must become relative).
+5. Record the exact `tool_input` payloads (log stdin to a temp file) and add them as fixtures to the hook tests.

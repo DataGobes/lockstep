@@ -10,6 +10,8 @@ tag the merge commit `v<version>`.
 
 - **`check_spec_required`:** fails a PR that changes code without a spec at the right status. `chore/` branches need
   no spec; `bugfix/` and `hotfix/` branches need a bug report and a new regression test. Both lanes follow SDTRD.
+- **Hooks find a newer Python:** the hook shim now looks for python3.14 down to python3.11 before `python3`, in the
+  usual install folders too, and takes `LOCKSTEP_PYTHON`. On macOS `python3` is the system 3.9, which blocked every edit.
 - **`bugfix` skill:** the light lane for bugs, with a bug report template in `specs/bug-reports/`.
 
 ## 0.1.0

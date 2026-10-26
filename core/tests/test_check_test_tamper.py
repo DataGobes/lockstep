@@ -150,8 +150,9 @@ def test_baseline_tags_still_cannot_skip_a_test():
 
 
 def test_the_vendored_core_may_name_the_markers_it_looks_for():
-    # A bootstrap or upgrade PR copies lockstep_checks into .lockstep/, whose source mentions `# noqa`.
-    core = changed(".lockstep/src/lockstep_checks/check_test_tamper.py", "A", ["skip/xfail markers, ``# noqa``"])
+    # A bootstrap or upgrade PR copies lockstep_checks into .lockstep/, whose source names the noqa marker.
+    marker = "#" + " noqa"  # split, so ruff doesn't read this test's own line as a directive
+    core = changed(".lockstep/src/lockstep_checks/check_test_tamper.py", "A", [f"skip/xfail markers, ``{marker}``"])
     assert check_test_tamper([core], CFG, None) == []
 
 

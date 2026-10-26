@@ -72,6 +72,23 @@ the two can never disagree. It starts with:
 - `lockstep_checks.spec`: finds the active spec from the branch name (`feature/0042-*` -> `specs/0042-*/status.yml`).
   Try it with `PYTHONPATH=core/src python3 -m lockstep_checks.spec`.
 
+### PR checks
+
+Each check runs as `python -m lockstep_checks.<check>` from the repo root, locally or in Azure Pipelines, where
+findings show up on the PR with file and line. Common options: `--base` (default: the PR target branch, else
+`origin/main`) and `--title` (or `$LOCKSTEP_PR_TITLE`; Azure Pipelines has no built-in variable for the PR title).
+
+| Check | Fails when |
+|---|---|
+| `check_test_tamper` | an existing file under `[protect] globs` is modified, renamed or deleted, or a change adds skip/xfail, `# noqa`, `type: ignore`, or disables or downgrades a dbt test. A title starting with `[test-change]` turns these into warnings. |
+| `check_ac_traceability` | a tests-locked spec has a criterion without a test, a test names an unknown spec or criterion, or a spec is malformed. `--spec-only` lints specs only. |
+| `check_pr_size` | more than 800 changed lines (unless `[large-approved]` is in the title) or more than 100 files. Warns above 400. Generated files don't count. |
+| `check_jira_key` | the title and branch have no issue key of a `[jira] projects` project, have several keys, or the key differs from the spec's. |
+
+Tests name criteria with the spec id, because every spec numbers from AC-001: `@pytest.mark.ac("0042/AC-001")`,
+dbt unit test `ac_0042_001_<what>`, `meta: {ac: 0042/AC-001}`, or an `ac` field `0042/AC-001` in an eval row. Register the
+marker in the product repo's `pyproject.toml`: `markers = ["ac(id): acceptance criterion this test covers"]`.
+
 Run the tests with `cd core && uv run --with pytest python -m pytest`.
 
 ## Repo layout

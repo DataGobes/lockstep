@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 from collections.abc import Mapping
@@ -88,6 +89,12 @@ def resolve_spec(root: Path, branch: str | None, cfg: Config) -> Resolution:
         raise SpecError(f"spec id {spec_id} has more than one folder: {names}")
 
     spec_dir = folders[0]
+    return Resolution(
+        state="found", branch=branch, spec_id=spec_id, spec_dir=spec_dir, status=load_status(root, spec_dir, cfg)
+    )
+
+
+def load_status(root: Path, spec_dir: Path, cfg: Config) -> SpecStatus:
     status_path = spec_dir / STATUS_FILE
     rel = status_path.relative_to(root) if status_path.is_relative_to(root) else status_path
     try:
@@ -95,10 +102,23 @@ def resolve_spec(root: Path, branch: str | None, cfg: Config) -> Resolution:
     except FileNotFoundError:
         raise SpecError(f"{rel} is missing") from None
     try:
-        status = parse_status(text, cfg)
+        return parse_status(text, cfg)
     except SpecStatusError as e:
         raise SpecError(f"{rel}: {e}") from e
-    return Resolution(state="found", branch=branch, spec_id=spec_id, spec_dir=spec_dir, status=status)
+
+
+def list_specs(root: Path, cfg: Config) -> dict[str, Path]:
+    """Every spec folder (``<id>-<slug>``) by id. ``_template`` and other folders are skipped."""
+    specs = Path(root) / cfg.specs_dir
+    found: dict[str, Path] = {}
+    for p in sorted(specs.iterdir()) if specs.is_dir() else []:
+        m = re.match(r"(\d+)-", p.name)
+        if not (p.is_dir() and m):
+            continue
+        if m[1] in found:
+            raise SpecError(f"spec id {m[1]} has more than one folder: {found[m[1]].name}, {p.name}")
+        found[m[1]] = p
+    return found
 
 
 def main(argv: list[str] | None = None) -> int:

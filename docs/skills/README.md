@@ -11,6 +11,7 @@ Run [`/lockstep`](lockstep.md) when unsure which one comes next.
 | Build it | [implement](implement.md), [dbt-impact](dbt-impact.md) |
 | Check it | [self-review](self-review.md) |
 | Fix a bug | [bugfix](bugfix.md) |
+| Bring in existing code | [baseline](baseline.md) |
 | Improve the process | [retro-capture](retro-capture.md) |
 | Copilot review rules | [copilot-review-instructions](copilot-review-instructions.md) |
 

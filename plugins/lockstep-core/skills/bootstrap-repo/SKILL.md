@@ -92,6 +92,9 @@ opening a PR; the PR title needs a Jira key. Then give the user the Azure DevOps
 Remind them that Copilot reads `.github/copilot-instructions.md` from the target branch, so the review rules apply to
 PRs opened after this one merges.
 
+If the repo already has code, recommend the `baseline` skill before the first change: it shows which areas change
+most and pins one of them with tests that pass today, so later specs build on known behaviour.
+
 ## Upgrading later
 
 Run the skill again with a newer version. Lockstep-owned files are updated and pruned; repo files are only ever merge

@@ -8,6 +8,10 @@ test change: findings are reported as warnings and the required reviewer decides
 
 On a feature branch the spec's own tests are new to main but locked since the test PR merged
 into the branch (lock.py), so changes to them since that commit fail too.
+
+On a baseline branch an existing test may be adopted: a change that only adds criterion tags
+(``@pytest.mark.ac("0042/AC-001")``, ``meta: {ac: 0042/AC-001}``, ``import pytest``) and removes
+nothing lets a baseline spec point at tests the repo already has.
 """
 
 from __future__ import annotations
@@ -23,6 +27,21 @@ from .report import Finding
 from .spec import resolve_spec
 
 OVERRIDE = "[test-change]"
+ADOPT_BRANCH = "baseline/"
+
+_REF = r"\d+/AC-\d+"
+# Lines that tag an existing test with a criterion and change nothing it checks. Not `config:`: a second one in a
+# YAML mapping replaces the first, dropping its settings.
+_TAG_LINES = tuple(
+    re.compile(pattern)
+    for pattern in (
+        rf"^\s*@pytest\.mark\.ac\(\s*(?:['\"]{_REF}['\"]\s*,?\s*)+\)\s*$",
+        rf"^\s*pytestmark\s*=\s*\[?\s*pytest\.mark\.ac\(\s*(?:['\"]{_REF}['\"]\s*,?\s*)+\)\s*\]?\s*$",
+        r"^\s*import pytest\s*$",
+        rf"^\s*(?:-\s*)?meta:\s*\{{\s*ac:\s*['\"]?{_REF}['\"]?\s*\}}\s*$",
+        r"^\s*$",
+    )
+)
 
 # (file suffixes, pattern, what it does)
 _WEAKENERS: tuple[tuple[tuple[str, ...], re.Pattern[str], str], ...] = tuple(
@@ -41,13 +60,30 @@ _WEAKENERS: tuple[tuple[tuple[str, ...], re.Pattern[str], str], ...] = tuple(
 )
 
 
+def adopts_only(f: ChangedFile) -> bool:
+    """True if the change only tags an existing test with criteria: tag lines added, nothing removed."""
+    lines = [text for _, text in f.added_lines]
+    return (
+        f.status == "M"
+        and f.deleted == 0
+        and any(text.strip() and "AC-" in text for text in lines)
+        and all(any(p.match(text) for p in _TAG_LINES) for text in lines)
+    )
+
+
 def check_test_tamper(
-    files: list[ChangedFile], cfg: Config, title: str | None, since_lock: list[ChangedFile] = ()
+    files: list[ChangedFile],
+    cfg: Config,
+    title: str | None,
+    since_lock: list[ChangedFile] = (),
+    branch: str | None = None,
 ) -> list[Finding]:
     """``files`` is the PR's diff; ``since_lock`` the diff since the spec's lock commit, on a feature branch."""
     protected = cfg.protect.globs
     raw: list[Finding] = []
-    touched = [(f, "an existing test or eval file") for f in files] + [(f, "a locked test") for f in since_lock]
+    adopting = (branch or "").startswith(ADOPT_BRANCH)
+    touched = [(f, "an existing test or eval file") for f in files if not (adopting and adopts_only(f))]
+    touched += [(f, "a locked test") for f in since_lock]
     seen = set()
     for f, what in touched:
         # copying a test leaves the original intact
@@ -77,7 +113,7 @@ def _run(ctx: PrContext) -> list[Finding]:
     tip = branch_tip()
     lock = lock_commit(ctx.root, ctx.base, resolve_spec(ctx.root, ctx.branch, ctx.cfg), ctx.cfg, tip)
     since_lock = changed_files(ctx.root, lock, tip) if lock else []
-    return check_test_tamper(changed_files(ctx.root, ctx.base), ctx.cfg, ctx.title, since_lock)
+    return check_test_tamper(changed_files(ctx.root, ctx.base), ctx.cfg, ctx.title, since_lock, ctx.branch)
 
 
 if __name__ == "__main__":

@@ -148,3 +148,10 @@ def test_older_vendored_core_says_to_upgrade(tmp_path):
     init = root / ".lockstep" / "src" / "lockstep_checks" / "__init__.py"
     init.write_text('__version__ = "0.1.0"\n', encoding="utf-8")
     assert "core is 0.1, older than the plugin" in next_step.core_skew(root)
+
+
+def test_broken_config_is_explained_not_a_traceback(tmp_path, capsys):
+    root = make_repo(tmp_path)
+    write(root, {"lockstep.toml": "[enforcement]\nbogus = 1\n"})
+    assert next_step.main(["--root", str(root)]) == 1
+    assert "can't read this repo's specs" in capsys.readouterr().out

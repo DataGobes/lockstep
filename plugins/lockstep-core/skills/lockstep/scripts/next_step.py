@@ -178,7 +178,13 @@ def main(argv: list[str] | None = None) -> int:
     skew = core_skew(root)
     if skew:
         print(skew, file=sys.stderr if args.json else sys.stdout)
-    found = steps(root, args.base)
+    try:
+        found = steps(root, args.base)
+    except ValueError as e:  # lockstep_checks' ConfigError and SpecError: a broken lockstep.toml or spec folder
+        print(
+            f"Lockstep can't read this repo's specs: {e}. Fix that first; the hooks block until lockstep.toml is valid."
+        )
+        return 1
     if args.json:
         print(json.dumps([asdict(s) for s in found], indent=2))
     else:

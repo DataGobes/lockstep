@@ -1,0 +1,90 @@
+# Lockstep quality gates for a Python repo managed with uv: a steps template.
+#
+#   steps:
+#     - template: .lockstep/pipelines/python-quality.yml
+#       parameters: { coverage: 80, sourceDir: src }
+#
+# Runs, in order, each as its own step so every failure shows: pre-commit on the changed files (ruff, ruff-format,
+# sqlfluff, yamllint, gitleaks: whatever the repo's .pre-commit-config.yaml has), pyright, pytest with diff-cover on
+# the changed lines, pip-audit and Bandit. Set a gate's parameter to false to skip it until the repo is ready for it.
+
+parameters:
+  - name: pythonVersion
+    type: string
+    default: "3.11"
+  - name: sourceDir
+    displayName: Folder Bandit scans and coverage measures
+    type: string
+    default: src
+  - name: coverage
+    displayName: Minimum coverage of changed lines, in percent
+    type: number
+    default: 80
+  - name: preCommit
+    type: boolean
+    default: true
+  - name: pyright
+    type: boolean
+    default: true
+  - name: pipAudit
+    type: boolean
+    default: true
+  - name: bandit
+    type: boolean
+    default: true
+
+steps:
+  - checkout: self
+    fetchDepth: 0
+    fetchTags: false
+
+  - task: UsePythonVersion@0
+    displayName: "Quality: use Python ${{ parameters.pythonVersion }}"
+    inputs:
+      versionSpec: ${{ parameters.pythonVersion }}
+
+  - script: |
+      python -m pip install --quiet uv
+      uv sync --frozen --all-extras
+    displayName: "Quality: install the locked dependencies"
+
+  - ${{ if parameters.preCommit }}:
+      - script: |
+          base="origin/${SYSTEM_PULLREQUEST_TARGETBRANCH#refs/heads/}"
+          [ "$base" = "origin/" ] && base=origin/main
+          uv run --with pre-commit pre-commit run --show-diff-on-failure --from-ref "$base" --to-ref HEAD
+        displayName: "Quality: pre-commit on changed files"
+        condition: succeededOrFailed()
+
+  - ${{ if parameters.pyright }}:
+      - script: uv run --with pyright pyright
+        displayName: "Quality: pyright"
+        condition: succeededOrFailed()
+
+  - script: |
+      base="origin/${SYSTEM_PULLREQUEST_TARGETBRANCH#refs/heads/}"
+      [ "$base" = "origin/" ] && base=origin/main
+      uv run --with pytest-cov --with diff-cover pytest --cov=${{ parameters.sourceDir }} --cov-report=xml --junitxml=test-results.xml
+      uv run --with diff-cover diff-cover coverage.xml --compare-branch="$base" --fail-under=${{ parameters.coverage }}
+    displayName: "Quality: pytest and coverage of changed lines (${{ parameters.coverage }}%)"
+    condition: succeededOrFailed()
+
+  - task: PublishTestResults@2
+    displayName: "Quality: publish test results"
+    condition: succeededOrFailed()
+    inputs:
+      testResultsFiles: test-results.xml
+      failTaskOnMissingResultsFile: false
+
+  - ${{ if parameters.pipAudit }}:
+      # pip-audit has no severity filter: it fails on any known vulnerability in the locked dependencies.
+      - script: |
+          uv export --frozen --no-hashes --format requirements-txt > "$(Agent.TempDirectory)/requirements.txt"
+          uvx pip-audit --strict --requirement "$(Agent.TempDirectory)/requirements.txt"
+        displayName: "Quality: pip-audit"
+        condition: succeededOrFailed()
+
+  - ${{ if parameters.bandit }}:
+      - script: uvx bandit --recursive ${{ parameters.sourceDir }} --severity-level high --confidence-level medium
+        displayName: "Quality: Bandit (high severity)"
+        condition: succeededOrFailed()

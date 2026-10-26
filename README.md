@@ -110,6 +110,20 @@ steps:
   `LOCKSTEP_PR_TITLE`. The project's build service needs Read on the repository, which it has by default.
 - Every check runs even when an earlier one fails, and findings appear on the PR with file and line.
 
+The other PR gates are steps templates in `core/pipelines/` too, one job each in the root pipeline. Keep the ones for
+the repo's tracks; each gate can be switched off by a parameter until the repo is ready for it.
+
+| Template | Gate | Track |
+|---|---|---|
+| `python-quality.yml` | pre-commit on changed files, pyright, pytest with diff-cover (80% of changed lines), pip-audit, Bandit (high) | all |
+| `dbt-slim-ci.yml` | `dbt build --select state:modified+ --defer` against the prod manifest from the deploy pipeline | data |
+| `bundle-validate.yml` | `databricks bundle validate` for the dev target | data |
+| `eval-gate.yml` | the repo's eval command, only when the PR touches prompts, evals or LLM code | ai |
+
+The Databricks gates read their credentials from a variable group (`lockstep-ci` in the root pipeline); use a CI
+service principal without SELECT on tables that hold personal data. None of these templates has run in a real
+Azure DevOps project yet, so the first pilot PR is their test.
+
 ### Templates for a product repo
 
 The `bootstrap-repo` skill copies these and merges them with files the repo already has.

@@ -6,13 +6,14 @@
 
 Checks: every plugin folder has a plugin.json and a marketplace entry with the same name and version, and every
 entry has a folder; every skill's frontmatter name matches its folder; every skill is linked from README.md and has a
-page in docs/skills/. --set-version writes the version into plugin.json and the marketplace entry, for one plugin or
+page in docs/skills/; and safety_scan.py finds nothing in the files Lockstep ships. --set-version writes the version into plugin.json and the marketplace entry, for one plugin or
 for every lockstep-* plugin (then also the marketplace's own version and core/pyproject.toml). Stdlib only.
 """
 
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import re
 import sys
@@ -60,7 +61,14 @@ def check(root: Path) -> list[str]:
             problems.append(f"{rel}: not linked from README.md")
         if not (root / "docs" / "skills" / f"{folder}.md").is_file():
             problems.append(f"{rel}: no page docs/skills/{folder}.md")
-    return problems
+    return problems + _safety_scan().scan(root)
+
+
+def _safety_scan():
+    spec = importlib.util.spec_from_file_location("safety_scan", Path(__file__).resolve().parent / "safety_scan.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def set_version(root: Path, version: str, plugin: str | None) -> list[str]:

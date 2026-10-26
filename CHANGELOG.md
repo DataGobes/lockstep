@@ -8,6 +8,12 @@ tag the merge commit `v<version>`.
 
 ## Unreleased
 
+- **Safety scan of shipped files:** `tools/check_release.py` now also runs `tools/safety_scan.py` over everything
+  Lockstep ships (plugins, `core/src`, `core/hooks`, `core/pipelines`, templates). It fails on likely secrets, network
+  access outside an allowlist (`ado_pr_title.py` reads the PR title from Azure DevOps), risky calls (`shell=True`,
+  `os.system`, `eval`/`exec`, `pickle`) and hidden or bidi unicode. Tests and evals are skipped. Inspired by Tessl's
+  skill security checks.
+
 ## 0.3.0
 
 More of SDTRD's strengths, ported with credit, and Jira made optional. Everything that changes the workflow is off

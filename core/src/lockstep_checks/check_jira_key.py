@@ -1,7 +1,8 @@
 """Require a Jira issue key in the PR title or branch, matching the spec's ``jira`` key.
 
 Azure DevOps' linked-work-item policy only covers Azure Boards, so this check is
-how a PR is tied to its Jira issue.
+how a PR is tied to its Jira issue. With ``[jira] required = false`` a PR without a
+key passes, and a key that is given is still checked.
 """
 
 from __future__ import annotations
@@ -25,6 +26,8 @@ def check_jira_key(title: str | None, branch: str | None, spec: Resolution, cfg:
             Finding("warning", "PR title not given (--title or LOCKSTEP_PR_TITLE); checked the branch only")
         )
     if not keys:
+        if not cfg.jira_required:
+            return findings
         projects = "/".join(cfg.jira_projects)
         findings.append(Finding("error", f"no {projects} issue key in the PR title or branch; add one, e.g. {example}"))
         return findings

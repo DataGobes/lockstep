@@ -68,6 +68,7 @@ class Config:
     tracks: tuple[str, ...] = TRACKS
     # Jira project keys this repo's work items live in; issue keys look like MXAAI-123.
     jira_projects: tuple[str, ...] = ("MXAAI",)
+    jira_multiple_keys: bool = False  # may one PR name more than one issue key?
     protect: Protect = field(default_factory=Protect)
     pii: Pii = field(default_factory=Pii)
     pr_size: PrSize = field(default_factory=PrSize)
@@ -102,7 +103,7 @@ _TOP_LEVEL_KEYS = {
         "branch_pattern": "branch_pattern",
         "tracks": "tracks",
     },
-    "jira": {"projects": "jira_projects"},
+    "jira": {"projects": "jira_projects", "multiple_keys": "jira_multiple_keys"},
 }
 
 

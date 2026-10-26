@@ -11,6 +11,7 @@ tracks = ["data", "ai"]   # remove one if the repo has only one track; "mixed" n
 [jira]
 # Jira project keys; PR titles, branches and specs must use issue keys like MXAAI-123.
 projects = ["MXAAI"]
+multiple_keys = false   # true lets one PR name several issue keys
 
 [protect]
 # Read-only for agents once the active spec is tests-locked. New files stay allowed.

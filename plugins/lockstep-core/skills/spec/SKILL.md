@@ -64,18 +64,26 @@ Fill all seven sections of `spec.md`, keeping the template's headings. One to tw
    assumptions go, not into the criteria.
 
 Use invented values in any example ("Test Person 001"), never data from the issue's attachments or comments.
+Use business terms as `GLOSSARY.md` defines them. A term that is missing, or used differently in the issue, becomes an
+open question.
 
-## 6. Check and show it
+## 6. Interview the author until Open questions is empty
+
+Follow [grilling.md](grilling.md): look up the facts yourself, then ask the author the remaining decisions in numbered
+rounds, each with a recommended answer that "yes" accepts. Write each answer into the spec as you go: a criterion, a
+non-goal, a value. New or sharpened business terms go into `GLOSSARY.md` in the same PR. Section 7 should be empty
+before the spec PR opens; anything the author can't answer yet stays there, named, for the reviewer.
+
+## 7. Check and show it
 
 - Run `PYTHONPATH=.lockstep/src python3 -m lockstep_checks.check_ac_traceability --spec-only` and fix every error.
-  Open questions are allowed while the status is `draft`.
-- Show the user the criteria and open questions, and iterate until they are happy.
+- Show the user the criteria, and iterate until they are happy.
 
-## 7. Commit and open the spec PR
+## 8. Commit and open the spec PR
 
-Commit `specs/<id>-<slug>/` only, as `<KEY> Add spec <id>: <title>`. Ask before pushing. The PR title starts with the
+Commit `specs/<id>-<slug>/` (and `GLOSSARY.md` if you changed it) only, as `<KEY> Add spec <id>: <title>`. Ask before pushing. The PR title starts with the
 Jira key, and its description says this is a **spec PR**.
 
-Tell the user what happens next: a second engineer reviews the spec; once the open questions are answered, the author
-sets `status: approved` in `status.yml` in the same PR, and the checks then require section 7 to be empty. After merge,
+Tell the user what happens next: a second engineer reviews the spec; once any open questions left are answered, the
+author sets `status: approved` in `status.yml` in the same PR, and the checks then require section 7 to be empty. After merge,
 the tests-first step writes failing tests for each criterion.

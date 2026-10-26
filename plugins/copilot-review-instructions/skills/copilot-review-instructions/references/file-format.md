@@ -73,20 +73,23 @@ Existing instruction content belongs to the team. Someone may have hand-tuned it
 1. **Read before you write.** Read every existing instruction file completely. Run
    `git log --format='%h %an %ad %s' --date=short -- <file>` and `git diff -- <file>` to see who changed it and whether there are uncommitted edits. Commits not titled
    `chore(copilot-review): …` are manual edits. Mention them to the user so they know what you are preserving.
-2. **Default is keep.** Every existing rule, heading, snippet and comment stays exactly as written, in its position.
+2. **The Lockstep block is not yours.** Text between `<!-- lockstep:review-rules... -->` and
+   `<!-- /lockstep:review-rules -->` is copied from AGENTS.md by `check_review_rules --write`. Don't edit, move or
+   classify it; propose changes to it as AGENTS.md edits instead.
+3. **Default is keep.** Every existing rule, heading, snippet and comment stays exactly as written, in its position.
    Don't reformat, reorder or reword existing text to match the template.
-3. **Changes are proposals.** Classify each existing rule in the approval summary:
+4. **Changes are proposals.** Classify each existing rule in the approval summary:
    - `keep`: the default; you don't need to list each one, just the count.
    - `change`: wording is vague, glob is wrong, or a path was renamed. Show old → new and why.
    - `remove`: only when the rule is now covered at project level, enforced by a linter, or refers to code that no longer exists.
      Show the evidence.
    - `move`: the rule is in the wrong scope (a dbt rule in the repo-wide file). Show from → to.
    Apply a `change`, `remove` or `move` only if the user approves that item.
-4. **Add, don't regenerate.** Insert new rules under the matching existing heading, or a new heading at the end of the
+5. **Add, don't regenerate.** Insert new rules under the matching existing heading, or a new heading at the end of the
    rules, using targeted edits. Never write a whole existing file from scratch.
-5. **Update the footer date** (add the footer if the file has none).
-6. **Diff check.** After writing, run `git diff --stat` and `git diff`. Every removed line must match an approved
-   `change`/`remove`/`move`. If not, restore it.
+6. **Update the footer date** (add the footer if the file has none).
+7. **Diff check.** After writing, run `git diff --stat` and `git diff`. Every removed line must match an approved
+   `change`/`remove`/`move`, or sit inside the Lockstep block. If not, restore it.
 
 ## Branch, commit and PR
 

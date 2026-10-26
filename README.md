@@ -84,6 +84,7 @@ findings show up on the PR with file and line. Common options: `--base` (default
 | `check_ac_traceability` | a tests-locked spec has a criterion without a test, a test names an unknown spec or criterion, or a spec is malformed. `--spec-only` lints specs only. |
 | `check_pr_size` | more than 800 changed lines (unless `[large-approved]` is in the title) or more than 100 files. Warns above 400. Generated files don't count. |
 | `check_jira_key` | the title and branch have no issue key of a `[jira] projects` project, have several keys, or the key differs from the spec's. |
+| `check_review_rules` | the Lockstep review rules in `.github/copilot-instructions.md` are missing or differ from the block in `AGENTS.md`. `--write` updates the copy and keeps the repo's own rules. |
 
 Tests name criteria with the spec id, because every spec numbers from AC-001: `@pytest.mark.ac("0042/AC-001")`,
 dbt unit test `ac_0042_001_<what>`, `meta: {ac: 0042/AC-001}`, or an `ac` field `0042/AC-001` in an eval row. Register the
@@ -91,7 +92,7 @@ marker in the product repo's `pyproject.toml`: `markers = ["ac(id): acceptance c
 
 ### Azure Pipelines
 
-[`core/pipelines/lockstep-pr.yml`](core/pipelines/lockstep-pr.yml) is a steps template that runs all four checks on a PR.
+[`core/pipelines/lockstep-pr.yml`](core/pipelines/lockstep-pr.yml) is a steps template that runs all the checks on a PR.
 A product repo includes it from its PR pipeline, as in [`templates/azure-pipelines-pr.yml`](templates/azure-pipelines-pr.yml):
 
 ```yaml
@@ -105,6 +106,17 @@ steps:
 - **PR title.** `lockstep_checks.ado_pr_title` reads the title from the REST API with `System.AccessToken` and sets
   `LOCKSTEP_PR_TITLE`. The project's build service needs Read on the repository, which it has by default.
 - Every check runs even when an earlier one fails, and findings appear on the PR with file and line.
+
+### Templates for a product repo
+
+The bootstrap-repo skill copies these; until it exists, copy them by hand.
+
+| Template | Goes to | What it is |
+|---|---|---|
+| [`AGENTS.md`](templates/AGENTS.md) | `AGENTS.md` | Workflow, non-negotiables, commands and definition of done for every agent, plus the Lockstep review rules block that `check_review_rules` copies for Copilot code review, which doesn't read AGENTS.md. |
+| [`CLAUDE.md`](templates/CLAUDE.md) | `CLAUDE.md` | Imports AGENTS.md and adds Claude-only notes. |
+| [`azuredevops/pull_request_template.md`](templates/azuredevops/pull_request_template.md) | `.azuredevops/pull_request_template.md` | Spec link, AC → test → result table, agent used, PII routing and the reviewer checklist. |
+| [`lockstep.toml`](templates/lockstep.toml), [`claude-settings.json`](templates/claude-settings.json), [`specs/_template/`](templates/specs/_template), [`azure-pipelines-pr.yml`](templates/azure-pipelines-pr.yml) | repo root, `.claude/settings.json`, `specs/_template/`, repo root | Config, agent permissions and hooks, the spec template and the PR pipeline. |
 
 ### Agent hooks
 

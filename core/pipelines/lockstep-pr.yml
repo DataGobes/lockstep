@@ -19,7 +19,7 @@ parameters:
   - name: checks
     displayName: Checks to run, in this order
     type: object
-    default: [pr_size, jira_key, test_tamper, ac_traceability]
+    default: [pr_size, jira_key, test_tamper, ac_traceability, review_rules]
 
 steps:
   # The checks diff against the target branch, so they need full history, not the default shallow clone.

@@ -33,6 +33,11 @@ get them, continue, but say that duplicate-checking against project rules was sk
 Also read any repo files Copilot may already use: existing `copilot-instructions.md` / `*.instructions.md`, and
 `AGENTS.md` / `CLAUDE.md` on GitHub.
 
+**Lockstep repos** (the repo has `.lockstep/` and an `AGENTS.md` with a `<!-- lockstep:review-rules -->` block): those
+rules are the team's shared workflow rules and are copied into `copilot-instructions.md` by a script, not by you (step 6).
+Treat them like project rules: never repeat or reword them in the repo's own rules, but count them in the 10–20 budget.
+Also read `.azuredevops/pull_request_template.md`: its reviewer checklist is a source of pain points for step 4.
+
 ### 3. Learn the repo's real conventions
 
 Read the sampled files from the scan (2–3 per major area, plus the hot spots), the CI pipeline, and lint/format configs
@@ -92,6 +97,8 @@ Apply what the user changes, and wait for an explicit go-ahead.
 - New files: use the templates in `references/file-format.md`.
 - Existing files: follow the **update protocol** in that file. Keep every manual edit, make targeted inserts only, and apply
   only the approved change/remove/move items.
+- Lockstep repos: run `PYTHONPATH=.lockstep/src python3 -m lockstep_checks.check_review_rules --write` to copy the
+  Lockstep block from AGENTS.md. Never edit between its markers by hand; the PR pipeline fails if the copy differs.
 - Run `python3 scripts/lint_instructions.py --root <repo> --project-instructions <upstream temp file>`.
   Fix every ERROR. Fix each WARN, or tell the user why it stays (e.g. a glob for files that don't exist yet).
 - Check `git diff`: every removed line must trace back to an approved item.

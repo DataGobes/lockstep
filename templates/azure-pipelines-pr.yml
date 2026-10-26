@@ -1,0 +1,16 @@
+# PR pipeline for a Lockstep product repo. Save as azure-pipelines-pr.yml in the repo root,
+# create a pipeline from it, then add it to main's branch policy as a required Build validation.
+# Azure Repos ignores the `pr:` key, so the branch policy is what runs it on every PR.
+
+trigger: none
+
+pool:
+  vmImage: ubuntu-latest
+
+jobs:
+  - job: lockstep
+    displayName: Lockstep checks
+    timeoutInMinutes: 10
+    steps:
+      - template: .lockstep/pipelines/lockstep-pr.yml
+      # Add the repo's own steps (pytest, dbt build on a dev target, ...) after this line.

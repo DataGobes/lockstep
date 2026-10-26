@@ -89,6 +89,23 @@ Tests name criteria with the spec id, because every spec numbers from AC-001: `@
 dbt unit test `ac_0042_001_<what>`, `meta: {ac: 0042/AC-001}`, or an `ac` field `0042/AC-001` in an eval row. Register the
 marker in the product repo's `pyproject.toml`: `markers = ["ac(id): acceptance criterion this test covers"]`.
 
+### Azure Pipelines
+
+[`core/pipelines/lockstep-pr.yml`](core/pipelines/lockstep-pr.yml) is a steps template that runs all four checks on a PR.
+A product repo includes it from its PR pipeline, as in [`templates/azure-pipelines-pr.yml`](templates/azure-pipelines-pr.yml):
+
+```yaml
+steps:
+  - template: .lockstep/pipelines/lockstep-pr.yml
+```
+
+- **Branch policy, not a trigger.** Azure Repos ignores `pr:` in YAML. Add the pipeline to main's branch policy as a
+  required *Build validation*, so a red check blocks the merge.
+- **Full clone.** The template checks out with `fetchDepth: 0`, because the checks diff against the target branch.
+- **PR title.** `lockstep_checks.ado_pr_title` reads the title from the REST API with `System.AccessToken` and sets
+  `LOCKSTEP_PR_TITLE`. The project's build service needs Read on the repository, which it has by default.
+- Every check runs even when an earlier one fails, and findings appear on the PR with file and line.
+
 ### Agent hooks
 
 `core/hooks/run-hook.sh <hook>` runs a hook from `lockstep_checks.hooks` with the agent's event JSON on stdin. Exit 0

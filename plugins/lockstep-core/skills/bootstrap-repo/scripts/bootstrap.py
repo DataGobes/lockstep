@@ -101,8 +101,10 @@ def _files(src_dir: Path) -> dict[str, Path]:
     return found
 
 
-def customise_config(text: str, tracks: list[str], jira: list[str]) -> str:
+def customise_config(text: str, tracks: list[str], jira: list[str], jira_required: bool = True) -> str:
     text = re.sub(r"^tracks = \[.*?\]", f"tracks = {json.dumps(tracks)}", text, count=1, flags=re.MULTILINE)
+    if not jira_required:
+        text = re.sub(r"^required = true\b", "required = false", text, count=1, flags=re.MULTILINE)
     return re.sub(r"^projects = \[.*?\]", f"projects = {json.dumps(jira)}", text, count=1, flags=re.MULTILINE)
 
 
@@ -116,7 +118,9 @@ def _compare(root: Path, rel: str, content: bytes, mode: int | None, owned_by_lo
     return Action(rel, "update" if owned_by_lockstep else "merge", content, mode, current)
 
 
-def plan(root: Path, source: Path, origin: str, tracks: list[str], jira: list[str]) -> list[Action]:
+def plan(
+    root: Path, source: Path, origin: str, tracks: list[str], jira: list[str], jira_required: bool = True
+) -> list[Action]:
     missing = [s for s in [*MANAGED, *REPO_OWNED] if not (source / s).exists()]
     if missing:
         raise BootstrapError(f"{source} is not a Lockstep checkout; missing {', '.join(missing)}")
@@ -132,7 +136,7 @@ def plan(root: Path, source: Path, origin: str, tracks: list[str], jira: list[st
     for src, dest in REPO_OWNED.items():
         content = (source / src).read_bytes()
         if dest == "lockstep.toml":
-            content = customise_config(content.decode(), tracks, jira).encode()
+            content = customise_config(content.decode(), tracks, jira, jira_required).encode()
         actions.append(_compare(root, dest, content, (source / src).stat().st_mode & 0o777, False))
     return actions
 
@@ -179,6 +183,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--git", default=DEFAULT_GIT, help=f"Lockstep git URL (default: {DEFAULT_GIT})")
     ap.add_argument("--tracks", type=_list, default=list(TRACKS), help="comma-separated: data, ai (default: both)")
     ap.add_argument("--jira", type=_list, default=["MXAAI"], help="comma-separated Jira project keys (default: MXAAI)")
+    ap.add_argument(
+        "--no-jira", action="store_true", help="the team has no Jira: specs, branches and PR titles need no issue key"
+    )
     ap.add_argument("--diff", action="store_true", help="show diffs for files that differ")
     ap.add_argument("--json", action="store_true", help="print the plan as JSON")
     ap.add_argument("--apply", action="store_true", help="write create, update and remove actions")
@@ -201,7 +208,7 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 source, sha = fetch_source(args.git, args.ref, Path(tmp) / "lockstep")
                 origin = f"source: {args.git}@{args.ref}\ncommit: {sha}\n"
-            actions = plan(root, source, origin, args.tracks, args.jira)
+            actions = plan(root, source, origin, args.tracks, args.jira, not args.no_jira)
             if args.apply:
                 apply(root, actions)
     except BootstrapError as e:

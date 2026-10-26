@@ -145,3 +145,9 @@ def test_branch_policy_script_refuses_until_filled_in(repo):
     p = subprocess.run([str(script)], check=False, capture_output=True, text=True)
     assert p.returncode == 1 and "Fill in the variables" in p.stderr
     assert subprocess.run(["bash", "-n", str(script)], check=False).returncode == 0
+
+
+def test_no_jira_switches_the_key_off(repo):
+    run(repo, "--apply", "--no-jira")
+    text = (repo / "lockstep.toml").read_text(encoding="utf-8")
+    assert "required = false" in text and "required = true" not in text

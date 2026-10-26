@@ -1,6 +1,7 @@
 ---
 name: bootstrap-repo
-description: Set up a product repo for Lockstep (spec-first, test-locked work with coding agents), or upgrade an existing setup to a newer Lockstep version. Copies the shared checks and hooks into .lockstep/, writes lockstep.toml, AGENTS.md, CLAUDE.md, .claude/settings.json, the spec template, the Azure DevOps PR template and the PR pipeline, merges with files the repo already has, and lists the Azure DevOps settings to make by hand. Use when someone wants to start using Lockstep in a repo, says "bootstrap", "set up Lockstep", "install the hooks", or wants to update .lockstep/.
+description: Set up a repo for Lockstep, or upgrade it to a newer Lockstep version.
+disable-model-invocation: true
 ---
 
 # Set up a repo for Lockstep

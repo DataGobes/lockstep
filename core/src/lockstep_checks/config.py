@@ -19,6 +19,7 @@ from typing import Any
 CONFIG_FILE = "lockstep.toml"
 TRACKS = ("data", "ai")
 MODES = ("warn", "enforce")
+RULE_TARGETS = ("content", "command")
 AC_FORMATS = ("any", "ears", "given-when-then")
 
 
@@ -82,6 +83,25 @@ class Specs:
     design_from_criteria: int = 0
     # Keep specs/living/<capability>.md: the criteria in force per capability, generated from the specs.
     living: bool = False
+    # Quick lane: a spec with at most this many criteria (and no design step) may skip its own spec PR and arrive in
+    # the test PR, reviewed together with its failing tests (0: off, every spec needs a spec PR first).
+    quick_max_criteria: int = 0
+
+
+@dataclass(frozen=True)
+class Rule:
+    """A team's own rule: a regex that must not appear in added code (``on = "content"``) or in an agent's shell
+    command (``on = "command"``). Content rules run in the team_rules hook and in CI; command rules in the hook only."""
+
+    name: str
+    pattern: str
+    message: str
+    on: str = "content"
+    paths: tuple[str, ...] = ("**",)  # content rules only
+
+    @property
+    def regex(self) -> re.Pattern[str]:
+        return re.compile(self.pattern)
 
 
 @dataclass(frozen=True)
@@ -98,6 +118,7 @@ class Enforcement:
     ac_traceability: str = ""
     review_rules: str = ""
     living_specs: str = ""
+    team_rules: str = ""
 
     def mode(self, check: str) -> str:
         """The mode for a hook or check name, with or without its ``check_`` prefix."""
@@ -124,6 +145,7 @@ class Config:
     lanes: Lanes = field(default_factory=Lanes)
     specs: Specs = field(default_factory=Specs)
     enforcement: Enforcement = field(default_factory=Enforcement)
+    rules: tuple[Rule, ...] = ()
     source: Path | None = None
 
     @property
@@ -179,6 +201,9 @@ def load_config(root: Path) -> Config:
     sections: dict[str, Any] = {}
     defaults = Config()
     for table, values in raw.items():
+        if table == "rules":
+            top["rules"] = _rules(path, values)
+            continue
         if table not in _SECTIONS:
             raise ConfigError(f"{path}: unknown table [{table}]")
         if not isinstance(values, dict):
@@ -203,6 +228,42 @@ def load_config(root: Path) -> Config:
     cfg = replace(defaults, **top, **sections, source=path)
     _validate(path, cfg)
     return cfg
+
+
+def _rules(path: Path, values: Any) -> tuple[Rule, ...]:
+    """``[[rules]]`` tables -> Rule objects, every key checked."""
+    if not isinstance(values, list) or not all(isinstance(v, dict) for v in values):
+        raise ConfigError(f"{path}: rules must be written as [[rules]] tables")
+    known = Rule.__dataclass_fields__
+    rules = []
+    for n, item in enumerate(values, start=1):
+        unknown = [k for k in item if k not in known]
+        if unknown:
+            raise ConfigError(f"{path}: unknown key rules.{unknown[0]} in rule {n}")
+        missing = [k for k in ("name", "pattern", "message") if k not in item]
+        if missing:
+            raise ConfigError(f"{path}: rule {n} needs {', '.join(missing)}")
+        kwargs = {}
+        for key, value in item.items():
+            default = Rule.paths if key == "paths" else ""
+            kwargs[key] = _coerce(path, f"rules.{key}", value, default)
+        rule = Rule(**kwargs)
+        where = f"rule {rule.name!r}"
+        if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", rule.name):
+            raise ConfigError(f"{path}: {where}: name must be lower-case words joined by hyphens")
+        if rule.on not in RULE_TARGETS:
+            raise ConfigError(f"{path}: {where}: on must be one of {', '.join(RULE_TARGETS)}")
+        if rule.on == "command" and "paths" in item:
+            raise ConfigError(f"{path}: {where}: paths applies to content rules only")
+        try:
+            re.compile(rule.pattern)
+        except re.error as e:
+            raise ConfigError(f"{path}: {where}: pattern is not a valid regex: {e}") from e
+        rules.append(rule)
+    names = [r.name for r in rules]
+    if len(set(names)) != len(names):
+        raise ConfigError(f"{path}: rule names must be unique")
+    return tuple(rules)
 
 
 def _coerce(path: Path, name: str, value: Any, default: Any) -> Any:
@@ -240,6 +301,8 @@ def _validate(path: Path, cfg: Config) -> None:
         raise ConfigError(f"{path}: specs.ac_format must be one of {', '.join(AC_FORMATS)}")
     if cfg.specs.design_from_criteria < 0:
         raise ConfigError(f"{path}: specs.design_from_criteria must be 0 (off) or more")
+    if cfg.specs.quick_max_criteria < 0:
+        raise ConfigError(f"{path}: specs.quick_max_criteria must be 0 (off) or more")
     e = cfg.enforcement
     bad_modes = [k for k in e.__dataclass_fields__ if getattr(e, k) not in (MODES if k == "default" else ("", *MODES))]
     if bad_modes:

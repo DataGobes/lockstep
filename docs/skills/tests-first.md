@@ -2,7 +2,8 @@
 
 **What it does.** Writes failing acceptance tests for an approved spec, one seam per criterion, and proves each fails
 because the behaviour is missing, not because of an import error. Then it opens the test PR that locks them. That PR merges into the spec's feature branch, never into main, so main
-never holds a failing test.
+never holds a failing test. Criteria that hold for every input ("never negative", "one row per key") also get a Hypothesis property test next to
+the example tests, when the repo uses Hypothesis.
 
 **When to reach for it.** When a spec is `approved`. Say "write the tests for spec 0042".
 

@@ -13,7 +13,8 @@ Paths below are relative to this skill's folder. The scripts need Python 3.11+ a
 ## 1. Check the spec
 
 - Find the spec: from the branch name, or ask for its id. Read `specs/<id>-<slug>/spec.md` and `status.yml`.
-- `status` must be `approved`. If it is `draft`, stop: the spec PR comes first.
+- `status` must be `approved`. If it is `draft`, stop: the spec PR comes first. In the quick lane the approved spec is
+  already committed on this `test/` branch instead (see the `spec` skill); carry on.
 - **If `pii: yes` and you are Claude, stop** and say this spec is worked on in the company Copilot.
 - Red tests never go to main: the test PR merges into the spec's feature branch, and only the green implementation
   merges into main. From an up-to-date main, create `feature/<id>-<slug>` if it doesn't exist yet and push it
@@ -29,7 +30,9 @@ spec has a `design.md`, its section 5 already names the seams: use them, and rai
 From section 5 of the spec (test and eval plan), list each criterion with its seam, test type and location. Include the
 edge cases the criterion's WHEN / IF conditions imply: empty input, the boundary values, duplicates, a failing
 upstream. A Given/When/Then criterion maps straight onto the test: GIVEN is the setup, WHEN the one call through the
-seam, THEN and AND the assertions, with the criterion's values. Use business terms as `GLOSSARY.md` defines them. Show the list, and settle anything unclear in rounds as
+seam, THEN and AND the assertions, with the criterion's values. A criterion that holds for every input (always,
+every, never, any) also gets a property test next to its examples; [property-tests.md](property-tests.md) says when
+and how. Use business terms as `GLOSSARY.md` defines them. Show the list, and settle anything unclear in rounds as
 [../spec/grilling.md](../spec/grilling.md) describes, before writing.
 
 ## 3. Write them
@@ -82,7 +85,7 @@ Then run `PYTHONPATH=.lockstep/src python3 -m lockstep_checks.check_ac_traceabil
   when the feature branch merges into main.
 - Ask before pushing. Open the PR from `test/<id>-<slug>` **into `feature/<id>-<slug>`, not main**. The title starts
   with the Jira key; the description has the AC → test → result table from step 4, with each failure reason, and says
-  the PR is a **test PR**. Review fixes to the tests go on the test branch; they are allowed until it merges.
+  the PR is a **test PR** (in the quick lane: **spec and test PR**, asking the reviewer to check the criteria first). Review fixes to the tests go on the test branch; they are allowed until it merges.
 
 Tell the user what comes next: a reviewer checks that the tests match the criteria (the feature branch's path-based
 required reviewer covers `tests/`). Merge it with a squash or a merge commit, not a rebase. After merge, any change to

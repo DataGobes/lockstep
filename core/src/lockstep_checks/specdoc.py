@@ -34,7 +34,9 @@ _HEADING = re.compile(r"^##\s+(\d+)\.\s*(.*?)\s*$")
 _AC_ITEM = re.compile(r"^\s*[-*]\s+(?P<struck>~~)?(?P<id>AC-\d+)\b")
 _POINTER = re.compile(r"\bsuperseded\s+by\s+(?:(?P<spec>\d+)/)?(?P<ac>AC-\d+)\b", re.IGNORECASE)
 _LIST_ITEM = re.compile(r"^\s*(?:[-*]|\d+\.)\s+\S")
-_STEP = re.compile(r"^\s*(?:[-*]\s+)?(?:\*\*)?(?P<kw>given|when|then|and|but)\b", re.IGNORECASE)
+# Steps are list items under the criterion; a wrapped EARS line that happens to start with "when" or "and" is not one.
+_STEP = re.compile(r"^\s*[-*]\s+(?:\*\*)?(?P<kw>given|when|then|and|but)\b", re.IGNORECASE)
+_NO_QUESTION = re.compile(r"^(?:[-*]|\d+\.)\s+(?:none|n/?a|-|no open questions)\.?$", re.IGNORECASE)
 _SHALL = re.compile(r"\bSHALL\b")
 _WEAK = re.compile(r"\b(should|may|might|could|ideally|preferably)\b", re.IGNORECASE)
 _VAGUE = re.compile(
@@ -57,7 +59,8 @@ class SpecDoc:
     text: dict[str, list[str]] = field(default_factory=dict)  # active AC id -> its lines, steps included
 
     def open_questions(self) -> list[tuple[int, str]]:
-        return list_items(self.sections.get(7, []))
+        """List items in section 7, except one that says there are none ("- None", "- n/a")."""
+        return [(n, t) for n, t in list_items(self.sections.get(7, [])) if not _NO_QUESTION.match(t)]
 
 
 def parse_sections(text: str) -> dict[int, list[tuple[int, str]]]:

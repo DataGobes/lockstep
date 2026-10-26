@@ -338,3 +338,19 @@ def test_smells_are_warnings_until_the_tests_lock(tmp_path, state, warned):
     found = check(root, spec_only=True)
     assert messages(found) == []
     assert any("'quickly'" in m for m in messages(found, "warning")) is warned
+
+
+def test_a_wrapped_ears_sentence_is_not_a_given_when_then_step():
+    text = SPEC.format(questions="").replace(
+        "- AC-001 WHEN a churn score is requested THE SYSTEM SHALL return it.",
+        "- AC-001 WHEN a churn score is requested THE SYSTEM SHALL return it\n  when the customer has an account\n"
+        "  and round it to two decimals.",
+    )
+    assert parse_spec(text).problems == []
+    assert parse_spec(text, "ears").problems == []
+
+
+@pytest.mark.parametrize("answer", ["- None", "- none.", "- n/a", "- N/A", "- No open questions."])
+def test_saying_there_are_no_open_questions_is_not_an_open_question(answer):
+    assert parse_spec(SPEC.format(questions=answer)).open_questions() == []
+    assert parse_spec(SPEC.format(questions="- None yet: which region?")).open_questions() != []

@@ -1,7 +1,7 @@
 import pytest
 
-from codefactory.config import load_config
-from codefactory.status import SpecStatusError, parse_status
+from lockstep_checks.config import load_config
+from lockstep_checks.status import SpecStatusError, parse_status
 
 CFG = load_config(__import__("pathlib").Path("/no-such-dir"))
 
@@ -10,7 +10,7 @@ VALID = """\
 status: tests-locked   # draft | approved | tests-locked | implemented
 pii: no
 track: data
-jira: PROJ-123
+jira: MXAAI-123
 locked_at_commit: 3f2a9c1
 """
 
@@ -20,7 +20,7 @@ def test_parses_valid_file():
     assert s.status == "tests-locked"
     assert s.pii is False
     assert s.track == "data"
-    assert s.jira == "PROJ-123"
+    assert s.jira == "MXAAI-123"
     assert s.locked_at_commit == "3f2a9c1"
     assert s.tests_locked is True
 
@@ -34,7 +34,7 @@ def test_draft_needs_no_jira_or_lock():
 
 
 def test_quoted_values_are_unquoted():
-    s = parse_status("status: 'approved'\npii: \"no\"\ntrack: mixed\njira: PROJ-9\n", CFG)
+    s = parse_status("status: 'approved'\npii: \"no\"\ntrack: mixed\njira: MXAAI-9\n", CFG)
     assert s.status == "approved"
     assert s.pii is False
 
@@ -53,10 +53,10 @@ def test_implemented_counts_as_locked():
         ("status: draft\npii: no\ntrack: web\n", "track"),
         ("status: draft\npii: no\ntrack: data\nowner: x\n", "owner"),
         ("status: draft\nstatus: approved\npii: no\ntrack: data\n", "twice"),
-        ("status: draft\npii: no\ntrack: data\njira: proj-1\n", "jira"),
+        ("status: draft\npii: no\ntrack: data\njira: mxaai-1\n", "jira"),
         ("status: approved\npii: no\ntrack: data\n", "jira"),
-        ("status: tests-locked\npii: no\ntrack: data\njira: PROJ-1\n", "locked_at_commit"),
-        ("status: tests-locked\npii: no\ntrack: data\njira: PROJ-1\nlocked_at_commit: main\n", "locked_at_commit"),
+        ("status: tests-locked\npii: no\ntrack: data\njira: MXAAI-1\n", "locked_at_commit"),
+        ("status: tests-locked\npii: no\ntrack: data\njira: MXAAI-1\nlocked_at_commit: main\n", "locked_at_commit"),
         ("status: draft\npii: no\ntrack:\n  - data\n", "line 4"),
         ("status: [draft]\npii: no\ntrack: data\n", "status"),
     ],
@@ -67,7 +67,7 @@ def test_invalid_status_is_rejected(text, fragment):
 
 
 def test_track_must_be_enabled_in_config(tmp_path):
-    (tmp_path / "factory.toml").write_text('[factory]\ntracks = ["data"]\n', encoding="utf-8")
+    (tmp_path / "lockstep.toml").write_text('[lockstep]\ntracks = ["data"]\n', encoding="utf-8")
     cfg = load_config(tmp_path)
     parse_status("status: draft\npii: no\ntrack: data\n", cfg)
     for track in ("ai", "mixed"):
@@ -75,18 +75,11 @@ def test_track_must_be_enabled_in_config(tmp_path):
             parse_status(f"status: draft\npii: no\ntrack: {track}\n", cfg)
 
 
-@pytest.mark.parametrize(
-    "pattern, ok, bad",
-    [
-        (r"PROJ-\\d+|OPS-\\d+", ["PROJ-1", "OPS-22"], ["PROJ-123-invalid", "XOPS-1"]),
-        (r"(?i)proj-\\d+", ["PROJ-1", "proj-2"], ["PROJ-1x"]),
-    ],
-)
-def test_jira_pattern_is_matched_whole(tmp_path, pattern, ok, bad):
-    (tmp_path / "factory.toml").write_text(f'[jira]\nkey_pattern = "{pattern}"\n', encoding="utf-8")
+def test_jira_key_must_belong_to_a_configured_project(tmp_path):
+    (tmp_path / "lockstep.toml").write_text('[jira]\nprojects = ["MXAAI", "OPS"]\n', encoding="utf-8")
     cfg = load_config(tmp_path)
-    for key in ok:
+    for key in ("MXAAI-1", "OPS-22"):
         assert parse_status(f"status: approved\npii: no\ntrack: data\njira: {key}\n", cfg).jira == key
-    for key in bad:
+    for key in ("PROJ-1", "MXAAI-123-x", "XOPS-1", "mxaai-1", "MXAAI-0"):
         with pytest.raises(SpecStatusError, match="jira"):
             parse_status(f"status: approved\npii: no\ntrack: data\njira: {key}\n", cfg)

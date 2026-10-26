@@ -1,15 +1,16 @@
-# Code factory settings for this repo. Every key is optional: delete a line to use
+# Lockstep settings for this repo. Every key is optional: delete a line to use
 # the default shown. Unknown keys are an error, so a typo never disables a gate.
 
-[factory]
-core_version = "0.1"   # code factory core this repo is pinned to
+[lockstep]
+core_version = "0.1"   # lockstep-checks version this repo is pinned to
 specs_dir = "specs"
 # Branch -> spec id. Must capture the id in a group named "id".
 branch_pattern = '^(?:feature|bugfix|hotfix|test|spec)/(?P<id>\d{4})-'
 tracks = ["data", "ai"]   # remove one if the repo has only one track; "mixed" needs both
 
 [jira]
-key_pattern = '[A-Z][A-Z0-9]+-\d+'
+# Jira project keys; PR titles, branches and specs must use issue keys like MXAAI-123.
+projects = ["MXAAI"]
 
 [protect]
 # Read-only for agents once the active spec is tests-locked. New files stay allowed.

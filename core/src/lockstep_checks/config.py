@@ -1,4 +1,4 @@
-"""Load and validate a repo's ``factory.toml``.
+"""Load and validate a repo's ``lockstep.toml``.
 
 The file is optional: a missing file means the documented defaults. Every key is
 validated, and an unknown key is an error, because a typo such as ``warn_line``
@@ -16,12 +16,12 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
-CONFIG_FILE = "factory.toml"
+CONFIG_FILE = "lockstep.toml"
 TRACKS = ("data", "ai")
 
 
 class ConfigError(ValueError):
-    """factory.toml is unreadable or invalid."""
+    """lockstep.toml is unreadable or invalid."""
 
 
 @dataclass(frozen=True)
@@ -66,7 +66,8 @@ class Config:
     # Must capture the spec id in a group named "id".
     branch_pattern: str = r"^(?:feature|bugfix|hotfix|test|spec)/(?P<id>\d{4})-"
     tracks: tuple[str, ...] = TRACKS
-    jira_key_pattern: str = r"[A-Z][A-Z0-9]+-\d+"
+    # Jira project keys this repo's work items live in; issue keys look like MXAAI-123.
+    jira_projects: tuple[str, ...] = ("MXAAI",)
     protect: Protect = field(default_factory=Protect)
     pii: Pii = field(default_factory=Pii)
     pr_size: PrSize = field(default_factory=PrSize)
@@ -78,8 +79,9 @@ class Config:
 
     @property
     def jira_key_regex(self) -> re.Pattern[str]:
-        # Use with fullmatch(); wrapping in ^...$ would break alternations and inline flags.
-        return re.compile(self.jira_key_pattern)
+        """Matches one issue key of an allowed project. Use fullmatch() to validate, search() to find."""
+        projects = "|".join(re.escape(p) for p in self.jira_projects)
+        return re.compile(rf"(?<![A-Za-z0-9])(?:{projects})-[1-9]\d*(?![A-Za-z0-9])")
 
     def without_source(self) -> Config:
         return replace(self, source=None)
@@ -87,20 +89,20 @@ class Config:
 
 # TOML table -> (section dataclass field on Config, or None for top-level keys).
 _SECTIONS: dict[str, str | None] = {
-    "factory": None,
+    "lockstep": None,
     "jira": None,
     "protect": "protect",
     "pii": "pii",
     "pr_size": "pr_size",
 }
 _TOP_LEVEL_KEYS = {
-    "factory": {
+    "lockstep": {
         "core_version": "core_version",
         "specs_dir": "specs_dir",
         "branch_pattern": "branch_pattern",
         "tracks": "tracks",
     },
-    "jira": {"key_pattern": "jira_key_pattern"},
+    "jira": {"projects": "jira_projects"},
 }
 
 
@@ -159,13 +161,17 @@ def _coerce(path: Path, name: str, value: Any, default: Any) -> Any:
 
 
 def _validate(path: Path, cfg: Config) -> None:
-    for name in ("branch_pattern", "jira_key_pattern"):
-        try:
-            regex = re.compile(getattr(cfg, name))
-        except re.error as e:
-            raise ConfigError(f"{path}: {name} is not a valid regex: {e}") from e
-        if name == "branch_pattern" and "id" not in regex.groupindex:
-            raise ConfigError(f"{path}: branch_pattern needs a named group (?P<id>...)")
+    try:
+        regex = re.compile(cfg.branch_pattern)
+    except re.error as e:
+        raise ConfigError(f"{path}: branch_pattern is not a valid regex: {e}") from e
+    if "id" not in regex.groupindex:
+        raise ConfigError(f"{path}: branch_pattern needs a named group (?P<id>...)")
+    bad_projects = [p for p in cfg.jira_projects if not re.fullmatch(r"[A-Z][A-Z0-9_]+", p)]
+    if bad_projects or not cfg.jira_projects or len(set(cfg.jira_projects)) != len(cfg.jira_projects):
+        raise ConfigError(
+            f"{path}: jira.projects must be distinct Jira project keys such as MXAAI, got {list(cfg.jira_projects)}"
+        )
     bad = [t for t in cfg.tracks if t not in TRACKS]
     if bad or not cfg.tracks or len(set(cfg.tracks)) != len(cfg.tracks):
         raise ConfigError(

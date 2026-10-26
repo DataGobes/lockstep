@@ -5,11 +5,11 @@ from pathlib import Path
 
 import pytest
 
-from codefactory.config import load_config
-from codefactory.spec import SpecError, current_branch, resolve_spec
+from lockstep_checks.config import load_config
+from lockstep_checks.spec import SpecError, current_branch, resolve_spec
 
 SRC = Path(__file__).resolve().parents[1] / "src"
-LOCKED = "status: tests-locked\npii: no\ntrack: data\njira: PROJ-42\nlocked_at_commit: abc1234\n"
+LOCKED = "status: tests-locked\npii: no\ntrack: data\njira: MXAAI-42\nlocked_at_commit: abc1234\n"
 
 
 def make_spec(root: Path, name: str, status: str | None = LOCKED) -> Path:
@@ -107,7 +107,7 @@ def test_detached_head_without_env_gives_none(tmp_path):
 
 def run_cli(tmp_path, *args):
     return subprocess.run(
-        [sys.executable, "-m", "codefactory.spec", "--root", str(tmp_path), *args],
+        [sys.executable, "-m", "lockstep_checks.spec", "--root", str(tmp_path), *args],
         check=False,
         capture_output=True,
         text=True,

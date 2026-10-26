@@ -3,6 +3,6 @@
   "description": "Generate and maintain repo-specific Copilot code review instructions (.github/copilot-instructions.md and path-scoped *.instructions.md) on top of project-wide rules.",
   "version": "0.1.0",
   "author": { "name": "DataGobes" },
-  "repository": "https://github.com/DataGobes/copilot-skills",
+  "repository": "https://github.com/DataGobes/lockstep",
   "keywords": ["copilot", "code-review", "azure-devops", "instructions"]
 }

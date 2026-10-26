@@ -8,6 +8,11 @@ tag the merge commit `v<version>`.
 
 ## Unreleased
 
+- **Safety scan of shipped files:** `tools/check_release.py` now also runs `tools/safety_scan.py` over everything
+  Lockstep ships (plugins, `core/src`, `core/hooks`, `core/pipelines`, templates). It fails on likely secrets, network
+  access outside an allowlist (`ado_pr_title.py` reads the PR title from Azure DevOps), risky calls (`shell=True`,
+  `os.system`, `eval`/`exec`, `pickle`) and hidden or bidi unicode. Tests and evals are skipped. Inspired by Tessl's
+  skill security checks.
 - **Property tests for invariant criteria:** `tests-first` proposes a Hypothesis property test next to the example
   tests for criteria that hold for every input (never negative, one row per key, idempotent, round trip), when the
   repo pins Hypothesis. Settings keep locked property tests deterministic (`derandomize=True`), and found cases are

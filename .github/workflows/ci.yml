@@ -22,11 +22,23 @@ jobs:
           ruff format --check core
           ruff check --line-length 120 plugins/lockstep-* tools
           ruff format --check --line-length 120 plugins/lockstep-* tools
+      # Lockstep builds itself the Lockstep way: a PR into a feature branch carries the spec's new tests, red on
+      # purpose until the implementation lands. Those files run as a report; every other test must pass, and the PR
+      # from the feature branch into main runs everything with nothing excused.
       - name: Tests
+        env:
+          TARGET: ${{ github.base_ref }}
         run: |
           git config --global user.email ci@example.invalid
           git config --global user.name "Lockstep CI"
-          python -m pytest -q core/tests plugins/lockstep-core plugins/lockstep-data plugins/lockstep-ai tools/tests
+          red=$(PYTHONPATH=core/src python -m lockstep_checks.red_phase --target "$TARGET")
+          ignore=()
+          for f in $red; do ignore+=("--ignore=$f"); done
+          python -m pytest -q "${ignore[@]}" core/tests plugins/lockstep-core plugins/lockstep-data plugins/lockstep-ai tools/tests
+          if [ -n "$red" ]; then
+            echo "Expected red until the implementation lands:"
+            python -m pytest -q $red || true
+          fi
       - name: Release metadata
         run: python tools/check_release.py
 

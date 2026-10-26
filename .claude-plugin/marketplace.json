@@ -1,8 +1,8 @@
 {
-  "name": "datagobes-copilot-skills",
+  "name": "lockstep",
   "owner": { "name": "DataGobes" },
   "metadata": {
-    "description": "Team skills for working with GitHub Copilot code review. Installable in Claude Code and GitHub Copilot CLI.",
+    "description": "Lockstep: skills, hooks and shared checks for spec-first, test-locked development with coding agents. Installable in Claude Code and GitHub Copilot CLI.",
     "version": "0.1.0"
   },
   "plugins": [

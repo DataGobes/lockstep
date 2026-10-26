@@ -1,6 +1,6 @@
-# copilot-skills
+# Lockstep
 
-Team skills for working with GitHub Copilot code review. Every plugin in this repo installs in both
+Skills, hooks and shared checks for spec-first, test-locked development with coding agents. Every plugin in this repo installs in both
 **Claude Code** and **GitHub Copilot CLI** from the same files.
 
 | Plugin | What it does |
@@ -12,15 +12,15 @@ Team skills for working with GitHub Copilot code review. Every plugin in this re
 **Claude Code**
 
 ```
-/plugin marketplace add DataGobes/copilot-skills
-/plugin install copilot-review-instructions@datagobes-copilot-skills
+/plugin marketplace add DataGobes/lockstep
+/plugin install copilot-review-instructions@lockstep
 ```
 
 **GitHub Copilot CLI**
 
 ```
-copilot plugin marketplace add DataGobes/copilot-skills
-copilot plugin install copilot-review-instructions@datagobes-copilot-skills
+copilot plugin marketplace add DataGobes/lockstep
+copilot plugin install copilot-review-instructions@lockstep
 ```
 
 Update later with `/plugin update` (Claude Code) or `copilot plugin update copilot-review-instructions`.

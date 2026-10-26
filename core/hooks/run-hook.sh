@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Lockstep hook shim for Claude Code and GitHub Copilot.
-#   usage: run-hook.sh <protect_tests|guard_bash>   (event JSON on stdin)
+#   usage: run-hook.sh <protect_tests|guard_bash|team_rules>   (event JSON on stdin)
 # Runs the Python hook from ../src next to this script. Exit 0 allows, exit 2 blocks.
 # Fails closed: if Python 3.11+ is missing, the tool call is blocked.
 set -u
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 hook="${1:-}"
 case "$hook" in
-  protect_tests|guard_bash) ;;
+  protect_tests|guard_bash|team_rules) ;;
   *) echo "lockstep: unknown hook '$hook'" >&2; exit 2 ;;
 esac
 # The first Python 3.11+ found: $LOCKSTEP_PYTHON, then versioned names, then python3 and python.

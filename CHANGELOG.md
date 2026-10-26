@@ -8,6 +8,11 @@ tag the merge commit `v<version>`.
 
 ## Unreleased
 
+- **Team rules:** `[[rules]]` in `lockstep.toml` lets a team add its own rules without code: a regex that must not
+  appear in added code (`on = "content"`, optionally only under `paths`) or in an agent's shell command
+  (`on = "command"`). The new `team_rules` hook stops the agent, and the new `check_team_rules` PR check fails added
+  lines that break a content rule, so both apply the same rule. Every key is validated; `[enforcement] team_rules`
+  sets warn or enforce. The settings template registers the hook and the PR pipeline runs the check. After Probity.
 - **Spec analysis:** `check_ac_traceability` warns about criteria that are hard to test, in specs still in draft or
   approved: should/may/might, vague words (fast, appropriate, and/or, several, ...), two SHALLs in one criterion, a
   non-functional criterion without a number, and criteria that repeat each other. Warnings only; the `spec` skill

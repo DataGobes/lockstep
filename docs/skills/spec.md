@@ -2,7 +2,8 @@
 
 **What it does.** Turns a Jira issue into a draft spec: problem, non-goals, numbered acceptance criteria (EARS, or Given/When/Then if the repo or you prefer it), a test
 plan, risks. It then interviews you in short rounds, each question with a recommended answer, until Open questions is
-empty, and opens the spec PR.
+empty. Before the PR, a reader with none of the conversation checks the spec for terms, untestable criteria and
+contradictions. Then it opens the spec PR.
 
 **When to reach for it.** At the start of any piece of work, before code. Say "spec MXAAI-123" or "write a spec".
 

@@ -5,7 +5,9 @@ locally, but only when the agent uses it. Changes under ``[lanes] no_spec_needed
 (specs, docs) never need one. Any other change must be on one of these lanes:
 
   feature/<id>-   the spec is tests-locked (or implemented)
-  test/<id>-      the spec is approved or tests-locked; the test PR adds stubs and merges into feature/<id>-
+  test/<id>-      the spec is approved or tests-locked; the test PR adds stubs and merges into feature/<id>-.
+                  The spec must have had its own spec PR, unless it is small enough for the quick lane
+                  ([specs] quick_max_criteria): then it may arrive in the test PR, reviewed with its tests.
   spec/<id>-      specs and docs only; code waits for the test PR
   baseline/<id>-  a baseline spec (kind: baseline) pins behaviour the code already has: tests, specs and docs only,
                   and the spec is implemented once its tests are in (they pass on today's code)
@@ -23,6 +25,7 @@ from .gitdiff import ChangedFile, changed_files
 from .paths import matches, matches_any
 from .report import Finding
 from .spec import Resolution, resolve_spec
+from .specdoc import parse_spec
 from .status import LOCKED_STATES
 
 _ALLOWED = {"test": ("approved", "tests-locked"), "feature": LOCKED_STATES}
@@ -80,7 +83,38 @@ def check_spec_required(files: list[ChangedFile], branch: str | None, spec: Reso
                 path=where,
             )
         ]
+    if kind == "test" and spec.spec_dir is not None:
+        return _quick_lane(files, spec, cfg)
     return []
+
+
+def _quick_lane(files: list[ChangedFile], spec: Resolution, cfg: Config) -> list[Finding]:
+    """A test PR that adds its own spec skipped the spec PR: allowed only for small specs, when the repo allows it."""
+    md = spec.spec_dir / "spec.md"
+    rel = f"{cfg.specs_dir}/{spec.spec_dir.name}/spec.md"
+    if not any(f.path == rel and f.status == "A" for f in files):
+        return []
+    limit = cfg.specs.quick_max_criteria
+    if limit == 0:
+        why = "this repo has no quick lane ([specs] quick_max_criteria = 0)"
+    elif spec.status and spec.status.design:
+        why = "it takes the research and design step"
+    else:
+        try:
+            count = len(parse_spec(md.read_text(encoding="utf-8"), cfg.specs.ac_format).criteria)
+        except OSError:
+            return []  # the traceability check reports a missing spec.md
+        if count <= limit:
+            return []
+        why = f"it has {count} criteria and the quick lane takes at most {limit}"
+    return [
+        Finding(
+            "error",
+            f"spec {spec.spec_id} arrives in this test PR without a spec PR of its own, but {why}. Open the spec PR "
+            "first, then the test PR",
+            path=rel,
+        )
+    ]
 
 
 def _baseline_lane(code: list[str], spec: Resolution, status: str | None, where: str | None, cfg: Config):

@@ -8,6 +8,10 @@ it stays in the spec but needs no test.
 A criterion is one EARS sentence (``- AC-001 WHEN <trigger> THE <system> SHALL <behaviour>.``) or a title with
 Given/When/Then steps indented under it (``  - GIVEN ...``, ``  - WHEN ...``, ``  - THEN ...``, plus ``AND``/``BUT``).
 ``[specs] ac_format`` in lockstep.toml can require one of the two; steps are checked for order either way.
+
+``criteria_smells`` flags wording that makes a criterion hard to test (after Kiro's requirements analysis): weak
+modals, vague words, two behaviours in one EARS sentence, a non-functional criterion without a number, and
+criteria that repeat each other. They are warnings: a person decides.
 """
 
 from __future__ import annotations
@@ -32,6 +36,15 @@ _POINTER = re.compile(r"\bsuperseded\s+by\s+(?:(?P<spec>\d+)/)?(?P<ac>AC-\d+)\b"
 _LIST_ITEM = re.compile(r"^\s*(?:[-*]|\d+\.)\s+\S")
 _STEP = re.compile(r"^\s*(?:[-*]\s+)?(?:\*\*)?(?P<kw>given|when|then|and|but)\b", re.IGNORECASE)
 _SHALL = re.compile(r"\bSHALL\b")
+_WEAK = re.compile(r"\b(should|may|might|could|ideally|preferably)\b", re.IGNORECASE)
+_VAGUE = re.compile(
+    r"\b(fast|quick(?:ly)?|slow(?:ly)?|efficient(?:ly)?|user-friendly|easy|easily|intuitive(?:ly)?|appropriate(?:ly)?|"
+    r"reasonabl[ey]|robust(?:ly)?|scalable|flexible|seamless(?:ly)?|as needed|if possible|where possible|etc|"
+    r"and/or|normally|usually|typically|approximately|several|some|many|few|large|small|significant(?:ly)?)\b",
+    re.IGNORECASE,
+)
+_NON_FUNCTIONAL = re.compile(r"\(non-functional\)", re.IGNORECASE)
+_AC_PREFIX = re.compile(r"^[-*]\s+AC-\d+\s*")
 
 
 @dataclass(frozen=True)
@@ -107,6 +120,34 @@ def parse_spec(text: str, ac_format: str = "any") -> SpecDoc:
         if spec is None and target not in criteria:
             problems.append((superseded[ac], f"{ac} is superseded by {target}, which is not an active criterion here"))
     return SpecDoc(sections, criteria, superseded, replacements, problems, blocks)
+
+
+def criteria_smells(doc: SpecDoc) -> list[tuple[int, str]]:
+    """(line, message) for each active criterion whose wording is hard to test."""
+    smells = []
+    seen: dict[str, str] = {}
+    for ac, line in doc.criteria.items():
+        block = doc.text.get(ac, [])
+        # "Observed in:" lines (baseline specs) are references, not behaviour
+        words = " ".join(t for t in block if not t.lower().startswith(("observed in", "- observed in")))
+        words = _AC_PREFIX.sub("", words)
+        if m := _WEAK.search(words):
+            smells.append((line, f"{ac} says '{m[1]}'; state what the system does, not what it should or may do"))
+        vague = sorted({m[1].lower() for m in _VAGUE.finditer(words)})
+        if vague:
+            terms = ", ".join(f"'{v}'" for v in vague)
+            smells.append(
+                (line, f"{ac} uses {terms}; name a value a test can check, or define the term in GLOSSARY.md")
+            )
+        if len(_SHALL.findall(words)) > 1:
+            smells.append((line, f"{ac} has more than one SHALL; split it so each criterion is one behaviour"))
+        if _NON_FUNCTIONAL.search(words) and not re.search(r"\d", words):
+            smells.append((line, f"{ac} is non-functional but names no number; give a limit with its unit"))
+        key = re.sub(r"\W+", " ", words.lower()).strip()
+        if key in seen:
+            smells.append((line, f"{ac} repeats {seen[key]}; merge them or make the difference explicit"))
+        seen.setdefault(key, ac)
+    return smells
 
 
 def _indent(line: str) -> int:

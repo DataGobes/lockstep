@@ -8,6 +8,11 @@ tag the merge commit `v<version>`.
 
 ## Unreleased
 
+- **Spec analysis:** `check_ac_traceability` warns about criteria that are hard to test, in specs still in draft or
+  approved: should/may/might, vague words (fast, appropriate, and/or, several, ...), two SHALLs in one criterion, a
+  non-functional criterion without a number, and criteria that repeat each other. Warnings only; the `spec` skill
+  fixes them or says why they stay. After Kiro's requirements analysis.
+
 ## 0.3.0
 
 More of SDTRD's strengths, ported with credit, and Jira made optional. Everything that changes the workflow is off

@@ -8,7 +8,8 @@ Tests name a criterion with the spec id, because every spec numbers from AC-001:
 
 Specs with status tests-locked or implemented must have a test for every active
 criterion. ``--spec-only`` lints the specs only (sections, criteria, open questions,
-and research.md and design.md where a spec needs them): that is the gate for a spec PR.
+and research.md and design.md where a spec needs them): that is the gate for a spec PR. Specs
+still in draft or approved also get warnings for criteria that are hard to test (specdoc.criteria_smells).
 """
 
 from __future__ import annotations
@@ -26,7 +27,7 @@ from .config import Config
 from .designdoc import design_problems
 from .report import Finding
 from .spec import SpecError, list_specs, load_status
-from .specdoc import SpecDoc, parse_spec
+from .specdoc import SpecDoc, criteria_smells, parse_spec
 
 SKIP_DIRS = {".git", ".venv", "venv", "node_modules", "target", "dbt_packages", "logs", "__pycache__", ".pytest_cache"}
 
@@ -142,6 +143,8 @@ def check_traceability(root: Path, cfg: Config, spec_only: bool) -> list[Finding
             findings.append(Finding("error", "spec.md is missing", rel_md))
             continue
         findings.extend(Finding("error", msg, rel_md, line) for line, msg in doc.problems)
+        if status.status in ("draft", "approved"):  # once tests lock, wording can't change any more
+            findings.extend(Finding("warning", msg, rel_md, line) for line, msg in criteria_smells(doc))
         if status.status != "draft":
             for line, q in doc.open_questions():
                 msg = f"open question must be resolved before '{status.status}': {q}"

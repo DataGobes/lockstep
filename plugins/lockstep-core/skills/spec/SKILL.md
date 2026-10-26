@@ -47,11 +47,24 @@ Fill all seven sections of `spec.md`, keeping the template's headings. One to tw
 
 1. **Problem and outcome:** who needs what and why, and how you will know it worked (a number, where possible).
 2. **Scope / non-goals:** what is in, and an explicit list of what is out, including code the agent must not touch.
-3. **Acceptance criteria:** list items numbered `AC-001`, `AC-002`, ... in order. Use EARS:
+3. **Acceptance criteria:** list items numbered `AC-001`, `AC-002`, ... in order. Use the format `[specs] ac_format`
+   in `lockstep.toml` names; with `any` (or no setting), use EARS unless the author prefers Given/When/Then, and
+   keep one format per spec. EARS:
    - always: `AC-001 THE <system> SHALL <behaviour>.`
    - on an event: `WHEN <trigger> THE <system> SHALL <behaviour>.`
    - in a state: `WHILE <state> THE <system> SHALL <behaviour>.`
    - unwanted case: `IF <condition> THEN THE <system> SHALL <behaviour>.`
+
+   Given/When/Then: a short title, then the steps as list items indented under it. One WHEN per criterion;
+   GIVEN is optional; AND or BUT continues the step above.
+
+   ```markdown
+   - AC-001 Refund above the approval limit waits
+     - GIVEN a refund of 600 EUR and an approval limit of 500 EUR
+     - WHEN the agent submits the refund
+     - THEN the refund waits for a manager's approval
+     - AND the customer is not paid yet
+   ```
 
    One behaviour per criterion: split any "and". Name concrete values, limits and units (rows, minutes, euros, a
    score). Cover the unwanted cases the issue implies: empty input, duplicates, late data, a failing upstream.

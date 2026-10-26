@@ -14,9 +14,18 @@ Who needs what, why, and how we will know it worked.
 - In scope: …
 - Out of scope (agent must not touch): …
 
-## 3. Acceptance criteria (EARS style, each testable)
+## 3. Acceptance criteria (each testable)
 - AC-001 WHEN <condition> THE SYSTEM SHALL <behaviour>.
 - AC-002 (non-functional) THE pipeline SHALL complete in < 15 min on staging.
+
+Write each criterion as one EARS sentence, as above, or as a title with Given/When/Then steps under it, as below.
+`[specs] ac_format` in lockstep.toml can require one of the two. Replace the examples; keep one format per spec.
+
+- AC-003 <short title>
+  - GIVEN <starting state, with concrete values>
+  - WHEN <the one action or event>
+  - THEN <the observable outcome>
+  - AND <another outcome of the same action>
 
 Never delete or renumber a criterion. To replace one, strike it and point to its replacement, here or in a later spec:
 `- ~~AC-003~~ superseded by AC-004` or `- ~~AC-003~~ superseded by 0057/AC-001`.

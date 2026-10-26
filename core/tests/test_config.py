@@ -80,6 +80,7 @@ def test_guard_bash_always_enforces(tmp_path):
         ('[enforcement]\ndefault = ""\n', "enforcement.default"),
         ('[enforcement]\npr_size = "block"\n', "enforcement.pr_size"),
         ('[enforcement]\nguard_bash = "warn"\n', "enforcement.guard_bash"),  # never configurable
+        ('[specs]\nac_format = "gherkin"\n', "specs.ac_format"),
         ("this is not toml", "lockstep.toml"),
     ],
 )

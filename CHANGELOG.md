@@ -8,6 +8,11 @@ tag the merge commit `v<version>`.
 
 ## Unreleased
 
+- **Given/When/Then criteria:** an acceptance criterion can be a title with GIVEN / WHEN / THEN steps under it, as
+  well as one EARS sentence. `[specs] ac_format` in `lockstep.toml` (`any`, `ears` or `given-when-then`) sets what
+  `check_ac_traceability` accepts; the default `any` accepts both and checks the steps' order. The spec template, the
+  `spec` and `tests-first` skills and the self-review spec pass show the steps. Credited to SDTRD's behavioural
+  scenarios.
 - **Mutation report:** `lockstep_checks.mutation_report` and the `mutation-report.yml` pipeline template run mutmut
   on the modules a PR changed and show the mutation score, with each mutant the tests missed annotated at its line.
   Report only: it never fails the PR. A new `mutation` job in the PR pipeline template; delete it to skip it.

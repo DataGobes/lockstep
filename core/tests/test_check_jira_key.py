@@ -62,3 +62,11 @@ def test_end_to_end(repo, capsys):
     args = ["--root", str(repo.root), "--branch", "feature/0042-x"]
     assert run("check_jira_key", "", _run, [*args, "--title", "Add x"]) == 1
     assert run("check_jira_key", "", _run, [*args, "--title", "MXAAI-9 Add x"]) == 0
+
+
+def test_missing_key_passes_when_jira_is_optional(tmp_path):
+    (tmp_path / "lockstep.toml").write_text("[jira]\nrequired = false\n", encoding="utf-8")
+    cfg = load_config(tmp_path)
+    assert errors(check_jira_key("Add churn features", "feature/0042-churn", NO_SPEC, cfg)) == []
+    # A key that is given is still checked against the spec.
+    assert errors(check_jira_key("MXAAI-43 x", "feature/0042-x", spec_for("MXAAI-42"), cfg))

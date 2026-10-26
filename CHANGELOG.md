@@ -12,6 +12,8 @@ tag the merge commit `v<version>`.
   on the modules a PR changed and show the mutation score, with each mutant the tests missed annotated at its line.
   Report only: it never fails the PR. A new `mutation` job in the PR pipeline template; delete it to skip it.
   Credited to SDTRD, whose rail requires every mutant killed. See `docs/mutation-testing.md`.
+- **Jira optional per repo:** `[jira] required = false` in `lockstep.toml` lets a team without Jira approve
+  specs and open PRs without an issue key. A key that is given is still checked. The default stays `true`.
 - **Build only what a criterion needs:** a YAGNI non-negotiable in the AGENTS.md template, the scope-creep review
   rule and the self-review scope pass now cover speculative code (unused helpers, abstractions, config flags, new
   dependencies). Credited to SDTRD.

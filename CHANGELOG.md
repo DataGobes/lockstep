@@ -8,6 +8,10 @@ tag the merge commit `v<version>`.
 
 ## Unreleased
 
+- **Property tests for invariant criteria:** `tests-first` proposes a Hypothesis property test next to the example
+  tests for criteria that hold for every input (never negative, one row per key, idempotent, round trip), when the
+  repo pins Hypothesis. Settings keep locked property tests deterministic (`derandomize=True`), and found cases are
+  pinned with `@example`. See `tests-first/property-tests.md`. After Kiro's property-based testing.
 - **Quick lane for small specs:** with `[specs] quick_max_criteria` above 0, a spec with at most that many criteria
   and no research and design step may skip its spec PR and arrive in the test PR, so the reviewer approves the spec
   and its failing tests together. `check_spec_required` fails a test PR that adds its own spec when the lane is off,

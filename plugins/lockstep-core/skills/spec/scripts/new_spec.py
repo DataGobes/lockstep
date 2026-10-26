@@ -5,8 +5,8 @@
 
 Copies specs/_template/ to specs/<id>-<slug>/, fills in the id, title and status.yml, and prints JSON with the folder,
 the id and the branch name to use (spec/<id>-<slug>, or baseline/<id>-<slug> with --baseline). The id is one more
-than the highest id in the working tree and on origin/main, so a spec someone merged since you branched is not
-reused. Stdlib only.
+than the highest id in the working tree, on origin/main and in the spec/, test/, feature/ and baseline/ branch names
+(local and fetched), so a spec someone merged since you branched, or one still on its branches, is not reused. Stdlib only.
 """
 
 from __future__ import annotations
@@ -21,6 +21,7 @@ import unicodedata
 from pathlib import Path
 
 _ID = re.compile(r"^(\d+)-")
+_BRANCH_ID = re.compile(r"(?:^|/)(?:spec|test|feature|baseline)/(\d+)-")
 _JIRA = re.compile(r"[A-Z][A-Z0-9_]+-[1-9]\d*")
 
 
@@ -43,7 +44,15 @@ def used_ids(root: Path, specs_dir: str) -> set[int]:
         text=True,
     )
     names |= set(p.stdout.split()) if p.returncode == 0 else set()
-    return {int(m[1]) for name in names if (m := _ID.match(name))}
+    ids = {int(m[1]) for name in names if (m := _ID.match(name))}
+    # Specs still on their branches: someone's spec PR, or a quick-lane spec that reaches main only with its code.
+    refs = subprocess.run(
+        ["git", "-C", str(root), "for-each-ref", "--format=%(refname:short)", "refs/heads", "refs/remotes"],
+        check=False,
+        capture_output=True,
+        text=True,
+    ).stdout
+    return ids | {int(m[1]) for ref in refs.split() if (m := _BRANCH_ID.search(ref))}
 
 
 def fill_status(

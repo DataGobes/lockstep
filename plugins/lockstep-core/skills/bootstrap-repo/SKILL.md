@@ -21,7 +21,8 @@ It never overwrites a file the repo owns: those come back as **merge** items for
 ## 2. Ask once, in one message
 
 - **Tracks:** data, ai or both. Suggest from what you found (dbt or Databricks → data; prompts, evals or an LLM SDK → ai).
-- **Jira project keys:** default `MXAAI`.
+- **Jira project keys:** default `MXAAI`. If the team has no Jira, set `[jira] required = false` in `lockstep.toml`
+  after applying; specs, branches and PR titles then need no key.
 - **Lockstep version:** a tag of the Lockstep repo, or `main` if the team has no tags yet. On an upgrade, show the
   current one from `.lockstep/VERSION`.
 

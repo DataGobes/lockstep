@@ -1,6 +1,6 @@
 {
   "name": "lockstep-core",
-  "description": "Lockstep workflow skills for any track: set up a repo for spec-first, test-locked work with coding agents.",
+  "description": "Lockstep workflow skills for any track: set up a repo and draft specs for spec-first, test-locked work with coding agents.",
   "version": "0.1.0",
   "author": { "name": "DataGobes" },
   "repository": "https://github.com/DataGobes/lockstep",

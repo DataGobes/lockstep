@@ -5,7 +5,7 @@ Skills, hooks and shared checks for spec-first, test-locked development with cod
 
 | Plugin | What it does |
 |---|---|
-| [`lockstep-core`](plugins/lockstep-core/skills/bootstrap-repo/SKILL.md) | `bootstrap-repo`: sets up a product repo for Lockstep, or upgrades it. Copies the checks and hooks into `.lockstep/`, writes the config and templates, merges with what the repo already has, and lists the Azure DevOps settings to make by hand. |
+| `lockstep-core` | [`bootstrap-repo`](plugins/lockstep-core/skills/bootstrap-repo/SKILL.md): sets up a product repo for Lockstep, or upgrades it. Copies the checks and hooks into `.lockstep/`, writes the config and templates, merges with what the repo already has, and lists the Azure DevOps settings to make by hand. [`spec`](plugins/lockstep-core/skills/spec/SKILL.md): drafts a spec from a Jira issue with numbered EARS acceptance criteria, non-goals, a test plan and open questions, and stops for PII work in Claude. |
 | [`copilot-review-instructions`](plugins/copilot-review-instructions/skills/copilot-review-instructions/SKILL.md) | Generates and maintains repo-specific Copilot code review rules (`.github/copilot-instructions.md` + path-scoped `.github/instructions/*.instructions.md`) on top of the project-wide rules. Works for Azure DevOps (Azure Repos) and GitHub. |
 
 ## Install
@@ -136,8 +136,8 @@ allows and exit 2 blocks. Hooks fail closed: a crash, bad input or a missing Pyt
 A prompt-screening PII hook is parked: naming a column such as `email` in a prompt is not sending its data, so a
 word-based screen blocks too much. Until it returns, `pii: yes` in a spec's status.yml is the signal to work in Copilot.
 
-Run the tests with `cd core && uv run --with pytest python -m pytest`, and the bootstrap script's with
-`uv run --with pytest python -m pytest plugins/lockstep-core/skills/bootstrap-repo/tests`.
+Run the tests with `cd core && uv run --with pytest python -m pytest`, and the skill scripts' with
+`uv run --with pytest python -m pytest plugins/lockstep-core`.
 
 ## Repo layout
 

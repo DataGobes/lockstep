@@ -6,6 +6,7 @@ Skills, hooks and shared checks for spec-first, test-locked development with cod
 | Plugin | What it does |
 |---|---|
 | `lockstep-core` | [`bootstrap-repo`](plugins/lockstep-core/skills/bootstrap-repo/SKILL.md): sets up a product repo for Lockstep, or upgrades it. Copies the checks and hooks into `.lockstep/`, writes the config and templates, merges with what the repo already has, and lists the Azure DevOps settings to make by hand. [`spec`](plugins/lockstep-core/skills/spec/SKILL.md): drafts a spec from a Jira issue with numbered EARS acceptance criteria, non-goals, a test plan and open questions, and stops for PII work in Claude. [`tests-first`](plugins/lockstep-core/skills/tests-first/SKILL.md): writes failing tests for an approved spec, proves each is red for the right reason (an assertion, not an import error), and opens the test PR that locks them. [`implement`](plugins/lockstep-core/skills/implement/SKILL.md): builds a tests-locked spec in its own worktree and stops instead of bending a test. [`self-review`](plugins/lockstep-core/skills/self-review/SKILL.md): reviews the diff in two separate passes, standards (rules, changed tests, invented APIs, error masking) and spec (each criterion met, missing or wrong, plus scope creep), and fills in the PR description. |
+| `lockstep-data` | [`dbt-impact`](plugins/lockstep-data/skills/dbt-impact/SKILL.md): from the branch and prod manifests, lists changed and downstream models, enforced contracts that need a new version, the Unity Catalog lineage query for consumers outside dbt, and a dbt-audit-helper data diff per model. |
 | [`copilot-review-instructions`](plugins/copilot-review-instructions/skills/copilot-review-instructions/SKILL.md) | Generates and maintains repo-specific Copilot code review rules (`.github/copilot-instructions.md` + path-scoped `.github/instructions/*.instructions.md`) on top of the project-wide rules. Works for Azure DevOps (Azure Repos) and GitHub. |
 
 ## Install
@@ -15,6 +16,7 @@ Skills, hooks and shared checks for spec-first, test-locked development with cod
 ```
 /plugin marketplace add DataGobes/lockstep
 /plugin install lockstep-core@lockstep
+/plugin install lockstep-data@lockstep   # data track
 /plugin install copilot-review-instructions@lockstep
 ```
 
@@ -23,6 +25,7 @@ Skills, hooks and shared checks for spec-first, test-locked development with cod
 ```
 copilot plugin marketplace add DataGobes/lockstep
 copilot plugin install lockstep-core@lockstep
+copilot plugin install lockstep-data@lockstep   # data track
 copilot plugin install copilot-review-instructions@lockstep
 ```
 
@@ -157,7 +160,7 @@ A prompt-screening PII hook is parked: naming a column such as `email` in a prom
 word-based screen blocks too much. Until it returns, `pii: yes` in a spec's status.yml is the signal to work in Copilot.
 
 Run the tests with `cd core && uv run --with pytest python -m pytest`, and the skill scripts' with
-`uv run --with pytest python -m pytest plugins/lockstep-core`.
+`uv run --with pytest python -m pytest plugins/lockstep-core plugins/lockstep-data`.
 
 ## Repo layout
 

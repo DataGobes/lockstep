@@ -1,0 +1,8 @@
+{
+  "name": "lockstep-data",
+  "description": "Lockstep skills for the data track: see what a dbt change affects, from changed models to consumers outside dbt.",
+  "version": "0.1.0",
+  "author": { "name": "DataGobes" },
+  "repository": "https://github.com/DataGobes/lockstep",
+  "keywords": ["lockstep", "dbt", "databricks", "lineage"]
+}

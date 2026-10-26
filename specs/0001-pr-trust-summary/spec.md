@@ -32,8 +32,11 @@ We will know it worked when, in the pilot:
 - Out of scope: a single trust score or grade. Each signal is shown on its own, so nobody optimises a number.
 - Out of scope: GitHub PR comments, Azure DevOps PR status badges, a dashboard across PRs. The JSON output is designed
   so these can follow without changing the producers.
-- Out of scope: eval results for the ai track. Eval rows are listed as linked, with no result, until the eval gate
-  writes an evidence file (open question 3).
+- In scope: the PR template's hand-filled "AC → test → result" table is replaced by a pointer to the summary, and the
+  `self-review`, `tests-first` and `baseline` skills stop pasting the table into PR descriptions. A table written by the
+  agent whose work it reports on is not evidence.
+- Out of scope: eval results for the ai track. Eval rows are listed as linked, with no result, until a follow-up spec
+  has the eval gate write an evidence file.
 
 ## 3. Acceptance criteria (each testable)
 - AC-001 WHEN a PR pipeline run finishes, whether its jobs passed or failed, THE SYSTEM SHALL post a Lockstep summary
@@ -77,6 +80,8 @@ We will know it worked when, in the pilot:
   a collapsed section above 10 rows.
 - AC-020 (non-functional) THE summary job SHALL add at most 60 seconds to the pipeline's wall-clock time, measured on
   the pilot repo.
+- AC-021 WHEN `bootstrap-repo` installs or upgrades `.azuredevops/pull_request_template.md`, THE template SHALL point
+  reviewers to the Lockstep summary comment in place of a hand-filled AC → test → result table.
 
 ## 4. Interfaces and data contract
 **Evidence files (the contract).** Each job that measures something writes `lockstep-evidence/<producer>.json` and
@@ -142,6 +147,7 @@ Tests name criteria with this spec's id: `@pytest.mark.ac("0001/AC-001")`.
 | AC-018 | CLI test: JSON output and its schema_version | core/tests/test_trust_summary_cli.py |
 | AC-019 | unit, render: line count of the head, fold above 10 rows | core/tests/test_trust_summary_render.py |
 | AC-020 | manual, pilot repo: job duration from three pipeline runs | pilot notes |
+| AC-021 | unit: the template has the summary pointer and no AC table section | plugins/lockstep-core/skills/bootstrap-repo/tests/ |
 
 ## 6. Risks, rollout, rollback
 - **The summary says "clean" when it isn't.** This is the one failure that destroys trust, so the renderer is
@@ -154,8 +160,7 @@ Tests name criteria with this spec's id: `@pytest.mark.ac("0001/AC-001")`.
   mode. Rollback: remove the one line from `azure-pipelines-pr.yml`.
 
 ## 7. Open questions
-1. Should the PR template drop its hand-filled "AC → test → result" table and point to the summary instead?
-   Proposed: yes, because the pasted table is written by the agent whose work it reports on.
-2. Is "no single score" right? A score is easier to quote in a management update but invites gaming the number.
-3. Eval results for the ai track: in this spec (the eval gate writes an evidence file), or a follow-up spec?
-4. Who reviews this spec besides the owner?
+1. Who reviews this spec besides the owner?
+
+Decided 2026-10-26 by the owner: the PR template's AC table goes (AC-021); no single trust score (section 2); eval
+results come in a follow-up spec.

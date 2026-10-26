@@ -66,9 +66,11 @@ def criteria_text(root: Path, cfg, spec, specdoc, spec_id: str) -> list[str]:
     folder = spec.list_specs(root, cfg).get(spec_id)
     if folder is None:
         return [f"- no spec {spec_id} in {cfg.specs_dir}/"]
-    lines = (folder / "spec.md").read_text(encoding="utf-8").splitlines()
-    doc = specdoc.parse_spec("\n".join(lines))
-    return [f"- {lines[n - 1].strip().lstrip('-*0123456789. ')}" for n in doc.criteria.values()] or ["- none"]
+    text = (folder / "spec.md").read_text(encoding="utf-8")
+    doc = specdoc.parse_spec(text)
+    # A Given/When/Then criterion keeps its steps, indented under the title. A core older than 0.3 has no doc.text.
+    blocks = getattr(doc, "text", None) or {ac: [text.splitlines()[n - 1].strip()] for ac, n in doc.criteria.items()}
+    return ["\n  ".join([f"- {b[0].lstrip('-*0123456789. ')}", *b[1:]]) for b in blocks.values()] or ["- none"]
 
 
 def new_imports(files) -> dict[str, set[str]]:

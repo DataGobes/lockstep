@@ -95,3 +95,13 @@ def test_lists_the_spec_criteria_for_the_spec_pass(tmp_path):
     assert "- AC-001 WHEN a customer has no orders THE model SHALL score them 0." in criteria
     assert "- AC-002 THE model SHALL return one score per customer." in criteria
     assert "no spec 0099" in review_diff.review(root, "main", sys.executable, "0099")
+
+
+def test_given_when_then_criteria_keep_their_steps(tmp_path):
+    spec = SPEC.replace(
+        "- AC-002 THE model SHALL return one score per customer.\n",
+        "- AC-002 One score per customer\n  - GIVEN two customers\n  - WHEN the model runs\n  - THEN it returns two scores\n",
+    )
+    root = make_repo(tmp_path, {"specs/0042-churn/spec.md": spec, "specs/0042-churn/status.yml": "status: approved\n"})
+    criteria = review_diff.review(root, "main", sys.executable, "0042").split("## Criteria of spec 0042")[1]
+    assert "- AC-002 One score per customer\n  - GIVEN two customers\n  - WHEN the model runs\n" in criteria

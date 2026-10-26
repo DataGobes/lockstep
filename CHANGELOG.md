@@ -8,6 +8,11 @@ tag the merge commit `v<version>`.
 
 ## Unreleased
 
+- **Given/When/Then criteria:** an acceptance criterion can be a title with GIVEN / WHEN / THEN steps under it, as
+  well as one EARS sentence. `[specs] ac_format` in `lockstep.toml` (`any`, `ears` or `given-when-then`) sets what
+  `check_ac_traceability` accepts; the default `any` accepts both and checks the steps' order. The spec template, the
+  `spec` and `tests-first` skills and the self-review spec pass show the steps. Credited to SDTRD's behavioural
+  scenarios.
 - **Build only what a criterion needs:** a YAGNI non-negotiable in the AGENTS.md template, the scope-creep review
   rule and the self-review scope pass now cover speculative code (unused helpers, abstractions, config flags, new
   dependencies). Credited to SDTRD.

@@ -136,7 +136,7 @@ def check_traceability(root: Path, cfg: Config, spec_only: bool) -> list[Finding
             findings.append(Finding("error", str(e)))
             continue
         try:
-            doc = parse_spec(md.read_text(encoding="utf-8"))
+            doc = parse_spec(md.read_text(encoding="utf-8"), cfg.specs.ac_format)
         except FileNotFoundError:
             findings.append(Finding("error", "spec.md is missing", rel_md))
             continue

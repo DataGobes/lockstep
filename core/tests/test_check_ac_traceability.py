@@ -55,7 +55,84 @@ def check(root, spec_only=False):
 def test_template_spec_lints_clean():
     doc = parse_spec(TEMPLATE)
     assert doc.problems == []
-    assert list(doc.criteria) == ["AC-001", "AC-002"]
+    assert list(doc.criteria) == ["AC-001", "AC-002", "AC-003"]
+
+
+GWT = """\
+## 3. Acceptance criteria
+- AC-001 Refund above the limit waits for approval
+  - GIVEN a refund of 600 EUR and an approval limit of 500 EUR
+  - WHEN the agent submits it
+  - THEN it waits for a manager's approval
+  - AND the customer is not paid yet
+- AC-002 WHEN a refund is approved THE SYSTEM SHALL pay it within one day.
+"""
+
+
+def ac_problems(text: str, ac_format: str = "any") -> list[str]:
+    return [msg for _, msg in parse_spec(text, ac_format).problems if msg.startswith("AC-")]
+
+
+def test_given_when_then_criterion_keeps_its_steps():
+    doc = parse_spec(GWT)
+    assert doc.text["AC-001"][0] == "- AC-001 Refund above the limit waits for approval"
+    assert doc.text["AC-001"][1:] == [
+        "- GIVEN a refund of 600 EUR and an approval limit of 500 EUR",
+        "- WHEN the agent submits it",
+        "- THEN it waits for a manager's approval",
+        "- AND the customer is not paid yet",
+    ]
+    assert doc.text["AC-002"] == ["- AC-002 WHEN a refund is approved THE SYSTEM SHALL pay it within one day."]
+
+
+def test_any_format_accepts_both_styles():
+    assert ac_problems(GWT) == []
+
+
+def test_ears_format_rejects_steps_and_sentences_without_shall():
+    assert ac_problems(GWT, "ears") == [
+        "AC-001 has Given/When/Then steps; this repo writes criteria in EARS (ac_format = 'ears')"
+    ]
+    assert ac_problems("## 3. A\n- AC-001 the system returns a score\n", "ears") == [
+        "AC-001 is not EARS: it needs '... THE <system> SHALL <behaviour>'"
+    ]
+
+
+def test_given_when_then_format_needs_steps():
+    assert ac_problems(GWT, "given-when-then") == [
+        "AC-002 needs Given/When/Then steps under it (ac_format = 'given-when-then')"
+    ]
+
+
+@pytest.mark.parametrize(
+    "steps, problem",
+    [
+        (["WHEN x", "THEN y"], None),  # GIVEN is optional
+        (["**Given** x", "**When** y", "**Then** z", "But w"], None),  # bold and any case
+        (["GIVEN x", "AND y", "WHEN z", "THEN w"], None),
+        (["THEN x", "WHEN y"], "out of order"),
+        (["GIVEN x", "THEN y", "AND z", "WHEN w"], "out of order"),
+        (["AND x", "WHEN y", "THEN z"], "starts with AND"),
+        (["GIVEN x", "WHEN y"], "has no THEN step"),
+        (["GIVEN x"], "has no WHEN or THEN step"),
+    ],
+)
+def test_step_order(steps, problem):
+    text = "## 3. A\n- AC-001 title\n" + "".join(f"  - {s}\n" for s in steps)
+    found = ac_problems(text)
+    assert (found == []) if problem is None else (len(found) == 1 and problem in found[0])
+
+
+def test_steps_end_at_the_next_unindented_line():
+    text = "## 3. A\n- AC-001 title\n  - WHEN x\n\n  - THEN y\n\nNever renumber.\n  - GIVEN z\n"
+    assert parse_spec(text).text["AC-001"] == ["- AC-001 title", "- WHEN x", "- THEN y"]
+
+
+def test_ac_format_comes_from_lockstep_toml(tmp_path):
+    write(tmp_path, spec_files())
+    (tmp_path / "lockstep.toml").write_text('[specs]\nac_format = "given-when-then"\n')
+    messages = [f.message for f in check(tmp_path, spec_only=True)]
+    assert any("AC-001 needs Given/When/Then steps" in m for m in messages)
 
 
 def test_all_criteria_covered_by_every_test_type(tmp_path):

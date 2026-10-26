@@ -99,7 +99,7 @@ findings show up on the PR with file and line. Common options: `--base` (default
 | Check | Fails when |
 |---|---|
 | `check_test_tamper` | an existing file under `[protect] globs` is modified, renamed or deleted, or a change adds skip/xfail, `# noqa`, `type: ignore`, or disables or downgrades a dbt test. On a feature branch, the spec's own tests are protected from the commit where the test PR merged into it. A title starting with `[test-change]` turns these into warnings. |
-| `check_ac_traceability` | a tests-locked spec has a criterion without a test, a test names an unknown spec or criterion, or a spec is malformed. `--spec-only` lints specs only. |
+| `check_ac_traceability` | a tests-locked spec has a criterion without a test, a test names an unknown spec or criterion, or a spec is malformed (including criteria not in the `[specs] ac_format`: EARS, Given/When/Then or either). `--spec-only` lints specs only. |
 | `check_pr_size` | more than 800 changed lines (unless `[large-approved]` is in the title) or more than 100 files. Warns above 400. Generated files don't count. |
 | `check_jira_key` | the title and branch have no issue key of a `[jira] projects` project, have several keys, or the key differs from the spec's. |
 | `check_spec_required` | code changes on a branch without a spec at the right status: `feature/<id>-` needs it tests-locked, `test/<id>-` approved, `spec/<id>-` may change only specs and docs. `chore/` needs no spec; `bugfix/` and `hotfix/` need a bug report and a new regression test. Specs, docs and Markdown never need one. Follows SDTRD's chore exemption and Fast-Track bug lane. |

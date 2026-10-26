@@ -19,6 +19,7 @@ from typing import Any
 CONFIG_FILE = "lockstep.toml"
 TRACKS = ("data", "ai")
 MODES = ("warn", "enforce")
+AC_FORMATS = ("any", "ears", "given-when-then")
 
 
 class ConfigError(ValueError):
@@ -72,6 +73,13 @@ class Lanes:
 
 
 @dataclass(frozen=True)
+class Specs:
+    # How acceptance criteria are written: "ears" (WHEN ... THE SYSTEM SHALL ...), "given-when-then" (GIVEN, WHEN and
+    # THEN steps under the criterion), or "any" (either, unchecked). check_ac_traceability holds every spec to it.
+    ac_format: str = "any"
+
+
+@dataclass(frozen=True)
 class Enforcement:
     # "enforce" blocks; "warn" lets the change through, says it would have been blocked and logs it,
     # so a pilot can measure how often a gate fires before it starts blocking. Per check, "" means the default.
@@ -107,6 +115,7 @@ class Config:
     pii: Pii = field(default_factory=Pii)
     pr_size: PrSize = field(default_factory=PrSize)
     lanes: Lanes = field(default_factory=Lanes)
+    specs: Specs = field(default_factory=Specs)
     enforcement: Enforcement = field(default_factory=Enforcement)
     source: Path | None = None
 
@@ -132,6 +141,7 @@ _SECTIONS: dict[str, str | None] = {
     "pii": "pii",
     "pr_size": "pr_size",
     "lanes": "lanes",
+    "specs": "specs",
     "enforcement": "enforcement",
 }
 _TOP_LEVEL_KEYS = {
@@ -219,6 +229,8 @@ def _validate(path: Path, cfg: Config) -> None:
     lanes = cfg.lanes
     if set(lanes.chore) & set(lanes.bugfix) or not all(p.endswith("/") for p in (*lanes.chore, *lanes.bugfix)):
         raise ConfigError(f"{path}: lanes.chore and lanes.bugfix must be distinct branch prefixes ending in '/'")
+    if cfg.specs.ac_format not in AC_FORMATS:
+        raise ConfigError(f"{path}: specs.ac_format must be one of {', '.join(AC_FORMATS)}")
     e = cfg.enforcement
     bad_modes = [k for k in e.__dataclass_fields__ if getattr(e, k) not in (MODES if k == "default" else ("", *MODES))]
     if bad_modes:

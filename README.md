@@ -10,6 +10,9 @@ Skills, hooks and shared checks for spec-first, test-locked development with cod
 | `lockstep-data` | [`dbt-impact`](plugins/lockstep-data/skills/dbt-impact/SKILL.md): from the branch and prod manifests, lists changed and downstream models, enforced contracts that need a new version, the Unity Catalog lineage query for consumers outside dbt, and a dbt-audit-helper data diff per model. |
 | [`copilot-review-instructions`](plugins/copilot-review-instructions/skills/copilot-review-instructions/SKILL.md) | Generates and maintains repo-specific Copilot code review rules (`.github/copilot-instructions.md` + path-scoped `.github/instructions/*.instructions.md`) on top of the project-wide rules. Works for Azure DevOps (Azure Repos) and GitHub. |
 
+Each skill has a page for people in [docs/skills/](docs/skills/README.md). [Why Lockstep writes the tests
+first](docs/why-tests-first.md) answers the usual critique of test-first agent workflows.
+
 ## Install
 
 **Claude Code**

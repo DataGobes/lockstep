@@ -28,7 +28,8 @@ means the same as a block: stop and say why.
 
 1. **Tests are locked.** Once the spec is `tests-locked`, do not modify, delete, skip or weaken an existing test, fixture,
    snapshot, dbt unit-test YAML, eval dataset or threshold. Adding new tests is fine. A real test change is a separate
-   PR whose title starts with `[test-change]`.
+   PR whose title starts with `[test-change]`, from `test/<id>-<slug>-<what>` into the spec's feature branch while it
+   is being built, or into main once it is implemented; for a test no spec names, from `chore/<what>`.
 2. **Stop rather than cheat.** If a test looks wrong, stop and explain why. Never special-case inputs, detect a test run
    or hard-code expected values to make a test pass.
 3. **PII goes to Copilot.** If the spec has `pii: yes`, stop and tell the user to continue in the company Copilot.

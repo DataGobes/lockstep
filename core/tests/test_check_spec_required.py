@@ -235,3 +235,15 @@ def test_marking_implemented_is_a_warning_locally_and_an_error_in_the_pr_into_ma
     assert _into_main("origin/feature/0042-churn") is None
     monkeypatch.setenv("SYSTEM_PULLREQUEST_TARGETBRANCH", "refs/heads/main")
     assert _into_main("origin/main") == "error"
+
+
+def test_test_change_pr_for_a_shipped_spec_uses_its_test_branch():
+    assert (
+        check_spec_required(
+            [ChangedFile("tests/test_churn.py", "M")],
+            "test/0042-churn-fix",
+            spec("implemented", "test/0042-churn-fix"),
+            CFG,
+        )
+        == []
+    )

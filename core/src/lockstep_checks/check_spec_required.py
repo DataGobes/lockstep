@@ -7,6 +7,8 @@ locally, but only when the agent uses it. Changes under ``[lanes] no_spec_needed
   feature/<id>-   the spec is tests-locked (or implemented); the PR into main sets it implemented, so a merged spec
                   never reads as still to do (a warning when run locally, an error in the PR pipeline)
   test/<id>-      the spec is approved or tests-locked; the test PR adds stubs and merges into feature/<id>-.
+                  A [test-change] PR uses test/<id>-<slug>-<what> too, into the feature branch while the spec is
+                  built, into main once it is implemented.
                   The spec must have had its own spec PR, unless it is small enough for the quick lane
                   ([specs] quick_max_criteria): then it may arrive in the test PR, reviewed with its tests.
   spec/<id>-      specs and docs only; code waits for the test PR
@@ -31,7 +33,8 @@ from .spec import Resolution, resolve_spec
 from .specdoc import parse_spec
 from .status import LOCKED_STATES
 
-_ALLOWED = {"test": ("approved", "tests-locked"), "feature": LOCKED_STATES}
+# test/ with an implemented spec: a [test-change] PR into main for tests that have shipped.
+_ALLOWED = {"test": ("approved", *LOCKED_STATES), "feature": LOCKED_STATES}
 BASELINE = "baseline"
 
 

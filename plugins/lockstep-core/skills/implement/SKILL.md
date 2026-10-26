@@ -96,7 +96,9 @@ say which and why instead of assuming it passes.
 If a test seems to contradict the spec, test the wrong thing, or need a value the spec doesn't give, **stop**. Don't
 change the test, skip it, or special-case its inputs in the code (branching on fixture values, detecting a test run,
 hard-coding the expected output). Write down which test, what it expects, what the spec says, and why they disagree,
-and give that to the user. A real test fix is a separate `[test-change]` PR that a reviewer approves.
+and give that to the user. A real test fix is a separate `[test-change]` PR that a reviewer approves: from
+`test/<id>-<slug>-<what>` into `feature/<id>-<slug>`, made by a person or by you only when the user asks. Once it
+merges, update the feature worktree and carry on.
 
 ## 6. Finish
 

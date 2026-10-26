@@ -19,9 +19,14 @@ Paths below are relative to this skill's folder. The scripts need Python 3.11+ a
 
 ## 2. Plan the tests
 
-From section 5 of the spec (test and eval plan), list each criterion with its test type and location. Show the list
-and ask about anything unclear before writing. Include the edge cases the criterion's WHEN / IF conditions imply:
-empty input, the boundary values, duplicates, a failing upstream.
+First agree the **seams**: where each criterion is tested from, such as a public function, a dbt model's output or a
+prompt's response, so the tests check behaviour and survive refactoring. One seam per criterion is usual. These
+locked tests are acceptance tests; the implementation adds its own unit tests later, one slice at a time.
+
+From section 5 of the spec (test and eval plan), list each criterion with its seam, test type and location. Include the
+edge cases the criterion's WHEN / IF conditions imply: empty input, the boundary values, duplicates, a failing
+upstream. Use business terms as `GLOSSARY.md` defines them. Show the list, and settle anything unclear in rounds as
+[../spec/grilling.md](../spec/grilling.md) describes, before writing.
 
 ## 3. Write them
 
@@ -37,6 +42,8 @@ Name the criterion in every test, with the spec id:
 Rules:
 - Assert the behaviour the criterion states, with concrete expected values. A test that only checks "no exception",
   asserts a constant, or mocks the code it tests can never catch a wrong implementation.
+- Take every expected value from an independent source: a literal, a worked example, the spec. Never compute it with
+  the code under test or a copy of its logic; such a test agrees with whatever the code does.
 - Fixtures use invented values only, such as "Test Person 001". Never real names, emails or data.
 - New code may be needed so the tests can import and call it. Add only **stubs**: the module, the function signature
   and `raise NotImplementedError`, so each test fails on the missing behaviour rather than on an import.

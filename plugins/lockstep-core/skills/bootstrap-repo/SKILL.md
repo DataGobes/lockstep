@@ -45,6 +45,7 @@ only what is missing, and show the user the diff:
 |---|---|
 | `AGENTS.md` | Add the template's sections the file lacks (How work flows, Non-negotiables, Naming the criterion, Definition of done, the `lockstep:review-rules` block). Keep the repo's text; keep the whole file under 150 lines. |
 | `CLAUDE.md` | Make the first line `@AGENTS.md` and add the "Claude only" notes. |
+| `GLOSSARY.md` | Keep the repo's entries; add the template's entry format at the top if it has none. |
 | `.claude/settings.json` | Merge the JSON: add the template's `permissions` entries and `hooks` registrations that are missing. Never remove an entry. |
 | `.azuredevops/pull_request_template.md` | Add the missing sections: AC → test → result, agent used, the checklists. |
 | `azure-pipelines-pr.yml` | If the repo already has a PR pipeline, add `- template: .lockstep/pipelines/lockstep-pr.yml` as its first steps instead of a second pipeline. Remove the repo's own `checkout` step there, as the template does a full checkout. |
@@ -60,6 +61,10 @@ only what is missing, and show the user the diff:
 - **Copilot review rules:** run `PYTHONPATH=.lockstep/src python3 -m lockstep_checks.check_review_rules --write`.
   It copies the Lockstep block from AGENTS.md into `.github/copilot-instructions.md` and keeps any rules already there.
   For repo-specific rules on top, offer the `copilot-review-instructions` skill afterwards.
+
+- **GLOSSARY.md:** ask the user for the three to five business terms people most often mean differently (for a data
+  team, usually metric definitions such as "active customer" or "net revenue") and write their entries. It grows
+  with every spec after that.
 
 ## 6. Prove it works
 

@@ -28,6 +28,8 @@ Hooks and the PR pipeline enforce these. Do not try to work around them.
    version that a spec describes.
 7. **Small batches.** Aim for 400 changed lines or fewer per PR, and never more than 100 files.
 
+Business terms mean what `GLOSSARY.md` says. Use its terms in specs, tests and code, not the synonyms it lists to avoid.
+
 ## Naming the criterion a test covers
 
 Use the spec id, because every spec numbers from AC-001:
@@ -61,6 +63,7 @@ Use the spec id, because every spec numbers from AC-001:
 
 - Flag a new test that does not name its criterion: `@pytest.mark.ac("<spec>/AC-<n>")`, a dbt unit test named `ac_<spec>_<n>_...`, or `meta: {ac: <spec>/AC-<n>}`.
 - Flag a test that cannot fail: it only checks that no exception is raised, asserts a constant, compares a value with itself, or mocks the code it tests.
+- Flag a test whose expected value is computed by the code under test or a copy of its logic; expected values come from a literal, a worked example or the spec.
 - Flag implementation code that branches on literal values from test fixtures, or on signs of a test run such as `PYTEST_CURRENT_TEST` or an environment named `test`.
 - In a PR whose title starts with `[test-change]`, flag loosened assertions, wider tolerances, lower eval thresholds and removed expected rows, and ask which criterion justifies each one.
 - Flag scope creep: refactors, renames or formatting changes in files the change does not need, mixed into a feature or fix.

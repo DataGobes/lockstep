@@ -43,6 +43,32 @@ tests are off limits.
   otherwise; check a function exists in the pinned version before calling it.
 - Fixtures and examples use invented values only.
 
+## 3a. Optional: independent slices in parallel
+
+When the plan has slices that don't depend on each other (separate modules, separate models, separate tests), and
+the user wants them built at the same time, run them as streams: one worktree, one branch and one agent each. Only
+offer this when the slices are clearly independent; one agent in sequence is the default.
+
+1. **Contracts first.** Build and commit, on the feature branch, everything the streams share: types, interfaces,
+   table schemas, a shared fixture. A stream may not change them. If two slices would both need to, they are not
+   independent: build them one after the other.
+2. **Start the streams** from the feature worktree, with a short name per stream:
+   `python3 scripts/streams.py add storage api --root <feature worktree>`. Each gets a branch
+   `feature/<id>-<slug>--<stream>` and a worktree `<feature worktree>--<stream>`. The hooks and checks treat a stream
+   like the feature branch: the locked tests stay locked.
+3. **One agent per worktree.** Give each agent its stream's slices, the spec, and this skill's sections 3 to 5, and
+   point it at its worktree only. In Claude Code, start a subagent per worktree; in VS Code with Copilot, open each
+   worktree in its own window. An agent never approves its own work, never takes another stream's slices, and stops
+   with a report, as section 5 says, when a test looks wrong.
+4. **Bring each stream back** through a PR from the stream branch into `feature/<id>-<slug>` (ask before pushing),
+   one at a time. Before each later stream's PR, update its branch with the feature branch and rerun its tests and
+   the Lockstep checks. Resolve conflicts in shared files (routers, registries, test lists) by keeping both streams'
+   additions; never drop the other stream's entries or assertions.
+5. **Clean up** each merged stream: `python3 scripts/streams.py remove <stream> --root <feature worktree>`. It refuses
+   while the stream has work the feature branch doesn't. `streams.py list` shows what is left.
+
+Then carry on with section 4 on the feature branch, with all streams merged.
+
 ## 4. Loop until green
 
 Run, in this order, and fix what fails:

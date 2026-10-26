@@ -6,6 +6,11 @@ pin a tag (`--ref v0.1.0`); upgrading is running `/bootstrap-repo` again with a 
 To release: add the version's section here, run `python3 tools/check_release.py --set-version <version>`, merge, then
 tag the merge commit `v<version>`.
 
+## Unreleased
+
+- **`check_spec_required`:** fails a PR that changes code without a spec at the right status. `chore/` branches need
+  no spec; `bugfix/` and `hotfix/` branches need a bug report and a new regression test. Both lanes follow SDTRD.
+
 ## 0.1.0
 
 First version for the pilot.

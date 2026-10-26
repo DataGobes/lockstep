@@ -32,3 +32,10 @@ warn_lines = 400
 fail_lines = 800
 max_files = 100   # Copilot code review's hard limit
 ignore = ["target/**", "**/*.lock", "uv.lock", "**/manifest.json"]
+
+[lanes]
+# Work that needs no spec. check_spec_required fails any other code change without a tests-locked spec.
+chore = ["chore/"]                  # dependency bumps, config, tooling; no behaviour change
+bugfix = ["bugfix/", "hotfix/"]     # a bug report and a new regression test, then the fix
+bug_reports_dir = "specs/bug-reports"
+no_spec_needed = ["specs/**", "docs/**", "**/*.md"]

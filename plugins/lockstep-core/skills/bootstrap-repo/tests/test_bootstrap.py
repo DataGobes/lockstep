@@ -104,6 +104,11 @@ def test_installed_checks_and_hooks_run(repo):
     )
     assert p.returncode == 0, p.stdout + p.stderr
     assert "lockstep:review-rules" in (repo / ".github" / "copilot-instructions.md").read_text(encoding="utf-8")
+    # Running the checks compiled .lockstep/src; the bytecode must not show up as a change in the repo.
+    status = subprocess.run(
+        ["git", "-C", str(repo), "status", "--porcelain"], check=True, capture_output=True, text=True
+    )
+    assert "__pycache__" not in status.stdout and ".pyc" not in status.stdout
 
 
 @pytest.mark.parametrize("args", [["--tracks", "web"], ["--jira", "mxaai"]])
@@ -117,12 +122,13 @@ def test_not_a_lockstep_checkout(repo, tmp_path_factory):
         bootstrap.plan(repo, tmp_path_factory.mktemp("empty"), "", ["data"], ["MXAAI"])
 
 
-def test_fetches_a_git_ref_and_records_it(repo):
-    branch = subprocess.run(
-        ["git", "-C", str(LOCKSTEP), "branch", "--show-current"], check=True, capture_output=True, text=True
-    )
-    url = LOCKSTEP.as_uri()
-    assert bootstrap.main(["--root", str(repo), "--git", url, "--ref", branch.stdout.strip(), "--apply"]) == 0
+def test_fetches_a_git_ref_and_records_it(repo, tmp_path_factory):
+    # A copy with a named branch: this checkout may be detached, as in CI.
+    source = tmp_path_factory.mktemp("source")
+    subprocess.run(["git", "init", "-q", str(source)], check=True)
+    subprocess.run(["git", "-C", str(source), "fetch", "-q", str(LOCKSTEP), "HEAD:refs/heads/release"], check=True)
+    url = source.as_uri()
+    assert bootstrap.main(["--root", str(repo), "--git", url, "--ref", "release", "--apply"]) == 0
     version = (repo / ".lockstep" / "VERSION").read_text(encoding="utf-8")
     assert version.startswith(f"source: {url}@") and "commit: " in version
 

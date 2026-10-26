@@ -48,6 +48,9 @@ REPO_OWNED = {
     "templates/docs/branch-policy.md": "docs/branch-policy.md",
 }
 VERSION_FILE = ".lockstep/VERSION"
+# Running the checks locally compiles .lockstep/src; keep the bytecode out of the repo whatever its own .gitignore says.
+GITIGNORE_FILE = ".lockstep/.gitignore"
+GITIGNORE = b"__pycache__/\n*.pyc\n"
 SKIP = {"__pycache__", ".pytest_cache", ".ruff_cache"}
 
 
@@ -125,6 +128,7 @@ def plan(root: Path, source: Path, origin: str, tracks: list[str], jira: list[st
         for rel in sorted(set(_files(root / dest)) - set(wanted)) if (root / dest).is_dir() else []:
             actions.append(Action(f"{dest}/{rel}", "remove"))
     actions.append(_compare(root, VERSION_FILE, origin.encode(), None, True))
+    actions.append(_compare(root, GITIGNORE_FILE, GITIGNORE, None, True))
     for src, dest in REPO_OWNED.items():
         content = (source / src).read_bytes()
         if dest == "lockstep.toml":

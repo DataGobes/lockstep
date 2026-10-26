@@ -28,8 +28,8 @@ if [ -z "$py" ]; then
     "Install one, or set LOCKSTEP_PYTHON to its path." >&2
   exit 2
 fi
-# -s: ignore user site-packages. The package path is passed as an argument, not via PYTHONPATH.
-exec "$py" -s -c '
+# -s: ignore user site-packages. -B: write no __pycache__ into the repo. The package path is an argument, not PYTHONPATH.
+exec "$py" -s -B -c '
 import sys
 sys.path.insert(0, sys.argv[1])
 import importlib

@@ -8,6 +8,12 @@ tag the merge commit `v<version>`.
 
 ## Unreleased
 
+- **Team rules:** `[[rules]]` in `lockstep.toml` lets a team add its own rules without code: a regex that must not
+  appear in added code (`on = "content"`, optionally only under `paths`) or in an agent's shell command
+  (`on = "command"`). The new `team_rules` hook stops the agent, and the new `check_team_rules` PR check fails added
+  lines that break a content rule, so both apply the same rule. Every key is validated; `[enforcement] team_rules`
+  sets warn or enforce. The settings template registers the hook and the PR pipeline runs the check. After Probity.
+
 ## 0.3.0
 
 More of SDTRD's strengths, ported with credit, and Jira made optional. Everything that changes the workflow is off

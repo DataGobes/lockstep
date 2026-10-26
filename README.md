@@ -104,6 +104,7 @@ findings show up on the PR with file and line. Common options: `--base` (default
 | `check_jira_key` | the title and branch have no issue key of a `[jira] projects` project, have several keys, or the key differs from the spec's. With `required = false`, a missing key passes. |
 | `check_spec_required` | code changes on a branch without a spec at the right status: `feature/<id>-` needs it tests-locked, `test/<id>-` approved, `spec/<id>-` may change only specs and docs. `chore/` needs no spec; `bugfix/` and `hotfix/` need a bug report and a new regression test. Specs, docs and Markdown never need one. Follows SDTRD's chore exemption and Fast-Track bug lane. |
 | `check_living_specs` | with `[specs] living = true`: `specs/living/<capability>.md` is missing or stale, or a spec past draft names no capability. `--write` regenerates them ([living specs](docs/living-specs.md)). Off by default. |
+| `check_team_rules` | an added line matches one of the team's own `[[rules]]` in `lockstep.toml` (a regex, optionally limited to `paths`). Existing code is not checked. |
 | `check_review_rules` | the Lockstep review rules in `.github/copilot-instructions.md` are missing or differ from the block in `AGENTS.md`. `--write` updates the copy and keeps the repo's own rules. |
 
 Tests name criteria with the spec id, because every spec numbers from AC-001: `@pytest.mark.ac("0042/AC-001")`,
@@ -171,6 +172,7 @@ allows and exit 2 blocks. Hooks fail closed: a crash, bad input or a missing Pyt
 | Hook | Event | Blocks when |
 |---|---|---|
 | `protect_tests` | PreToolUse on Edit, Write, MultiEdit, NotebookEdit | the active spec is tests-locked and the file matches `[protect] globs` and exists on origin/main, or on a feature branch at the commit where the test PR merged. New files are allowed. Copilot's `apply_patch` payloads are parsed too. |
+| `team_rules` | PreToolUse on edits and on Bash, PowerShell | an edit adds text, or a command matches, one of the team's `[[rules]]` in `lockstep.toml`. Does nothing when there are none. |
 | `guard_bash` | PreToolUse on Bash, PowerShell | the command targets prod, force-pushes, deletes main, skips tests with `-k`/`--deselect`/`--ignore`, or rewrites history while on main. |
 
 A prompt-screening PII hook is parked: naming a column such as `email` in a prompt is not sending its data, so a

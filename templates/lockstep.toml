@@ -69,3 +69,19 @@ default = "warn"
 # pr_size = "enforce"           # CI: PR above fail_lines or max_files
 # review_rules = "enforce"      # CI: Copilot review rules in sync with AGENTS.md
 # living_specs = "enforce"      # CI: specs/living/ regenerated after a spec changed
+# team_rules = "enforce"        # hook and CI: the [[rules]] below
+
+# Your team's own rules: a regex that must not appear in added code (on = "content", optionally only under
+# paths) or in an agent's shell command (on = "command"). The team_rules hook stops the agent; CI checks the
+# added lines of every PR against content rules. Matching is per line, with Python's re.search.
+# [[rules]]
+# name = "no-select-star"
+# pattern = '(?i)select\s+\*'
+# paths = ["models/**/*.sql"]
+# message = "List the columns: SELECT * breaks when the source adds one."
+#
+# [[rules]]
+# name = "uv-not-pip"
+# on = "command"
+# pattern = '^\s*pip3? install\b'
+# message = "Add dependencies with uv add, so uv.lock stays the source of truth."

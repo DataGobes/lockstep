@@ -56,10 +56,6 @@ class Event:
         return value if isinstance(value, dict) else {}
 
     @property
-    def prompt(self) -> str:
-        return str(self.raw.get("prompt") or "")
-
-    @property
     def cwd(self) -> Path:
         return Path(self.raw.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd())
 

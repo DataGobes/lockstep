@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from lockstep_checks.hooks import Event, guard_bash, protect_tests, run, screen_pii
+from lockstep_checks.hooks import Event, guard_bash, protect_tests, run
 
 SHIM = Path(__file__).resolve().parents[1] / "hooks" / "run-hook.sh"
 LOCKED = "status: tests-locked\npii: no\ntrack: data\njira: MXAAI-42\nlocked_at_commit: abc1234\n"
@@ -141,64 +141,6 @@ def test_history_rewrite_blocked_only_on_main(repo):
     assert guard_bash.hook(bash("git reset --hard HEAD~1", repo.root)).block
     repo.branch("feature/0042-x")
     assert not guard_bash.hook(bash("git rebase -i main", repo.root)).block
-
-
-# screen_pii
-
-
-def prompt(text: str, cwd: Path) -> Event:
-    return Event({"prompt": text, "cwd": str(cwd)})
-
-
-@pytest.mark.parametrize(
-    "text",
-    [
-        "Why does the load fail for test.person@example.com?",
-        "Call +31 6 1234 5678 about the order",
-        "Refund to NL91 ABNA 0417 1643 00",
-        "Join on first_name and last_name",
-    ],
-)
-def test_blocks_prompts_with_pii(repo, text):
-    # BUILD-005
-    repo.commit({"README.md": "x\n"})
-    d = screen_pii.hook(prompt(text, repo.root))
-    assert d.block and "Copilot" in d.message
-
-
-@pytest.mark.parametrize(
-    "text",
-    [
-        "Add a churn score model for spec 0042",
-        "Bump the version to 1.2.3 and rerun build 20261026",
-        "Use Test Person 001 in the fixture",
-        "Rerun pipeline 4512 at 10:30 on 2026-10-26",
-    ],
-)
-def test_allows_prompts_without_pii(repo, text):
-    repo.commit({"README.md": "x\n"})
-    assert not screen_pii.hook(prompt(text, repo.root)).block
-
-
-def test_blocks_every_prompt_when_spec_is_pii(repo):
-    # BUILD-005
-    repo.commit({"README.md": "x\n"})
-    repo.branch("feature/0043-crm")
-    status = "status: draft\npii: yes\ntrack: data\n"
-    repo.commit({"specs/0043-crm/spec.md": "# s\n", "specs/0043-crm/status.yml": status})
-    d = screen_pii.hook(prompt("Add a model", repo.root))
-    assert d.block and "pii: yes" in d.message
-
-
-def test_invalid_iban_checksum_is_not_an_iban():
-    assert "an IBAN" not in screen_pii.find_pii("NL91 ABNA 0417 1643 01", ())
-    assert "an IBAN" in screen_pii.find_pii("NL91 ABNA 0417 1643 00", ())
-
-
-def test_column_list_is_configurable(repo):
-    repo.commit({"lockstep.toml": '[pii]\ncolumns = ["bsn"]\n'})
-    assert screen_pii.hook(prompt("Mask the BSN column", repo.root)).block
-    assert not screen_pii.hook(prompt("Join on first_name", repo.root)).block
 
 
 # runner and shim

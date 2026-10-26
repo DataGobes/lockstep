@@ -21,9 +21,6 @@
         "matcher": "Bash|PowerShell",
         "hooks": [{ "type": "command", "command": "\"${CLAUDE_PROJECT_DIR:-.}/.lockstep/hooks/run-hook.sh\" guard_bash" }]
       }
-    ],
-    "UserPromptSubmit": [
-      { "hooks": [{ "type": "command", "command": "\"${CLAUDE_PROJECT_DIR:-.}/.lockstep/hooks/run-hook.sh\" screen_pii" }] }
     ]
   }
 }

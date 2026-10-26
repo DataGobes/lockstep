@@ -100,7 +100,9 @@ allows and exit 2 blocks. Hooks fail closed: a crash, bad input or a missing Pyt
 |---|---|---|
 | `protect_tests` | PreToolUse on Edit, Write, MultiEdit, NotebookEdit | the active spec is tests-locked and the file matches `[protect] globs` and exists on origin/main. New files are allowed. Copilot's `apply_patch` payloads are parsed too. |
 | `guard_bash` | PreToolUse on Bash, PowerShell | the command targets prod, force-pushes, deletes main, skips tests with `-k`/`--deselect`/`--ignore`, or rewrites history while on main. |
-| `screen_pii` | UserPromptSubmit | the prompt has an email, phone number, valid IBAN or a `[pii] columns` name, or the active spec has `pii: yes`. Claude only: Copilot ignores this hook's result, which is intended. |
+
+A prompt-screening PII hook is parked: naming a column such as `email` in a prompt is not sending its data, so a
+word-based screen blocks too much. Until it returns, `pii: yes` in a spec's status.yml is the signal to work in Copilot.
 
 Run the tests with `cd core && uv run --with pytest python -m pytest`.
 

@@ -1,7 +1,9 @@
 """Hook tests: feed each hook the JSON payloads Claude Code and Copilot send (BUILD-010)."""
 
 import json
+import os
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -176,3 +178,26 @@ def test_shim_blocks_and_allows(locked_repo):
 
 def test_shim_rejects_unknown_hook(tmp_path):
     assert shim("rm_rf", {}, tmp_path).returncode == 2
+
+
+def test_shim_skips_an_old_python3_for_a_newer_versioned_one(locked_repo, tmp_path):
+    # macOS: python3 on PATH is the system 3.9, while the user's 3.11+ is python3.1x.
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    old = bin_dir / "python3"
+    old.write_text("#!/bin/sh\necho 'Python 3.9 stand-in' >&2\nexit 1\n", encoding="utf-8")
+    old.chmod(0o755)
+    (bin_dir / "python3.14").symlink_to(sys.executable)
+    root = locked_repo.root
+    payload = {"tool_name": "Bash", "tool_input": {"command": "ls"}, "cwd": str(root)}
+    env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}"}
+    p = subprocess.run(
+        ["bash", str(SHIM), "guard_bash"],
+        input=json.dumps(payload),
+        capture_output=True,
+        text=True,
+        cwd=root,
+        env=env,
+        check=False,
+    )
+    assert p.returncode == 0, p.stderr

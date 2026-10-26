@@ -34,6 +34,7 @@ most advanced first. Skip specs that are done unless the user asks.
 | tests-locked | implement against the locked tests | `/implement` |
 | tests-locked, feature branch exists | finish, then review and open the PR | `/self-review` |
 | implemented | done; lessons go to the next retro | `/retro-capture` |
+| a bug in existing behaviour | report, red regression test, fix | `bugfix` |
 
 A spec with `pii: yes` is worked on in the company Copilot only; say so if you are Claude.
 

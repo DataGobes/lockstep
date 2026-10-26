@@ -60,6 +60,17 @@ class PrSize:
 
 
 @dataclass(frozen=True)
+class Lanes:
+    # Branch prefixes for work that needs no spec. Chores: dependency bumps, config, tooling.
+    chore: tuple[str, ...] = ("chore/",)
+    # The bug lane: a bug report and a new regression test, then the fix, in one PR.
+    bugfix: tuple[str, ...] = ("bugfix/", "hotfix/")
+    bug_reports_dir: str = "specs/bug-reports"
+    # Changes that never need a spec: the specs themselves and documentation.
+    no_spec_needed: tuple[str, ...] = ("specs/**", "docs/**", "**/*.md")
+
+
+@dataclass(frozen=True)
 class Config:
     core_version: str = "0.1"
     specs_dir: str = "specs"
@@ -72,6 +83,7 @@ class Config:
     protect: Protect = field(default_factory=Protect)
     pii: Pii = field(default_factory=Pii)
     pr_size: PrSize = field(default_factory=PrSize)
+    lanes: Lanes = field(default_factory=Lanes)
     source: Path | None = None
 
     @property
@@ -95,6 +107,7 @@ _SECTIONS: dict[str, str | None] = {
     "protect": "protect",
     "pii": "pii",
     "pr_size": "pr_size",
+    "lanes": "lanes",
 }
 _TOP_LEVEL_KEYS = {
     "lockstep": {
@@ -178,6 +191,9 @@ def _validate(path: Path, cfg: Config) -> None:
         raise ConfigError(
             f"{path}: tracks must be a non-empty subset of {list(TRACKS)} without duplicates, got {list(cfg.tracks)}"
         )
+    lanes = cfg.lanes
+    if set(lanes.chore) & set(lanes.bugfix) or not all(p.endswith("/") for p in (*lanes.chore, *lanes.bugfix)):
+        raise ConfigError(f"{path}: lanes.chore and lanes.bugfix must be distinct branch prefixes ending in '/'")
     s = cfg.pr_size
     if not 0 < s.warn_lines <= s.fail_lines:
         raise ConfigError(f"{path}: pr_size needs 0 < warn_lines <= fail_lines")

@@ -29,3 +29,17 @@ Run on a developer machine once protect-tests exists (it cannot be run from a cl
 4. Confirm Copilot expands `${CLAUDE_PROJECT_DIR:-.}` in the hook command from `templates/claude-settings.json`
    (if it runs commands without a shell, the hook path must become relative).
 5. Record the exact `tool_input` payloads (log stdin to a temp file) and add them as fixtures to the hook tests.
+
+## Hand test results
+
+2026-10-26, VS Code Copilot agent mode on macOS, in a sandbox repo made with Lockstep 0.1.0 plus the shim fix:
+
+| Case | Result |
+|---|---|
+| 1. Edit a locked test | **Pass.** The hook blocked it with the "BLOCKED by lockstep" message. |
+| Hook finds Python | **Failed, then fixed.** `python3` on PATH was the macOS system 3.9, and hooks ignore the editor's selected interpreter, so the shim blocked every edit. The shim now looks for python3.14 down to python3.11 first, plus `LOCKSTEP_PYTHON`. |
+| 3. Prod deploy | Not reached: Copilot refused on its own, following AGENTS.md, before calling the hook. |
+| Allowed edits pass | **Pass.** A README edit went through with no hook message. (Copilot refused an out-of-spec code edit on its own, following AGENTS.md.) |
+| 2, 4, 5 | Copilot CLI, `apply_patch`, `${CLAUDE_PROJECT_DIR}` expansion on Windows, and payload capture: still to do. |
+
+The model refusing first is the instructions working; the hooks are the backstop for when it doesn't.

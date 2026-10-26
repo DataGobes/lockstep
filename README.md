@@ -93,7 +93,8 @@ the two can never disagree. It starts with:
 ### PR checks
 
 Each check runs as `python -m lockstep_checks.<check>` from the repo root, locally or in Azure Pipelines, where
-findings show up on the PR with file and line. Common options: `--base` (default: the PR target branch, else
+findings show up on the PR with file and line. The checks read `lockstep.toml` from the base branch, so a PR cannot loosen the rules it is
+checked by; only the PR that sets Lockstep up uses its own. Common options: `--base` (default: the PR target branch, else
 `origin/main`) and `--title` (or `$LOCKSTEP_PR_TITLE`; Azure Pipelines has no built-in variable for the PR title).
 
 | Check | Fails when |

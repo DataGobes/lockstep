@@ -193,6 +193,11 @@ def load_config(root: Path) -> Config:
         return Config()  # only a missing file means defaults; a directory or unreadable file is an error
     except OSError as e:
         raise ConfigError(f"{path}: cannot read {CONFIG_FILE}: {e}") from e
+    return parse_config(text, path)
+
+
+def parse_config(text: str, path: Path) -> Config:
+    """``lockstep.toml`` text -> Config; ``path`` names it in errors."""
     try:
         raw = tomllib.loads(text)
     except tomllib.TOMLDecodeError as e:

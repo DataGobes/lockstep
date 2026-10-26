@@ -19,7 +19,7 @@ from __future__ import annotations
 import re
 
 from .cli import PrContext, main_for
-from .config import Config
+from .config import CONFIG_FILE, Config
 from .gitdiff import ChangedFile, changed_files
 from .lock import branch_tip, lock_commit
 from .paths import matches, matches_any
@@ -102,9 +102,18 @@ def check_test_tamper(
                 if f.path.endswith(suffixes) and pattern.search(text):
                     raw.append(Finding("error", f"added line {label}: {text.strip()}", path=f.path, line=line_no))
                     break
+    if any(f.path == CONFIG_FILE for f in files):
+        raw.append(
+            Finding(
+                "warning",
+                f"this PR changes {CONFIG_FILE}; the checks keep using the target branch's until it merges, and the "
+                "test reviewer group must approve it",
+                path=CONFIG_FILE,
+            )
+        )
     if raw and (title or "").startswith(OVERRIDE):
         return [Finding("warning", f"{x.message} (allowed by {OVERRIDE})", x.path, x.line) for x in raw]
-    if raw:
+    if any(x.level == "error" for x in raw):
         raw.append(
             Finding(
                 "error",

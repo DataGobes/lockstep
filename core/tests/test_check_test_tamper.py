@@ -153,3 +153,29 @@ def test_the_vendored_core_may_name_the_markers_it_looks_for():
     # A bootstrap or upgrade PR copies lockstep_checks into .lockstep/, whose source mentions `# noqa`.
     core = changed(".lockstep/src/lockstep_checks/check_test_tamper.py", "A", ["skip/xfail markers, ``# noqa``"])
     assert check_test_tamper([core], CFG, None) == []
+
+
+def test_a_pr_cannot_loosen_the_config_it_is_checked_by(repo, capsys):
+    repo.commit(
+        {"tests/test_a.py": "def test_a():\n    assert 1\n", "lockstep.toml": '[enforcement]\ndefault = "enforce"\n'}
+    )
+    repo.branch("feature/0042-x")
+    repo.commit(
+        {"tests/test_a.py": "def test_a():\n    assert True\n", "lockstep.toml": '[enforcement]\ndefault = "warn"\n'}
+    )
+    code = run("check_test_tamper", "", _run, ["--root", str(repo.root), "--base", "main", "--title", "MXAAI-1 x"])
+    out = capsys.readouterr().out
+    assert code == 1
+    assert "ERROR check_test_tamper: tests/test_a.py: modifies" in out
+    assert "this PR changes lockstep.toml" in out
+
+
+def test_the_setup_pr_uses_its_own_config(repo, capsys):
+    # The base has no lockstep.toml yet: the PR that sets Lockstep up brings it.
+    repo.commit({"tests/test_a.py": "def test_a():\n    assert 1\n"})
+    repo.branch("chore/lockstep")
+    repo.commit(
+        {"tests/test_a.py": "def test_a():\n    assert True\n", "lockstep.toml": '[enforcement]\ndefault = "warn"\n'}
+    )
+    assert run("check_test_tamper", "", _run, ["--root", str(repo.root), "--base", "main", "--title", "x"]) == 0
+    assert "would block (warn mode)" in capsys.readouterr().out

@@ -109,3 +109,41 @@ def test_broken_config_fails_even_in_warn_mode(repo, capsys):
     code = run("check_test_tamper", "", _run, ["--root", str(repo.root), "--base", "main"])
     assert code == 1
     assert "enforcement.warn_lines" in capsys.readouterr().out
+
+
+def tagged(path, lines, deleted=0):
+    return ChangedFile(path, "M", None, len(lines), deleted, tuple(enumerate(lines, start=1)))
+
+
+ADOPT = [
+    tagged("tests/test_prices.py", ["import pytest", "", '@pytest.mark.ac("0042/AC-001", "0042/AC-002")']),
+    tagged("tests/test_vat.py", ['pytestmark = [pytest.mark.ac("0042/AC-003")]']),
+    tagged("models/_prices.unit_tests.yml", ["      meta: {ac: 0042/AC-004}"]),
+]
+
+
+def test_baseline_branch_may_tag_existing_tests():
+    assert check_test_tamper(ADOPT, CFG, "MXAAI-1 Pin prices", branch="baseline/0042-prices") == []
+
+
+def test_tagging_existing_tests_elsewhere_still_fails():
+    found = errors(check_test_tamper(ADOPT[:1], CFG, "MXAAI-1 x", branch="feature/0042-prices"))
+    assert found[0].path == "tests/test_prices.py"
+
+
+def test_baseline_branch_fails_any_other_edit_to_an_existing_test():
+    files = [
+        tagged("tests/test_a.py", ['@pytest.mark.ac("0042/AC-001")', "    assert price(1) == 2"]),
+        tagged("tests/test_b.py", ['@pytest.mark.ac("0042/AC-001")'], deleted=1),
+        tagged("tests/test_c.py", ["import pytest"]),
+        tagged("tests/test_d.py", ['@pytest.mark.ac("AC-001")']),
+        ChangedFile("tests/test_e.py", "D"),
+    ]
+    paths = [f.path for f in errors(check_test_tamper(files, CFG, "MXAAI-1 x", branch="baseline/0042-a")) if f.path]
+    assert paths == ["tests/test_a.py", "tests/test_b.py", "tests/test_c.py", "tests/test_d.py", "tests/test_e.py"]
+
+
+def test_baseline_tags_still_cannot_skip_a_test():
+    files = [tagged("tests/test_a.py", ['@pytest.mark.ac("0042/AC-001")', "@pytest.mark.skip"])]
+    found = errors(check_test_tamper(files, CFG, "MXAAI-1 x", branch="baseline/0042-a"))
+    assert any("skips or xfails" in f.message for f in found)

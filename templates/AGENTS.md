@@ -17,6 +17,10 @@ Two lighter lanes skip the spec. **Bugfix** (`bugfix/<KEY>-<slug>`): a bug repor
 regression test shown red, then the smallest fix, in one PR. **Chore** (`chore/<slug>`): dependency bumps, config and
 tooling that change no behaviour. The PR pipeline fails any other code change without a spec.
 
+Existing code without a spec gets a **baseline** first (`baseline/<id>-<slug>`): a spec with `kind: baseline` that
+describes what the code does today, and tests that pass today. The PR changes no code; it may tag existing tests
+with a criterion but not otherwise edit them.
+
 ## Non-negotiables
 
 Hooks and the PR pipeline enforce these. Do not try to work around them. A "would block (warn mode)" message

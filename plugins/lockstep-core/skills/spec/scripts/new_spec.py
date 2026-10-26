@@ -4,8 +4,9 @@
   python3 new_spec.py --root <repo> --title "Churn features" --track data --pii no [--jira MXAAI-123]
 
 Copies specs/_template/ to specs/<id>-<slug>/, fills in the id, title and status.yml, and prints JSON with the folder,
-the id and the branch name to use (spec/<id>-<slug>). The id is one more than the highest id in the working tree and
-on origin/main, so a spec someone merged since you branched is not reused. Stdlib only.
+the id and the branch name to use (spec/<id>-<slug>, or baseline/<id>-<slug> with --baseline). The id is one more
+than the highest id in the working tree and on origin/main, so a spec someone merged since you branched is not
+reused. Stdlib only.
 """
 
 from __future__ import annotations
@@ -46,10 +47,17 @@ def used_ids(root: Path, specs_dir: str) -> set[int]:
 
 
 def fill_status(
-    text: str, track: str, pii: str, jira: str | None, design: str | None = None, capability: str | None = None
+    text: str,
+    track: str,
+    pii: str,
+    jira: str | None,
+    design: str | None = None,
+    capability: str | None = None,
+    kind: str | None = None,
 ) -> str:
     lines = text.splitlines()
-    for key, value in (("pii", pii), ("track", track), ("jira", jira), ("design", design), ("capability", capability)):
+    filled = (("pii", pii), ("track", track), ("jira", jira), ("design", design), ("capability", capability))
+    for key, value in (*filled, ("kind", kind)):
         for i, line in enumerate(lines):
             if value is not None and re.match(rf"{key}:(\s|$)", line):
                 hash_at = line.find("#")
@@ -79,10 +87,15 @@ def create(
     slug: str | None = None,
     design: bool = False,
     capability: str | None = None,
+    baseline: bool = False,
 ) -> dict:
     template = root / specs_dir / "_template"
     if not (template / "spec.md").is_file() or not (template / "status.yml").is_file():
         raise SpecError(f"{template.relative_to(root)} is missing; set the repo up with the bootstrap-repo skill first")
+    if baseline and not (template / "baseline" / "spec.md").is_file():
+        raise SpecError(
+            f"{(template / 'baseline').relative_to(root)}/spec.md is missing; run bootstrap-repo to update it"
+        )
     taken = used_ids(root, specs_dir)
     if spec_id is None:
         spec_id = f"{max(taken, default=0) + 1:04d}"
@@ -90,8 +103,11 @@ def create(
         raise SpecError(f"spec id {spec_id} is already used")
     slug = slug or slugify(title)
     folder = root / specs_dir / f"{spec_id}-{slug}"
-    # design/ holds research.md and design.md, for specs that take the research and design step.
-    shutil.copytree(template, folder, ignore=shutil.ignore_patterns("design"))
+    # design/ holds research.md and design.md, for specs that take the research and design step; baseline/ the spec.md
+    # for a baseline spec, which describes behaviour the code already has.
+    shutil.copytree(template, folder, ignore=shutil.ignore_patterns("design", "baseline"))
+    if baseline:
+        shutil.copyfile(template / "baseline" / "spec.md", folder / "spec.md")
     if design and (template / "design").is_dir():
         for doc in sorted((template / "design").glob("*.md")):
             (folder / doc.name).write_text(
@@ -100,10 +116,19 @@ def create(
     spec_md, status = folder / "spec.md", folder / "status.yml"
     spec_md.write_text(fill_spec(spec_md.read_text(encoding="utf-8"), spec_id, title), encoding="utf-8")
     status.write_text(
-        fill_status(status.read_text(encoding="utf-8"), track, pii, jira, "yes" if design else None, capability),
+        fill_status(
+            status.read_text(encoding="utf-8"),
+            track,
+            pii,
+            jira,
+            "yes" if design else None,
+            capability,
+            "baseline" if baseline else None,
+        ),
         encoding="utf-8",
     )
-    return {"id": spec_id, "spec_dir": folder.relative_to(root).as_posix(), "branch": f"spec/{spec_id}-{slug}"}
+    branch = f"{'baseline' if baseline else 'spec'}/{spec_id}-{slug}"
+    return {"id": spec_id, "spec_dir": folder.relative_to(root).as_posix(), "branch": branch}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -118,6 +143,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--specs-dir", default="specs")
     ap.add_argument("--design", action="store_true", help="add research.md and design.md (large specs)")
     ap.add_argument("--capability", help="living spec the criteria belong to, e.g. churn-scoring")
+    ap.add_argument("--baseline", action="store_true", help="pin behaviour the code already has (kind: baseline)")
     args = ap.parse_args(argv)
     if args.jira and not _JIRA.fullmatch(args.jira):
         ap.error("--jira takes an issue key such as MXAAI-123")
@@ -139,6 +165,7 @@ def main(argv: list[str] | None = None) -> int:
             args.slug,
             args.design,
             args.capability,
+            args.baseline,
         )
     except SpecError as e:
         print(f"new_spec: {e}", file=sys.stderr)

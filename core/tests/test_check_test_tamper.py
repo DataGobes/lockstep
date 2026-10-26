@@ -53,12 +53,12 @@ def test_moving_a_file_into_tests_is_allowed():
     assert check_test_tamper([changed("tests/helpers.py", "R", old_path="src/helpers.py")], CFG, "t") == []
 
 
-def test_weakening_lines_fail_anywhere_with_line_number():
+def test_weakening_lines_fail_with_line_number():
     cases = [
         ("tests/test_new.py", "A", "@pytest.mark.skip(reason='flaky')"),
         ("tests/test_new.py", "A", "    pytest.xfail('later')"),
-        ("src/app.py", "M", "import os  # noqa: F401"),
-        ("src/app.py", "M", "x: int = 'a'  # type: ignore"),
+        ("tests/test_new.py", "A", "import os  # noqa: F401"),
+        ("tests/conftest.py", "A", "x: int = 'a'  # type: ignore"),
         ("dbt/models/_x.yml", "M", "      enabled: false"),
         ("dbt/models/_x.yml", "M", "    - severity: warn"),
         ("dbt/tests/assert_x.sql", "A", "{{ config(severity='warn') }}"),
@@ -179,3 +179,9 @@ def test_the_setup_pr_uses_its_own_config(repo, capsys):
     )
     assert run("check_test_tamper", "", _run, ["--root", str(repo.root), "--base", "main", "--title", "x"]) == 0
     assert "would block (warn mode)" in capsys.readouterr().out
+
+
+def test_lint_and_type_ignores_in_product_code_are_warnings_for_the_reviewer():
+    for line in ("import os  # noqa: F401", "x: int = 'a'  # type: ignore[assignment]"):
+        found = check_test_tamper([changed("src/app.py", "M", [line])], CFG, "MXAAI-1 x")
+        assert [f.level for f in found] == ["warning"] and "reviewer decides" in found[0].message

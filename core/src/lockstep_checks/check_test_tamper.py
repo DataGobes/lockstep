@@ -63,6 +63,9 @@ _WEAKENERS: tuple[tuple[tuple[str, ...], re.Pattern[str], str], ...] = tuple(
 )
 
 
+_SILENCERS = ("silences the linter", "silences the type checker")
+
+
 def adopts_only(f: ChangedFile) -> bool:
     """True if the change only tags an existing test with criteria: tag lines added, nothing removed."""
     lines = [text for _, text in f.added_lines]
@@ -100,7 +103,12 @@ def check_test_tamper(
         for line_no, text in f.added_lines:
             for suffixes, pattern, label in _WEAKENERS:
                 if f.path.endswith(suffixes) and pattern.search(text):
-                    raw.append(Finding("error", f"added line {label}: {text.strip()}", path=f.path, line=line_no))
+                    if label in _SILENCERS and not matches_any(f.path, protected):
+                        # In product code a lint or type ignore is a review question, not a weakened test.
+                        msg = f"added line {label}: {text.strip()}; the reviewer decides whether it is justified"
+                        raw.append(Finding("warning", msg, path=f.path, line=line_no))
+                    else:
+                        raw.append(Finding("error", f"added line {label}: {text.strip()}", path=f.path, line=line_no))
                     break
     if any(f.path == CONFIG_FILE for f in files):
         raw.append(

@@ -5,7 +5,7 @@ locally, but only when the agent uses it. Changes under ``[lanes] no_spec_needed
 (specs, docs) never need one. Any other change must be on one of these lanes:
 
   feature/<id>-   the spec is tests-locked (or implemented)
-  test/<id>-      the spec is approved or tests-locked; the test PR adds stubs
+  test/<id>-      the spec is approved or tests-locked; the test PR adds stubs and merges into feature/<id>-
   spec/<id>-      specs and docs only; code waits for the test PR
   bugfix/, hotfix/  a bug report under ``bug_reports_dir`` and a new regression test
   chore/          no spec; dependency bumps, config and tooling, no behaviour change

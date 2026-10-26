@@ -3,9 +3,10 @@
 
   python3 next_step.py --root <repo> [--base origin/main] [--json]
 
-A spec's phase comes from its status.yml on the base branch (what is merged), or from the working tree for a spec
-that isn't merged yet, plus the branches that exist for it: spec/, test/ or feature/<id>-<slug>. Stdlib only; reads
-the specs with the core in .lockstep/src.
+A spec's phase comes from its status.yml on its feature branch if it has one (the test PR merges there, so red tests
+never reach main), else on the base branch (what is merged), else from the working tree for a spec that isn't merged
+yet, plus the branches that exist for it: spec/, test/ or feature/<id>-<slug>. Stdlib only; reads the specs with the
+core in .lockstep/src.
 """
 
 from __future__ import annotations
@@ -36,12 +37,12 @@ def load_core(root: Path):
         return None
     sys.path.insert(0, str(root / ".lockstep" / "src"))
     try:
-        from lockstep_checks import config, spec, status
+        from lockstep_checks import config, lock, spec, status
     except ImportError:
         return None
     finally:
         sys.path.pop(0)
-    return config, spec, status
+    return config, lock, spec, status
 
 
 def git(root: Path, *args: str) -> str | None:
@@ -60,7 +61,7 @@ def spec_branches(root: Path) -> dict[str, list[str]]:
     return found
 
 
-def decide(status: str, branches: list[str]) -> tuple[str, str | None]:
+def decide(status: str, branches: list[str], implementing: bool = False) -> tuple[str, str | None]:
     has = {b.split("/")[0] for b in branches}
     if status == "draft":
         return "finish the spec and its interview, then open the spec PR for review", "spec"
@@ -69,7 +70,7 @@ def decide(status: str, branches: list[str]) -> tuple[str, str | None]:
             return "the test PR is in progress: prove every criterion red, then get it reviewed", "tests-first"
         return "write the failing tests and open the test PR", "tests-first"
     if status == "tests-locked":
-        if "feature" in has:
+        if implementing:
             return "implementation in progress: get every check green, then self-review and open the PR", "self-review"
         return "implement against the locked tests", "implement"
     return "done; capture lessons at the next retro", None
@@ -79,13 +80,18 @@ def steps(root: Path, base: str) -> list[Step]:
     core = load_core(root)
     if core is None:
         return []
-    config, spec, status = core
+    config, lock, spec, status = core
     cfg = config.load_config(root)
     branches = spec_branches(root)
     out = []
     for spec_id, folder in spec.list_specs(root, cfg).items():
         rel = (folder / "status.yml").relative_to(root).as_posix()
-        text = git(root, "show", f"{base}:{rel}")
+        mine = sorted(branches.get(spec_id, []))
+        feature = next((b for b in mine if b.startswith("feature/")), None)
+        ref = None
+        if feature:  # the local branch may be ahead of origin with implementation commits
+            ref = feature if git(root, "rev-parse", "--verify", "-q", f"refs/heads/{feature}") else f"origin/{feature}"
+        text = (git(root, "show", f"{ref}:{rel}") if ref else None) or git(root, "show", f"{base}:{rel}")
         if text is None:
             text = (folder / "status.yml").read_text(encoding="utf-8")
         try:
@@ -93,8 +99,14 @@ def steps(root: Path, base: str) -> list[Step]:
         except status.SpecStatusError as e:
             out.append(Step(spec_id, "invalid", False, [], f"fix status.yml: {e}", None))
             continue
-        mine = sorted(branches.get(spec_id, []))
-        nxt, skill = decide(st.status, mine)
+        implementing = False
+        if ref:
+            # Locked on the feature branch: implementing once it has commits after the lock. Locked on main (0.1): always.
+            locked_at = lock.lock_commit(root, base, spec.Resolution("found", feature, spec_id, folder), cfg, ref)
+            implementing = (
+                locked_at is None or (git(root, "rev-list", "--count", f"{locked_at}..{ref}") or "0").strip() != "0"
+            )
+        nxt, skill = decide(st.status, mine, implementing)
         if st.pii and skill:
             nxt += " (pii: yes, so in Copilot only)"
         out.append(Step(spec_id, st.status, st.pii, mine, nxt, skill))

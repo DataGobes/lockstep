@@ -30,9 +30,9 @@ most advanced first. Skip specs that are done unless the user asks.
 |---|---|---|
 | no specs yet | start one from a Jira issue | `/spec` |
 | draft | finish the spec and its interview, open the spec PR | `/spec` |
-| approved | write the failing tests, open the test PR | `/tests-first` |
-| tests-locked | implement against the locked tests | `/implement` |
-| tests-locked, feature branch exists | finish, then review and open the PR | `/self-review` |
+| approved | write the failing tests, open the test PR into the feature branch | `/tests-first` |
+| tests-locked on the feature branch | implement against the locked tests | `/implement` |
+| tests-locked, commits after the lock | finish, then review and open the PR into main | `/self-review` |
 | implemented | done; lessons go to the next retro | `/retro-capture` |
 | a bug in existing behaviour | report, red regression test, fix | `bugfix` |
 

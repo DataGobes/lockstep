@@ -12,6 +12,11 @@ Repositories → <repo> → Policies → main*, or run `scripts/ado/branch-polic
 | Automatically included reviewers | A test reviewer group, required, for `/tests/*`, `*.unit_tests.yml`, `/evals/*`, `/.claude/*`, `/.lockstep/*`, `/AGENTS.md`, `/azure-pipelines*` | Locked tests and the rules agents work under change only with a second look. |
 | GitHub Copilot code review | Added as an automatic reviewer (by hand: no CLI yet) | Advisory first review; it reads `.github/copilot-instructions.md` from main. |
 
+**Feature branches.** The test PR merges into `feature/<id>-<slug>`, not main, so red tests never reach main; only
+the green feature branch does. The tests lock when the test PR merges, so `feature/*` (prefix match) gets the same
+reviewer count, comment resolution, build validation and test reviewer group for `/tests/*`, `*.unit_tests.yml` and
+`/evals/*`. Merge types there: squash or merge commit, not rebase, which would hide the commit where the tests locked.
+
 **Jira link.** Azure DevOps' linked-work-item policy covers Azure Boards only, so the PR pipeline's
 `check_jira_key` is what ties a PR to its Jira issue: the title or branch needs a key like `MXAAI-123`.
 

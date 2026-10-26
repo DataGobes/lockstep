@@ -7,8 +7,8 @@ where each spec is and which skill comes next.
 when you type `/lockstep`.
 
 **Common questions.**
-- *Why does it show a status my branch has already changed?* It counts what is merged on main; your branch's change
-  counts once its PR merges.
+- *Why does it show a status my branch has already changed?* It counts what is merged: on the spec's feature branch
+  if there is one (the test PR merges there), else on main. Your branch's change counts once its PR merges.
 - *A spec shows `invalid`.* Its `status.yml` has a mistake; the message says which line.
 
 **It's working if** you never have to remember the order of the skills.

@@ -16,9 +16,10 @@ Paths below are relative to this skill's folder. `scripts/start_implement.py` ne
 python3 scripts/start_implement.py --root <repo> --spec <id>
 ```
 
-It refuses, with the reason, unless the spec on origin/main is `tests-locked` (the test PR merged), is not
-`pii: yes`, and has no other branch or worktree (one implementation per spec at a time). Then it creates a worktree
-next to the repo, `../<repo>-<id>`, on `feature/<id>-<slug>`. Work only in that worktree from here on.
+It refuses, with the reason, unless the spec is `tests-locked` on `origin/feature/<id>-<slug>` (the test PR merged
+into the feature branch; red tests never go to main), is not `pii: yes`, and no worktree has that branch checked out
+(one implementation per spec at a time). Then it creates a worktree next to the repo, `../<repo>-<id>`, on
+`feature/<id>-<slug>`. Work only in that worktree from here on.
 
 If it refuses because of PII and you are Claude, stop and say the spec is implemented in the company Copilot.
 
@@ -64,4 +65,5 @@ and give that to the user. A real test fix is a separate `[test-change]` PR that
 ## 6. Finish
 
 When everything is green, run the `self-review` skill. It checks the diff against the spec and fills in the PR
-description. Then ask before pushing and opening the PR.
+description. Then ask before pushing and opening the PR from `feature/<id>-<slug>` into main. Main gets the tests and
+the code together, green.

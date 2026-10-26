@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Set main's branch policies for a Lockstep repo with the Azure DevOps CLI. Review it, fill in the variables, then
+# Set main's and the feature branches' policies for a Lockstep repo with the Azure DevOps CLI. Review it, fill in the variables, then
 # run it yourself: it changes the repo's settings. Needs `az` with the azure-devops extension and `az login`.
 # What each policy is for: docs/branch-policy.md.
 set -euo pipefail
@@ -44,5 +44,22 @@ az repos policy required-reviewer create "${common[@]}" \
   --required-reviewer-ids "$TEST_REVIEWERS" \
   --path-filter "/tests/*;*.unit_tests.yml;/evals/*;/.claude/*;/.lockstep/*;/AGENTS.md;/azure-pipelines*" \
   --message "Lockstep: tests, evals, agent config and pipelines need a test reviewer"
+
+# Test PRs merge into feature/<id>-<slug>, not main, so red tests never reach main. The tests lock when a test PR
+# merges there, so that merge needs the same review, checks and test reviewer. Rebase merges would hide where the
+# lock happened, so only squash and merge commits are allowed.
+feature=(--blocking true --enabled true --branch "feature/" --branch-match-type prefix --repository-id "$repo_id")
+az repos policy approver-count create "${feature[@]}" \
+  --minimum-approver-count 1 --creator-vote-counts false --allow-downvotes false --reset-on-source-push true
+az repos policy comment-required create "${feature[@]}"
+az repos policy merge-strategy create "${feature[@]}" \
+  --allow-squash true --allow-no-fast-forward true --allow-rebase false --allow-rebase-merge false
+az repos policy build create "${feature[@]}" \
+  --build-definition-id "$pipeline_id" --display-name "Lockstep PR checks" \
+  --manual-queue-only false --queue-on-source-update-only false --valid-duration 720
+az repos policy required-reviewer create "${feature[@]}" \
+  --required-reviewer-ids "$TEST_REVIEWERS" \
+  --path-filter "/tests/*;*.unit_tests.yml;/evals/*" \
+  --message "Lockstep: the tests this PR locks need a test reviewer"
 
 echo "Done. Add GitHub Copilot as an automatic reviewer by hand: see docs/branch-policy.md."

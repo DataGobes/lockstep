@@ -16,6 +16,8 @@ Repositories → <repo> → Policies → main*, or run `scripts/ado/branch-polic
 the green feature branch does. The tests lock when the test PR merges, so `feature/*` (prefix match) gets the same
 reviewer count, comment resolution, build validation and test reviewer group for `/tests/*`, `*.unit_tests.yml` and
 `/evals/*`. Merge types there: squash or merge commit, not rebase, which would hide the commit where the tests locked.
+The PR pipeline knows the spec's tests are red on purpose there: in a PR into a feature branch, the test files the
+branch adds compared with main run as a report, and the rest of the suite must pass. The PR into main runs everything.
 
 **Jira link.** Azure DevOps' linked-work-item policy covers Azure Boards only, so the PR pipeline's
 `check_jira_key` is what ties a PR to its Jira issue: the title or branch needs a key like `MXAAI-123`.

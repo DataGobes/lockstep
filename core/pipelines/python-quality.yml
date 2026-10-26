@@ -7,8 +7,16 @@
 # Runs, in order, each as its own step so every failure shows: pre-commit on the changed files (ruff, ruff-format,
 # sqlfluff, yamllint, gitleaks: whatever the repo's .pre-commit-config.yaml has), pyright, pytest with diff-cover on
 # the changed lines, pip-audit and Bandit. Set a gate's parameter to false to skip it until the repo is ready for it.
+#
+# A PR into a feature branch (the test PR, or a stream PR) carries the spec's tests red on purpose: the test files the
+# feature branch adds compared with main (lockstep_checks.red_phase) run as a report, and the coverage of changed lines
+# is a warning there. Every other test must pass. The PR from the feature branch into main runs the full gate.
 
 parameters:
+  - name: lockstepDir
+    displayName: Folder that holds the Lockstep core, relative to the repo root
+    type: string
+    default: .lockstep
   - name: pythonVersion
     type: string
     default: "3.11"
@@ -64,8 +72,20 @@ steps:
   - script: |
       base="origin/${SYSTEM_PULLREQUEST_TARGETBRANCH#refs/heads/}"
       [ "$base" = "origin/" ] && base=origin/main
-      uv run --with pytest-cov --with diff-cover pytest --cov=${{ parameters.sourceDir }} --cov-report=xml --junitxml=test-results.xml
-      uv run --with diff-cover diff-cover coverage.xml --compare-branch="$base" --fail-under=${{ parameters.coverage }}
+      red=$(PYTHONPATH="${{ parameters.lockstepDir }}/src" python -m lockstep_checks.red_phase) || exit 1
+      ignore=()
+      for f in $red; do ignore+=("--ignore=$f"); done
+      status=0
+      uv run --with pytest-cov --with diff-cover pytest "${ignore[@]}" --cov=${{ parameters.sourceDir }} --cov-report=xml --junitxml=test-results.xml || status=1
+      if [ -n "$red" ]; then
+        echo "Red on purpose until the feature branch is implemented (report only):"
+        uv run pytest $red -p no:cacheprovider -q || echo "##vso[task.logissue type=warning]Spec tests still red in this PR into a feature branch; expected until the implementation is done"
+        uv run --with diff-cover diff-cover coverage.xml --compare-branch="$base" --fail-under=${{ parameters.coverage }} \
+          || echo "##vso[task.logissue type=warning]Coverage of changed lines below ${{ parameters.coverage }}%; enforced on the PR into main"
+      else
+        uv run --with diff-cover diff-cover coverage.xml --compare-branch="$base" --fail-under=${{ parameters.coverage }} || status=1
+      fi
+      exit $status
     displayName: "Quality: pytest and coverage of changed lines (${{ parameters.coverage }}%)"
     condition: succeededOrFailed()
 

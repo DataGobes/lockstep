@@ -135,7 +135,7 @@ the repo's tracks; each gate can be switched off by a parameter until the repo i
 
 | Template | Gate | Track |
 |---|---|---|
-| `python-quality.yml` | pre-commit on changed files, pyright, pytest with diff-cover (80% of changed lines), pip-audit, Bandit (high) | all |
+| `python-quality.yml` | pre-commit on changed files, pyright, pytest with diff-cover (80% of changed lines), pip-audit, Bandit (high). In a PR into a feature branch, the spec's new test files are red on purpose: they run as a report, and coverage is a warning | all |
 | `dbt-slim-ci.yml` | `dbt build --select state:modified+ --defer` against the prod manifest from the deploy pipeline | data |
 | `bundle-validate.yml` | `databricks bundle validate` for the dev target | data |
 | `eval-gate.yml` | the repo's eval command, only when the PR touches prompts, evals or LLM code | ai |

@@ -98,3 +98,28 @@ def test_approved_needs_no_jira_when_jira_is_optional(tmp_path):
     assert parse_status("status: approved\npii: no\ntrack: data\njira:\n", cfg).jira is None
     with pytest.raises(SpecStatusError, match="jira"):
         parse_status("status: approved\npii: no\ntrack: data\njira: mxaai-1\n", cfg)
+
+
+def test_kind_defaults_to_change():
+    s = parse_status(VALID, CFG)
+    assert s.kind == "change" and s.baseline is False
+
+
+def test_baseline_kind_goes_from_approved_to_implemented():
+    s = parse_status(
+        "status: implemented\npii: no\ntrack: data\njira: MXAAI-1\nlocked_at_commit: abc1234\nkind: baseline\n", CFG
+    )
+    assert s.baseline is True and s.tests_locked is True
+    assert parse_status("status: approved\npii: no\ntrack: data\njira: MXAAI-1\nkind: baseline\n", CFG).baseline
+
+
+@pytest.mark.parametrize(
+    ("text", "fragment"),
+    [
+        ("status: draft\npii: no\ntrack: data\nkind: legacy\n", "kind must be one of change, baseline"),
+        (VALID + "kind: baseline\n", "baseline spec has no red phase"),
+    ],
+)
+def test_invalid_kind_is_rejected(text, fragment):
+    with pytest.raises(SpecStatusError, match=fragment):
+        parse_status(text, CFG)

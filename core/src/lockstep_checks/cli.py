@@ -10,12 +10,11 @@ from __future__ import annotations
 
 import argparse
 import os
+import subprocess
 import sys
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-
-import subprocess
 
 from .config import CONFIG_FILE, Config, ConfigError, load_config, parse_config
 from .gitdiff import GitError, base_ref

@@ -42,6 +42,11 @@ tests are off limits.
 - Follow AGENTS.md and the repo's own conventions. Use only libraries the repo already pins, unless the spec says
   otherwise; check a function exists in the pinned version before calling it.
 - Fixtures and examples use invented values only.
+- **Fresh context per slice** when the plan has more than three slices: in Claude, hand each slice to a new subagent
+  with the spec, the slice, and this skill's sections 3 to 5; in Copilot, start a fresh chat per slice. Between
+  slices, review the last slice's diff against its criterion (the self-review skill's spec pass, on that diff only)
+  and fix what it finds before the next slice starts. Problems found after one slice are cheap; after ten, they are
+  a rewrite.
 
 ## 3a. Optional: independent slices in parallel
 
@@ -80,6 +85,10 @@ Run, in this order, and fix what fails:
    `test_tamper`, `ac_traceability`, `pr_size`, `review_rules` and `living_specs`.
 
 The hooks stay on. A hook block is information, not an obstacle: never look for another way to make the same change.
+
+**Evidence before "done".** Never say a slice, a check or the spec passes unless you ran the command in this session,
+after your last change, and show its last lines (the pass count, the exit status). If you couldn't run something,
+say which and why instead of assuming it passes.
 
 ## 5. When a test looks wrong, stop
 

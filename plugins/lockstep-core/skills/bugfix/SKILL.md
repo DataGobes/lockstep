@@ -40,11 +40,20 @@ Run it and confirm it fails **for the bug's reason**: the assertion shows the wr
 error or a typo. Paste the failure into the report. Commit the report and the test together, `<KEY> Reproduce <what>`,
 before touching the code, so the history shows red before green.
 
+## 3a. Find the root cause before fixing
+
+A red test proves the symptom, not the cause. Before you change code:
+1. Trace the wrong value back from the assertion to the first place it is wrong: a function's input is right and its
+   output is wrong. Read that code; add temporary prints or a debugger only if reading isn't enough.
+2. Write the cause in the report's Root cause, with `path:line`, and one line on why the existing tests missed it.
+3. Test one hypothesis at a time. If three fixes in a row don't turn the test green, stop and tell the user what you
+   tried: the cause is probably elsewhere, or the design needs a spec.
+
 ## 4. Fix it (B3)
 
 Make the smallest change that turns the test green: no refactor, no extra features. Then run the implement skill's
 step 4 loop: the full suite, lint, format, types, `dbt build` on changed models, and the Lockstep checks including
-`spec_required`. Commit as `<KEY> Fix <what>`. Update Root cause if the fix proved the guess wrong.
+`spec_required`. Show their last lines before you say it's fixed. Commit as `<KEY> Fix <what>`. Update Root cause if the fix proved the guess wrong.
 
 ## 5. Review and open the PR
 

@@ -1,7 +1,8 @@
 # implement
 
 **What it does.** Builds a `tests-locked` spec in its own worktree and feature branch, one vertical slice at a time,
-until the locked tests and every check are green. If a locked test looks wrong, it stops and explains instead of
+until the locked tests and every check are green. Long plans get a fresh context per slice and a short review between
+slices, and it never reports a pass it didn't just run. If a locked test looks wrong, it stops and explains instead of
 changing it.
 
 **When to reach for it.** After the test PR merges into the spec's feature branch. Say "implement spec 0042".

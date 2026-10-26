@@ -1,0 +1,8 @@
+{
+  "name": "lockstep-ai",
+  "description": "Lockstep skills for the AI track: write and check golden eval cases that trace to acceptance criteria and hold no personal data.",
+  "version": "0.1.0",
+  "author": { "name": "DataGobes" },
+  "repository": "https://github.com/DataGobes/lockstep",
+  "keywords": ["lockstep", "evals", "mlflow", "llm"]
+}

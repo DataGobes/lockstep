@@ -2,7 +2,7 @@
 id: 0001
 title: PR trust summary
 owner: DataGobes
-reviewer: <engineer>
+reviewer: DataGobes
 ---
 
 # PR trust summary
@@ -160,7 +160,8 @@ Tests name criteria with this spec's id: `@pytest.mark.ac("0001/AC-001")`.
   mode. Rollback: remove the one line from `azure-pipelines-pr.yml`.
 
 ## 7. Open questions
-1. Who reviews this spec besides the owner?
+- None.
 
-Decided 2026-10-26 by the owner: the PR template's AC table goes (AC-021); no single trust score (section 2); eval
+Decided 2026-10-26 by the owner: the owner reviews this spec while Lockstep lives in a personal GitHub account, so
+there is no second reviewer yet; the PR template's AC table goes (AC-021); no single trust score (section 2); eval
 results come in a follow-up spec.

@@ -1,7 +1,7 @@
-status: draft          # draft | approved | tests-locked | implemented
+status: approved       # draft | approved | tests-locked | implemented
 pii: no                # yes = Copilot-only routing
 track: mixed           # data | ai | mixed
-jira:                  # Jira issue key, required from approved onwards
+jira:                  # none: Lockstep's own repo has no Jira project ([jira] required = false)
 locked_at_commit:      # commit SHA of the tests, filled at tests-locked (a baseline: at implemented)
 design: no             # yes = research.md and design.md before approval (new_spec.py --design adds them)
 capability: pr-trust-summary

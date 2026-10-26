@@ -50,7 +50,7 @@ only what is missing, and show the user the diff:
 | `.claude/settings.json` | Merge the JSON: add the template's `permissions` entries and `hooks` registrations that are missing. Never remove an entry. |
 | `.azuredevops/pull_request_template.md` | Add the missing sections: AC → test → result, agent used, the checklists. |
 | `azure-pipelines-pr.yml` | If the repo already has a PR pipeline, add `- template: .lockstep/pipelines/lockstep-pr.yml` as its first steps instead of a second pipeline. Remove the repo's own `checkout` step there, as the template does a full checkout. |
-| `lockstep.toml` | Keep the repo's values. Mention template keys the file lacks; defaults apply to them. |
+| `lockstep.toml` | Keep the repo's values. Mention template keys the file lacks; defaults apply to them. Without `[enforcement]` every gate enforces: ask whether the repo should start in warn mode (`docs/enforcement-modes.md` in the Lockstep repo). |
 
 ## 5. Fill in the repo-specific parts
 

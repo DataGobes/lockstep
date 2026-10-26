@@ -17,7 +17,8 @@ tooling that change no behaviour. The PR pipeline fails any other code change wi
 
 ## Non-negotiables
 
-Hooks and the PR pipeline enforce these. Do not try to work around them.
+Hooks and the PR pipeline enforce these. Do not try to work around them. A "would block (warn mode)" message
+means the same as a block: stop and say why.
 
 1. **Tests are locked.** Once the spec is `tests-locked`, do not modify, delete, skip or weaken an existing test, fixture,
    snapshot, dbt unit-test YAML, eval dataset or threshold. Adding new tests is fine. A real test change is a separate

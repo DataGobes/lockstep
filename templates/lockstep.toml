@@ -39,3 +39,18 @@ chore = ["chore/"]                  # dependency bumps, config, tooling; no beha
 bugfix = ["bugfix/", "hotfix/"]     # a bug report and a new regression test, then the fix
 bug_reports_dir = "specs/bug-reports"
 no_spec_needed = ["specs/**", "docs/**", "**/*.md"]
+
+[enforcement]
+# "enforce" blocks. "warn" lets the change through, reports that it would have been blocked, and counts it
+# (CI build tags, and the hooks' local log). A pilot starts on warn and switches a check to enforce once the
+# numbers support it: see docs/enforcement-modes.md. Without this table every check enforces.
+# The guard_bash hook (prod deploys, force-pushes, history rewrites on main) always enforces.
+default = "warn"
+# One line per check overrides the default:
+# protect_tests = "enforce"     # hook: edits to tests that existed before the spec was tests-locked
+# test_tamper = "enforce"       # CI: changed, deleted or weakened existing tests
+# spec_required = "enforce"     # CI: code changes without a spec at the right status
+# ac_traceability = "enforce"   # CI: acceptance criteria without a test
+# jira_key = "enforce"          # CI: Jira issue key in the PR title or branch
+# pr_size = "enforce"           # CI: PR above fail_lines or max_files
+# review_rules = "enforce"      # CI: Copilot review rules in sync with AGENTS.md

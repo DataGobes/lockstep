@@ -1,8 +1,9 @@
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
-from lockstep_checks.config import ConfigError, load_config
+from lockstep_checks.config import ConfigError, Enforcement, load_config
 
 TEMPLATE = Path(__file__).resolve().parents[2] / "templates" / "lockstep.toml"
 
@@ -31,10 +32,31 @@ def test_file_overrides_only_given_keys(tmp_path):
 
 def test_template_loads_and_matches_defaults():
     # The template documents the defaults; if they drift apart, one of them is lying.
+    # The one deliberate difference: new repos start in warn mode, a repo without the table enforces.
     cfg = load_config(TEMPLATE.parent)
     assert cfg.source == TEMPLATE
+    assert cfg.enforcement == Enforcement(default="warn")
     defaults = load_config(TEMPLATE.parent / "no-such-dir")
-    assert cfg.without_source() == defaults.without_source()
+    assert replace(cfg, enforcement=Enforcement()).without_source() == defaults.without_source()
+
+
+def test_enforcement_defaults_to_enforce(tmp_path):
+    e = load_config(tmp_path).enforcement
+    assert e.mode("protect_tests") == "enforce"
+    assert e.mode("check_test_tamper") == "enforce"
+
+
+def test_enforcement_per_check_overrides_default(tmp_path):
+    e = load_config(write(tmp_path, '[enforcement]\ndefault = "warn"\ntest_tamper = "enforce"\n')).enforcement
+    assert e.mode("check_test_tamper") == "enforce"
+    assert e.mode("check_pr_size") == "warn"
+    assert e.mode("protect_tests") == "warn"
+
+
+def test_guard_bash_always_enforces(tmp_path):
+    e = load_config(write(tmp_path, '[enforcement]\ndefault = "warn"\n')).enforcement
+    assert e.mode("guard_bash") == "enforce"
+    assert e.mode("default") == "enforce"
 
 
 @pytest.mark.parametrize(
@@ -54,6 +76,10 @@ def test_template_loads_and_matches_defaults():
         ("[jira]\nprojects = []\n", "jira.projects"),
         ('[jira]\nprojects = ["MXAAI", "MXAAI"]\n', "jira.projects"),
         ('[jira]\nkey_pattern = "X-1"\n', "jira.key_pattern"),
+        ('[enforcement]\ndefault = "off"\n', "enforcement.default"),
+        ('[enforcement]\ndefault = ""\n', "enforcement.default"),
+        ('[enforcement]\npr_size = "block"\n', "enforcement.pr_size"),
+        ('[enforcement]\nguard_bash = "warn"\n', "enforcement.guard_bash"),  # never configurable
         ("this is not toml", "lockstep.toml"),
     ],
 )

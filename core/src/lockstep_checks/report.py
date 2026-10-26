@@ -1,7 +1,9 @@
 """Print check findings for people and for Azure Pipelines.
 
 In a pipeline (``TF_BUILD=True``) findings become ``##vso[task.logissue]`` commands,
-so they show as errors and warnings on the PR with the file and line.
+so they show as errors and warnings on the PR with the file and line, and the run is
+tagged ``lockstep-blocked-<check>`` or ``lockstep-would-block-<check>`` so the team can
+count, across PRs, how often each check fired.
 """
 
 from __future__ import annotations
@@ -9,7 +11,7 @@ from __future__ import annotations
 import os
 import sys
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Literal, TextIO
 
 
@@ -19,6 +21,19 @@ class Finding:
     message: str
     path: str | None = None
     line: int | None = None
+    would_block: bool = False  # an error downgraded by warn mode
+
+
+def apply_mode(findings: Iterable[Finding], mode: str) -> list[Finding]:
+    """In warn mode, report each error as a warning that says it would have blocked."""
+    if mode == "enforce":
+        return list(findings)
+    return [
+        replace(f, level="warning", message=f"would block (warn mode): {f.message}", would_block=True)
+        if f.level == "error"
+        else f
+        for f in findings
+    ]
 
 
 def emit(
@@ -41,6 +56,12 @@ def emit(
             where = f"{f.path}:{f.line}: " if f.path and f.line else f"{f.path}: " if f.path else ""
             print(f"{f.level.upper()} {check}: {where}{f.message}", file=out)
     errors = sum(f.level == "error" for f in findings)
+    if in_pipeline:
+        name = check.removeprefix("check_")
+        if errors:
+            print(f"##vso[build.addbuildtag]lockstep-blocked-{name}", file=out)
+        if any(f.would_block for f in findings):
+            print(f"##vso[build.addbuildtag]lockstep-would-block-{name}", file=out)
     if not findings:
         print(f"{check}: OK", file=out)
     return 1 if errors else 0

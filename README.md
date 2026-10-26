@@ -85,6 +85,8 @@ the two can never disagree. It starts with:
 
 - `lockstep_checks.config`: loads a repo's `lockstep.toml` (template in [`templates/lockstep.toml`](templates/lockstep.toml)).
   Unknown keys are errors, so a typo never switches a gate off. Jira project keys are set in `[jira] projects` (default `MXAAI`).
+  `[enforcement]` puts each gate in `warn` or `enforce` mode: new repos start in warn and switch on the evidence, see
+  [Warn first, then enforce](docs/enforcement-modes.md).
 - `lockstep_checks.spec`: finds the active spec from the branch name (`feature/0042-*` -> `specs/0042-*/status.yml`).
   Try it with `PYTHONPATH=core/src python3 -m lockstep_checks.spec`.
 
@@ -123,6 +125,8 @@ steps:
 - **PR title.** `lockstep_checks.ado_pr_title` reads the title from the REST API with `System.AccessToken` and sets
   `LOCKSTEP_PR_TITLE`. The project's build service needs Read on the repository, which it has by default.
 - Every check runs even when an earlier one fails, and findings appear on the PR with file and line.
+- **Warn mode.** A check in `warn` mode passes and reports what it would have blocked, and tags the run
+  `lockstep-would-block-<check>` so the team can count it ([how](docs/enforcement-modes.md)).
 
 The other PR gates are steps templates in `core/pipelines/` too, one job each in the root pipeline. Keep the ones for
 the repo's tracks; each gate can be switched off by a parameter until the repo is ready for it.

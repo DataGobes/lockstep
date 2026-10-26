@@ -18,6 +18,7 @@ from typing import Any
 
 CONFIG_FILE = "lockstep.toml"
 TRACKS = ("data", "ai")
+MODES = ("warn", "enforce")
 
 
 class ConfigError(ValueError):
@@ -71,6 +72,28 @@ class Lanes:
 
 
 @dataclass(frozen=True)
+class Enforcement:
+    # "enforce" blocks; "warn" lets the change through, says it would have been blocked and logs it,
+    # so a pilot can measure how often a gate fires before it starts blocking. Per check, "" means the default.
+    # The guard_bash hook (prod deploys, force-pushes) is not listed: it always enforces.
+    default: str = "enforce"
+    protect_tests: str = ""
+    pr_size: str = ""
+    jira_key: str = ""
+    spec_required: str = ""
+    test_tamper: str = ""
+    ac_traceability: str = ""
+    review_rules: str = ""
+
+    def mode(self, check: str) -> str:
+        """The mode for a hook or check name, with or without its ``check_`` prefix."""
+        name = check.removeprefix("check_")
+        if name not in self.__dataclass_fields__ or name == "default":
+            return "enforce"  # anything not configurable, such as guard_bash
+        return getattr(self, name) or self.default
+
+
+@dataclass(frozen=True)
 class Config:
     core_version: str = "0.1"
     specs_dir: str = "specs"
@@ -84,6 +107,7 @@ class Config:
     pii: Pii = field(default_factory=Pii)
     pr_size: PrSize = field(default_factory=PrSize)
     lanes: Lanes = field(default_factory=Lanes)
+    enforcement: Enforcement = field(default_factory=Enforcement)
     source: Path | None = None
 
     @property
@@ -108,6 +132,7 @@ _SECTIONS: dict[str, str | None] = {
     "pii": "pii",
     "pr_size": "pr_size",
     "lanes": "lanes",
+    "enforcement": "enforcement",
 }
 _TOP_LEVEL_KEYS = {
     "lockstep": {
@@ -194,6 +219,10 @@ def _validate(path: Path, cfg: Config) -> None:
     lanes = cfg.lanes
     if set(lanes.chore) & set(lanes.bugfix) or not all(p.endswith("/") for p in (*lanes.chore, *lanes.bugfix)):
         raise ConfigError(f"{path}: lanes.chore and lanes.bugfix must be distinct branch prefixes ending in '/'")
+    e = cfg.enforcement
+    bad_modes = [k for k in e.__dataclass_fields__ if getattr(e, k) not in (MODES if k == "default" else ("", *MODES))]
+    if bad_modes:
+        raise ConfigError(f"{path}: enforcement.{bad_modes[0]} must be one of {', '.join(MODES)}")
     s = cfg.pr_size
     if not 0 < s.warn_lines <= s.fail_lines:
         raise ConfigError(f"{path}: pr_size needs 0 < warn_lines <= fail_lines")

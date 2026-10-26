@@ -8,6 +8,11 @@ tag the merge commit `v<version>`.
 
 ## Unreleased
 
+- **Warn mode:** `[enforcement]` in `lockstep.toml` sets each gate to `warn` (let it through, report that it would
+  have been blocked, count it) or `enforce` (block). New repos start in warn; a repo without the table enforces, as
+  before. CI tags each run `lockstep-would-block-<check>` or `lockstep-blocked-<check>`, and the hooks log to
+  `.git/lockstep/hook-events.jsonl`, so the switch to enforce rests on numbers. The prod-deploy guard always blocks.
+  Idea credited to Mohammed: Lockstep should encourage its use, not only block. See `docs/enforcement-modes.md`.
 - **`check_spec_required`:** fails a PR that changes code without a spec at the right status. `chore/` branches need
   no spec; `bugfix/` and `hotfix/` branches need a bug report and a new regression test. Both lanes follow SDTRD.
 - **Hooks find a newer Python:** the hook shim now looks for python3.14 down to python3.11 before `python3`, in the

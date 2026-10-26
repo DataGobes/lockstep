@@ -64,7 +64,7 @@ Use the spec id, because every spec numbers from AC-001:
 - Bundle: `<databricks bundle validate -t dev>`
 - Evals: `<command>`
 - Lockstep checks: `PYTHONPATH=.lockstep/src python -m lockstep_checks.check_<name>` (pr_size, jira_key, spec_required,
-  test_tamper, ac_traceability, review_rules)
+  test_tamper, ac_traceability, review_rules, living_specs, team_rules)
 
 ## Definition of done for an agent task
 

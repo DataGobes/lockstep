@@ -25,7 +25,8 @@ globs = [
 ]
 
 [pii]
-# Field names the prompt hook treats as personal data.
+# Field names the prompt-screening hook treats as personal data. That hook is parked (it blocked prompts that only
+# name a column), so nothing reads this yet; `pii: yes` in a spec's status.yml is the signal to work in Copilot.
 columns = ["email", "phone", "iban", "first_name", "last_name", "full_name", "date_of_birth", "address"]
 
 [pr_size]

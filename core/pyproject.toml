@@ -1,6 +1,6 @@
 [project]
 name = "lockstep-checks"
-version = "0.2.0"
+version = "0.3.0"
 description = "Shared core of Lockstep: spec resolution, config and the checks that hooks and CI both run."
 requires-python = ">=3.11"
 dependencies = []

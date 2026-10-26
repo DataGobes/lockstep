@@ -8,6 +8,11 @@ tag the merge commit `v<version>`.
 
 ## Unreleased
 
+## 0.3.0
+
+More of SDTRD's strengths, ported with credit, and Jira made optional. Everything that changes the workflow is off
+until a repo turns it on in `lockstep.toml`; the mutation report only reports.
+
 - **Parallel streams:** the `implement` skill can run independent slices in parallel, one agent per git worktree.
   `scripts/streams.py` creates a branch `feature/<id>-<slug>--<stream>` and a worktree per stream from the feature
   branch, lists them, and removes a stream once its PR into the feature branch has merged (squash merges included).

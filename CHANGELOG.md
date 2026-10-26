@@ -8,6 +8,17 @@ tag the merge commit `v<version>`.
 
 ## Unreleased
 
+- **Baseline specs for existing code:** a spec with `kind: baseline` in `status.yml` describes what an area of the
+  code does today and pins it with tests that pass today, in one PR from `baseline/<id>-<slug>` into main. Its
+  lifecycle is draft, approved, implemented (never tests-locked). `check_spec_required` holds a baseline PR to tests,
+  specs and docs only, and to `status: implemented` once it adds tests; a baseline's id can't be used on `feature/`
+  or `test/`. On a `baseline/` branch `check_test_tamper` lets an existing test gain criterion tags
+  (`@pytest.mark.ac(...)`, `meta: {ac: ...}`) as long as nothing else in it changes. New `baseline` skill with
+  `hotspots.py`, which ranks folders by recent commits and shows which are already pinned; `new_spec.py --baseline`;
+  a baseline spec template in `specs/_template/baseline/`; `/lockstep` routes baseline specs; `baseline` PR type.
+  The default `branch_pattern` now includes `baseline`; a repo that sets its own adds it. Inspired by OpenSpec,
+  BMAD and Agent OS. See `docs/baseline-specs.md`.
+
 ## 0.3.0
 
 More of SDTRD's strengths, ported with credit, and Jira made optional. Everything that changes the workflow is off

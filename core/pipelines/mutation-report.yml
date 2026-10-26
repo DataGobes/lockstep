@@ -1,0 +1,56 @@
+# Lockstep mutation report for a Python repo managed with uv: a steps template. Report only, it never fails the PR.
+#
+#   steps:
+#     - template: .lockstep/pipelines/mutation-report.yml
+#       parameters: { sourceDir: src }
+#
+# Runs mutmut on the modules the PR changed under sourceDir, then shows the mutation score and annotates each mutant
+# the tests did not catch at its line on the PR, as a warning. Set scope to all for a nightly run on every module.
+# mutmut needs Linux (it forks), and imports under sourceDir the way the tests do: see docs/mutation-testing.md.
+
+parameters:
+  - name: lockstepDir
+    displayName: Folder that holds the Lockstep core, relative to the repo root
+    type: string
+    default: .lockstep
+  - name: pythonVersion
+    type: string
+    default: "3.11"
+  - name: sourceDir
+    displayName: Folder whose modules are mutated
+    type: string
+    default: src
+  - name: scope
+    displayName: changed (the PR's modules) or all
+    type: string
+    default: changed
+    values: [changed, all]
+  - name: mutmutVersion
+    type: string
+    default: "3.8.0"
+
+steps:
+  - checkout: self
+    fetchDepth: 0
+    fetchTags: false
+
+  - task: UsePythonVersion@0
+    displayName: "Mutation: use Python ${{ parameters.pythonVersion }}"
+    inputs:
+      versionSpec: ${{ parameters.pythonVersion }}
+
+  - script: |
+      python -m pip install --quiet uv
+      uv sync --frozen --all-extras
+    displayName: "Mutation: install the locked dependencies"
+
+  # continueOnError: a crash in mutmut itself shows as a warning too, never as a failed PR check.
+  - script: >-
+      python -m lockstep_checks.mutation_report
+      --source-dir "${{ parameters.sourceDir }}"
+      --scope ${{ parameters.scope }}
+      --mutmut "uv run --with mutmut==${{ parameters.mutmutVersion }} mutmut"
+    displayName: "Mutation: score of the ${{ parameters.scope }} modules (report only)"
+    continueOnError: true
+    env:
+      PYTHONPATH: $(Build.SourcesDirectory)/${{ parameters.lockstepDir }}/src

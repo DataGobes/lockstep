@@ -31,6 +31,15 @@ jobs:
           sourceDir: src
           coverage: 80
 
+  # Report only: shows how many mutants the tests catch, never fails the PR. Delete it to skip the extra minutes.
+  - job: mutation
+    displayName: Mutation report
+    timeoutInMinutes: 30
+    steps:
+      - template: .lockstep/pipelines/mutation-report.yml
+        parameters:
+          sourceDir: src
+
   - job: dbt
     displayName: dbt Slim CI
     timeoutInMinutes: 45

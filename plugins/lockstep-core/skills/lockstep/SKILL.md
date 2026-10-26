@@ -32,7 +32,7 @@ most advanced first. Skip specs that are done unless the user asks.
 | draft | finish the spec and its interview, open the spec PR | `/spec` |
 | approved | write the failing tests, open the test PR into the feature branch | `/tests-first` |
 | tests-locked on the feature branch | implement against the locked tests | `/implement` |
-| tests-locked, commits after the lock | finish, then review and open the PR into main | `/self-review` |
+| tests-locked, commits after the lock | finish, review, set `status: implemented`, open the PR into main | `/self-review` |
 | implemented | done; lessons go to the next retro | `/retro-capture` |
 | a bug in existing behaviour | report, red regression test, fix | `bugfix` |
 | baseline spec, draft or approved | describe what the code does today, pin it with passing tests | `baseline` |

@@ -122,3 +122,36 @@ def test_baseline_spec_routes_to_the_baseline_skill(tmp_path):
     git(root, "branch", "baseline/0004-pricing")
     step = by_spec(root)["0004"]
     assert step.branches == ["baseline/0004-pricing"] and "baseline in progress" in step.next
+
+
+def test_quick_lane_test_pr_is_not_reported_as_implementation(tmp_path):
+    # The spec and its tests are on the test branch; the feature branch has neither until the test PR merges.
+    root = make_repo(tmp_path)
+    git(root, "branch", "feature/0004-quick")
+    git(root, "checkout", "-q", "-b", "test/0004-quick")
+    write(root, {"specs/0004-quick/status.yml": STATUS.format("tests-locked", "no")})
+    git(root, "add", "-A")
+    git(root, "commit", "-qm", "spec and failing tests")
+    step = by_spec(root)["0004"]
+    assert step.status == "tests-locked"
+    assert step.skill == "tests-first" and "test PR is in progress" in step.next
+
+
+def test_locked_spec_without_a_feature_branch_mentions_marking_it_implemented(tmp_path):
+    step = by_spec(make_repo(tmp_path))["0003"]
+    assert step.skill == "implement" and "set status: implemented" in step.next
+
+
+def test_older_vendored_core_says_to_upgrade(tmp_path):
+    root = make_repo(tmp_path)
+    assert next_step.core_skew(root) is None  # copied from this checkout: same version
+    init = root / ".lockstep" / "src" / "lockstep_checks" / "__init__.py"
+    init.write_text('__version__ = "0.1.0"\n', encoding="utf-8")
+    assert "core is 0.1, older than the plugin" in next_step.core_skew(root)
+
+
+def test_broken_config_is_explained_not_a_traceback(tmp_path, capsys):
+    root = make_repo(tmp_path)
+    write(root, {"lockstep.toml": "[enforcement]\nbogus = 1\n"})
+    assert next_step.main(["--root", str(root)]) == 1
+    assert "can't read this repo's specs" in capsys.readouterr().out

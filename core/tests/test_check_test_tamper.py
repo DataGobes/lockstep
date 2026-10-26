@@ -53,12 +53,12 @@ def test_moving_a_file_into_tests_is_allowed():
     assert check_test_tamper([changed("tests/helpers.py", "R", old_path="src/helpers.py")], CFG, "t") == []
 
 
-def test_weakening_lines_fail_anywhere_with_line_number():
+def test_weakening_lines_fail_with_line_number():
     cases = [
         ("tests/test_new.py", "A", "@pytest.mark.skip(reason='flaky')"),
         ("tests/test_new.py", "A", "    pytest.xfail('later')"),
-        ("src/app.py", "M", "import os  # noqa: F401"),
-        ("src/app.py", "M", "x: int = 'a'  # type: ignore"),
+        ("tests/test_new.py", "A", "import os  # noqa: F401"),
+        ("tests/conftest.py", "A", "x: int = 'a'  # type: ignore"),
         ("dbt/models/_x.yml", "M", "      enabled: false"),
         ("dbt/models/_x.yml", "M", "    - severity: warn"),
         ("dbt/tests/assert_x.sql", "A", "{{ config(severity='warn') }}"),
@@ -147,3 +147,43 @@ def test_baseline_tags_still_cannot_skip_a_test():
     files = [tagged("tests/test_a.py", ['@pytest.mark.ac("0042/AC-001")', "@pytest.mark.skip"])]
     found = errors(check_test_tamper(files, CFG, "MXAAI-1 x", branch="baseline/0042-a"))
     assert any("skips or xfails" in f.message for f in found)
+
+
+def test_the_vendored_core_may_name_the_markers_it_looks_for():
+    # A bootstrap or upgrade PR copies lockstep_checks into .lockstep/, whose source names the noqa marker.
+    marker = "#" + " noqa"  # split, so ruff doesn't read this test's own line as a directive
+    core = changed(".lockstep/src/lockstep_checks/check_test_tamper.py", "A", [f"skip/xfail markers, ``{marker}``"])
+    assert check_test_tamper([core], CFG, None) == []
+
+
+def test_a_pr_cannot_loosen_the_config_it_is_checked_by(repo, capsys):
+    repo.commit(
+        {"tests/test_a.py": "def test_a():\n    assert 1\n", "lockstep.toml": '[enforcement]\ndefault = "enforce"\n'}
+    )
+    repo.branch("feature/0042-x")
+    repo.commit(
+        {"tests/test_a.py": "def test_a():\n    assert True\n", "lockstep.toml": '[enforcement]\ndefault = "warn"\n'}
+    )
+    code = run("check_test_tamper", "", _run, ["--root", str(repo.root), "--base", "main", "--title", "MXAAI-1 x"])
+    out = capsys.readouterr().out
+    assert code == 1
+    assert "ERROR check_test_tamper: tests/test_a.py: modifies" in out
+    assert "this PR changes lockstep.toml" in out
+
+
+def test_the_setup_pr_uses_its_own_config(repo, capsys):
+    # The base has no lockstep.toml yet: the PR that sets Lockstep up brings it.
+    repo.commit({"tests/test_a.py": "def test_a():\n    assert 1\n"})
+    repo.branch("chore/lockstep")
+    repo.commit(
+        {"tests/test_a.py": "def test_a():\n    assert True\n", "lockstep.toml": '[enforcement]\ndefault = "warn"\n'}
+    )
+    assert run("check_test_tamper", "", _run, ["--root", str(repo.root), "--base", "main", "--title", "x"]) == 0
+    out = capsys.readouterr().out
+    assert "would block (warn mode)" in out and "this PR changes lockstep.toml" not in out
+
+
+def test_lint_and_type_ignores_in_product_code_are_warnings_for_the_reviewer():
+    for line in ("import os  # noqa: F401", "x: int = 'a'  # type: ignore[assignment]"):
+        found = check_test_tamper([changed("src/app.py", "M", [line])], CFG, "MXAAI-1 x")
+        assert [f.level for f in found] == ["warning"] and "reviewer decides" in found[0].message

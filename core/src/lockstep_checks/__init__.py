@@ -1,3 +1,3 @@
 """Shared core of Lockstep. Hooks and CI import the same modules."""
 
-__version__ = "0.1.0"
+__version__ = "0.3.0"  # kept equal to core/pyproject.toml by tools/check_release.py

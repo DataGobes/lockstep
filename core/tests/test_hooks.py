@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from lockstep_checks.hooks import Event, events, guard_bash, protect_tests, run
+from lockstep_checks.hooks import Event, events, guard_bash, protect_tests, run, team_rules
 
 SHIM = Path(__file__).resolve().parents[1] / "hooks" / "run-hook.sh"
 LOCKED = "status: tests-locked\npii: no\ntrack: data\njira: MXAAI-42\nlocked_at_commit: abc1234\n"
@@ -241,7 +241,16 @@ def test_warn_mode_still_blocks_dangerous_commands(locked_repo):
 def test_broken_config_blocks_in_warn_mode(locked_repo, capsys):
     locked_repo.commit({"lockstep.toml": '[enforcement]\ndefault = "maybe"\n'})
     assert run(protect_tests.hook, stdin=payload(locked_repo.root, "tests/test_a.py")) == 2
-    assert "blocking to be safe" in capsys.readouterr().err
+    err = capsys.readouterr().err
+    assert "lockstep.toml is invalid" in err and "enforcement.default" in err
+
+
+def test_broken_config_still_lets_the_agent_fix_it(locked_repo, capsys):
+    locked_repo.commit({"lockstep.toml": '[enforcement]\ndefault = "maybe"\n'})
+    assert run(protect_tests.hook, stdin=payload(locked_repo.root, "lockstep.toml")) == 0
+    assert "allowing this edit to it" in capsys.readouterr().err
+    ls = json.dumps({"tool_name": "Bash", "tool_input": {"command": "ls"}, "cwd": str(locked_repo.root)})
+    assert run(team_rules.hook, stdin=ls) == 2
 
 
 def test_allowed_calls_are_not_logged(locked_repo):

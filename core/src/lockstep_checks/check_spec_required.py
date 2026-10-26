@@ -4,8 +4,11 @@ Spec-first only holds if CI enforces it: the ``implement`` skill checks the spec
 locally, but only when the agent uses it. Changes under ``[lanes] no_spec_needed``
 (specs, docs) never need one. Any other change must be on one of these lanes:
 
-  feature/<id>-   the spec is tests-locked (or implemented)
+  feature/<id>-   the spec is tests-locked (or implemented); the PR into main sets it implemented, so a merged spec
+                  never reads as still to do (a warning when run locally, an error in the PR pipeline)
   test/<id>-      the spec is approved or tests-locked; the test PR adds stubs and merges into feature/<id>-.
+                  A [test-change] PR uses test/<id>-<slug>-<what> too, into the feature branch while the spec is
+                  built, into main once it is implemented.
                   The spec must have had its own spec PR, unless it is small enough for the quick lane
                   ([specs] quick_max_criteria): then it may arrive in the test PR, reviewed with its tests.
   spec/<id>-      specs and docs only; code waits for the test PR
@@ -19,6 +22,8 @@ The chore exemption and the bug lane follow SDTRD (Fast-Track Protocol, Gates B1
 
 from __future__ import annotations
 
+import os
+
 from .cli import PrContext, main_for
 from .config import Config
 from .gitdiff import ChangedFile, changed_files
@@ -28,11 +33,15 @@ from .spec import Resolution, resolve_spec
 from .specdoc import parse_spec
 from .status import LOCKED_STATES
 
-_ALLOWED = {"test": ("approved", "tests-locked"), "feature": LOCKED_STATES}
+# test/ with an implemented spec: a [test-change] PR into main for tests that have shipped.
+_ALLOWED = {"test": ("approved", *LOCKED_STATES), "feature": LOCKED_STATES}
 BASELINE = "baseline"
 
 
-def check_spec_required(files: list[ChangedFile], branch: str | None, spec: Resolution, cfg: Config) -> list[Finding]:
+def check_spec_required(
+    files: list[ChangedFile], branch: str | None, spec: Resolution, cfg: Config, into_main: str | None = None
+) -> list[Finding]:
+    """``into_main``: "error" or "warning" when the PR goes into main rather than into a feature branch, else None."""
     lanes = cfg.lanes
     code = [f.path for f in files if f.status != "D" and not matches_any(f.path, lanes.no_spec_needed)]
     if not code:
@@ -85,6 +94,15 @@ def check_spec_required(files: list[ChangedFile], branch: str | None, spec: Reso
         ]
     if kind == "test" and spec.spec_dir is not None:
         return _quick_lane(files, spec, cfg)
+    if kind == "feature" and into_main and status == "tests-locked":
+        return [
+            Finding(
+                into_main,
+                f"spec {spec.spec_id} is still tests-locked; as the last commit before the PR into main, set "
+                "status: implemented, so once this merges /lockstep shows the spec as done",
+                path=where,
+            )
+        ]
     return []
 
 
@@ -163,9 +181,17 @@ def _bug_lane(files: list[ChangedFile], cfg: Config) -> list[Finding]:
     return findings
 
 
+def _into_main(base: str) -> str | None:
+    """An error in a PR build into main; a warning locally, where the implementation may still be under way."""
+    if base.removeprefix("origin/").startswith("feature/"):
+        return None
+    return "error" if os.environ.get("SYSTEM_PULLREQUEST_TARGETBRANCH") else "warning"
+
+
 def _run(ctx: PrContext) -> list[Finding]:
     files = changed_files(ctx.root, ctx.base)
-    return check_spec_required(files, ctx.branch, resolve_spec(ctx.root, ctx.branch, ctx.cfg), ctx.cfg)
+    spec = resolve_spec(ctx.root, ctx.branch, ctx.cfg)
+    return check_spec_required(files, ctx.branch, spec, ctx.cfg, _into_main(ctx.base))
 
 
 if __name__ == "__main__":

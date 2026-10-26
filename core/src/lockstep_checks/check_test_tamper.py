@@ -19,14 +19,17 @@ from __future__ import annotations
 import re
 
 from .cli import PrContext, main_for
-from .config import Config
+from .config import CONFIG_FILE, Config
 from .gitdiff import ChangedFile, changed_files
 from .lock import branch_tip, lock_commit
-from .paths import matches_any
+from .paths import matches, matches_any
 from .report import Finding
 from .spec import resolve_spec
 
 OVERRIDE = "[test-change]"
+# The vendored core (bootstrap-repo copies it): its own source names the markers it looks for. Changes to it need the
+# test reviewer group, by branch policy.
+VENDORED = ".lockstep/**"
 ADOPT_BRANCH = "baseline/"
 
 _REF = r"\d+/AC-\d+"
@@ -58,6 +61,9 @@ _WEAKENERS: tuple[tuple[tuple[str, ...], re.Pattern[str], str], ...] = tuple(
         ((".sql",), r"\bseverity\s*=\s*['\"]warn", "downgrades a dbt test to a warning"),
     )
 )
+
+
+_SILENCERS = ("silences the linter", "silences the type checker")
 
 
 def adopts_only(f: ChangedFile) -> bool:
@@ -92,14 +98,30 @@ def check_test_tamper(
             action = {"D": "deletes", "R": f"renames (to {f.path})"}.get(f.status, "modifies")
             raw.append(Finding("error", f"{action} {what}", path=f.base_path))
     for f in files:
+        if matches(f.path, VENDORED):
+            continue
         for line_no, text in f.added_lines:
             for suffixes, pattern, label in _WEAKENERS:
                 if f.path.endswith(suffixes) and pattern.search(text):
-                    raw.append(Finding("error", f"added line {label}: {text.strip()}", path=f.path, line=line_no))
+                    if label in _SILENCERS and not matches_any(f.path, protected):
+                        # In product code a lint or type ignore is a review question, not a weakened test.
+                        msg = f"added line {label}: {text.strip()}; the reviewer decides whether it is justified"
+                        raw.append(Finding("warning", msg, path=f.path, line=line_no))
+                    else:
+                        raw.append(Finding("error", f"added line {label}: {text.strip()}", path=f.path, line=line_no))
                     break
+    if any(f.path == CONFIG_FILE and f.existed_on_base for f in files):  # the setup PR adds it
+        raw.append(
+            Finding(
+                "warning",
+                f"this PR changes {CONFIG_FILE}; the checks keep using the target branch's until it merges, and the "
+                "test reviewer group must approve it",
+                path=CONFIG_FILE,
+            )
+        )
     if raw and (title or "").startswith(OVERRIDE):
         return [Finding("warning", f"{x.message} (allowed by {OVERRIDE})", x.path, x.line) for x in raw]
-    if raw:
+    if any(x.level == "error" for x in raw):
         raw.append(
             Finding(
                 "error",

@@ -20,6 +20,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 PREFIXES = ("spec", "test", "feature", "baseline")
+PLUGIN_JSON = Path(__file__).resolve().parents[3] / ".claude-plugin" / "plugin.json"
 
 
 @dataclass
@@ -43,6 +44,26 @@ def load_core(root: Path):
     finally:
         sys.path.pop(0)
     return config, lock, spec, status
+
+
+def _version(text: str | None, pattern: str) -> tuple[int, ...] | None:
+    m = re.search(pattern, text or "")
+    return tuple(int(n) for n in m[1].split(".")[:2]) if m else None
+
+
+def core_skew(root: Path, plugin_json: Path = PLUGIN_JSON) -> str | None:
+    """A warning when the repo's vendored core is older than this plugin: its skills may expect checks it lacks."""
+    init = root / ".lockstep" / "src" / "lockstep_checks" / "__init__.py"
+    try:
+        vendored = _version(init.read_text(encoding="utf-8"), r'__version__ = "([\d.]+)"')
+        plugin = _version(plugin_json.read_text(encoding="utf-8"), r'"version":\s*"([\d.]+)"')
+    except OSError:
+        return None
+    if plugin is None or (vendored is not None and vendored >= plugin):
+        return None
+    have = ".".join(map(str, vendored)) if vendored else "older than 0.3"
+    want = ".".join(map(str, plugin))
+    return f"This repo's Lockstep core is {have}, older than the plugin ({want}). Run /bootstrap-repo to upgrade it."
 
 
 def git(root: Path, *args: str) -> str | None:
@@ -100,7 +121,8 @@ def steps(root: Path, base: str) -> list[Step]:
         ref = None
         if feature:  # the local branch may be ahead of origin with implementation commits
             ref = feature if git(root, "rev-parse", "--verify", "-q", f"refs/heads/{feature}") else f"origin/{feature}"
-        text = (git(root, "show", f"{ref}:{rel}") if ref else None) or git(root, "show", f"{base}:{rel}")
+        on_feature = git(root, "show", f"{ref}:{rel}") if ref else None
+        text = on_feature or git(root, "show", f"{base}:{rel}")
         if text is None:
             text = (folder / "status.yml").read_text(encoding="utf-8")
         try:
@@ -115,11 +137,17 @@ def steps(root: Path, base: str) -> list[Step]:
             implementing = (
                 locked_at is None or (git(root, "rev-list", "--count", f"{locked_at}..{ref}") or "0").strip() != "0"
             )
+        phase = st.status
+        if ref and on_feature is None and phase == "tests-locked":
+            phase = "approved"  # quick lane: spec and tests are still in the test PR, not on the feature branch yet
         # getattr: a repo's vendored core older than 0.4 has no baseline specs
-        nxt, skill = decide(st.status, mine, implementing, getattr(st, "baseline", False))
+        nxt, skill = decide(phase, mine, implementing, getattr(st, "baseline", False))
+        if phase == "tests-locked" and not feature:
+            nxt += "; if its feature branch already merged into main, set status: implemented there"
+        status_name = st.status
         if st.pii and skill:
             nxt += " (pii: yes, so in Copilot only)"
-        out.append(Step(spec_id, st.status, st.pii, mine, nxt, skill))
+        out.append(Step(spec_id, status_name, st.pii, mine, nxt, skill))
     return out
 
 
@@ -147,7 +175,16 @@ def main(argv: list[str] | None = None) -> int:
     if load_core(root) is None:
         print("This repo isn't set up for Lockstep yet. Run /bootstrap-repo first.")
         return 1
-    found = steps(root, args.base)
+    skew = core_skew(root)
+    if skew:
+        print(skew, file=sys.stderr if args.json else sys.stdout)
+    try:
+        found = steps(root, args.base)
+    except ValueError as e:  # lockstep_checks' ConfigError and SpecError: a broken lockstep.toml or spec folder
+        print(
+            f"Lockstep can't read this repo's specs: {e}. Fix that first; the hooks block until lockstep.toml is valid."
+        )
+        return 1
     if args.json:
         print(json.dumps([asdict(s) for s in found], indent=2))
     else:

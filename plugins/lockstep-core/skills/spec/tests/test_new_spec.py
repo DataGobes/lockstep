@@ -145,3 +145,23 @@ def test_baseline_without_its_template_creates_nothing(repo):
     with pytest.raises(new_spec.SpecError, match="baseline"):
         new_spec.create(repo, "Pricing", "data", "no", None, baseline=True)
     assert sorted(p.name for p in (repo / "specs").iterdir()) == ["_template"]
+
+
+def test_next_id_skips_specs_still_on_their_branches(repo):
+    # A teammate's spec PR, or a quick-lane spec that reaches main only with its implementation.
+    git(
+        repo,
+        "-c",
+        "user.email=t@example.invalid",
+        "-c",
+        "user.name=Test Person 001",
+        "commit",
+        "-q",
+        "--allow-empty",
+        "-m",
+        "x",
+    )
+    git(repo, "branch", "spec/0003-theirs")
+    git(repo, "update-ref", "refs/remotes/origin/feature/0005-quick", "HEAD")
+    git(repo, "update-ref", "refs/remotes/origin/feature/0005-quick--storage", "HEAD")
+    assert new_spec.create(repo, "Mine", "ai", "no", None)["id"] == "0006"

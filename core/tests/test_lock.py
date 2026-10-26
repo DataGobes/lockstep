@@ -134,3 +134,70 @@ def test_stream_pr_into_the_feature_branch_fails_when_a_locked_test_changes(repo
     repo.commit({"tests/test_churn.py": "def test_churn():\n    assert True\n"})
     assert tamper(repo, base="feature/0042-churn") == 1
     assert "tests/test_churn.py" in capsys.readouterr().out
+
+
+def merge_main_into_feature(repo):
+    """Main moves on (another spec merged) and the feature branch takes it in, as teams do before their PR."""
+    repo.git("checkout", "-q", "main")
+    repo.commit({"src/other.py": "y = 2\n"}, "another spec merged")
+    repo.git("update-ref", "refs/remotes/origin/main", "main")
+    repo.git("checkout", "-q", "feature/0042-churn")
+    repo.git("merge", "-q", "--no-ff", "-m", "Merge main", "main")
+
+
+@pytest.mark.parametrize("squash", [False, True])
+def test_lock_survives_merging_main_into_the_feature_branch(repo, squash):
+    stacked(repo, squash)
+    lock = repo.git("rev-parse", "HEAD").strip()
+    merge_main_into_feature(repo)
+    assert lock_of(repo, "feature/0042-churn") == lock
+
+
+def test_locked_tests_stay_locked_after_merging_main(repo, capsys):
+    stacked(repo)
+    merge_main_into_feature(repo)
+    assert run_hook(protect_tests.hook, stdin=edit(repo.root, "tests/test_churn.py")) == 2
+    repo.commit({"tests/test_churn.py": "def test_churn():\n    assert True\n"})
+    assert tamper(repo) == 1
+    assert "tests/test_churn.py: modifies a locked test" in capsys.readouterr().out
+
+
+def test_hook_guards_the_implement_worktree_from_the_main_checkout(repo, tmp_path_factory):
+    # start_implement puts the feature branch in ../<repo>-<id>; Claude Code's cwd stays in the main checkout.
+    stacked(repo)
+    repo.git("checkout", "-q", "main")
+    worktree = tmp_path_factory.mktemp("wt") / "app-0042"
+    repo.git("worktree", "add", "-q", str(worktree), "feature/0042-churn")
+    event = json.dumps(
+        {"tool_name": "Edit", "tool_input": {"file_path": str(worktree / "tests/test_churn.py")}, "cwd": str(repo.root)}
+    )
+    assert run_hook(protect_tests.hook, stdin=event) == 2
+    new = json.dumps(
+        {
+            "tool_name": "Write",
+            "tool_input": {"file_path": str(worktree / "tests/x/test_new.py")},
+            "cwd": str(repo.root),
+        }
+    )
+    assert run_hook(protect_tests.hook, stdin=new) == 0
+
+
+def bash_event(root, command):
+    return json.dumps({"tool_name": "Bash", "tool_input": {"command": command}, "cwd": str(root)})
+
+
+def test_shell_writes_to_a_locked_test_are_blocked_like_edits(repo):
+    stacked(repo)
+    for cmd in (
+        "sed -i 's/== 3/== 4/' tests/test_churn.py",
+        "cat /dev/null > tests/test_churn.py",
+        "rm tests/test_churn.py",
+        "git checkout main -- tests/test_churn.py",
+    ):
+        assert run_hook(protect_tests.hook, stdin=bash_event(repo.root, cmd)) == 2, cmd
+    for cmd in (
+        "python -m pytest tests/test_churn.py > out.txt",
+        "cat tests/test_churn.py",
+        "echo x > tests/test_new.py",
+    ):
+        assert run_hook(protect_tests.hook, stdin=bash_event(repo.root, cmd)) == 0, cmd

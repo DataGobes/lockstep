@@ -145,3 +145,16 @@ def test_shim_runs_team_rules(rules_repo):
         ["bash", str(SHIM), "team_rules"], input=json.dumps(payload), capture_output=True, text=True, check=False
     )
     assert p.returncode == 2 and "uv-not-pip" in p.stderr
+
+
+def test_hook_applies_the_rules_in_a_worktree_outside_the_session_folder(rules_repo, tmp_path_factory):
+    worktree = tmp_path_factory.mktemp("wt") / "repo-0042"
+    rules_repo.git("worktree", "add", "-q", "-b", "feature/0042-x", str(worktree))
+    event = Event(
+        {
+            "tool_name": "Write",
+            "tool_input": {"file_path": str(worktree / "models/b.sql"), "content": "select * from x"},
+            "cwd": str(rules_repo.root),
+        }
+    )
+    assert team_rules.hook(event).block

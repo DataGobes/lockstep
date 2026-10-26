@@ -25,14 +25,15 @@ globs = [
 ]
 
 [pii]
-# Field names the prompt hook treats as personal data.
+# Field names the prompt-screening hook treats as personal data. That hook is parked (it blocked prompts that only
+# name a column), so nothing reads this yet; `pii: yes` in a spec's status.yml is the signal to work in Copilot.
 columns = ["email", "phone", "iban", "first_name", "last_name", "full_name", "date_of_birth", "address"]
 
 [pr_size]
 warn_lines = 400
 fail_lines = 800
 max_files = 100   # Copilot code review's hard limit
-ignore = ["target/**", "**/*.lock", "uv.lock", "**/manifest.json"]
+ignore = ["target/**", "**/*.lock", "uv.lock", "**/manifest.json", ".lockstep/**"]
 
 [lanes]
 # Work that needs no spec. check_spec_required fails any other code change without a tests-locked spec.

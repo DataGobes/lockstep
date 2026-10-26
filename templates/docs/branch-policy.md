@@ -9,13 +9,15 @@ Repositories → <repo> → Policies → main*, or run `scripts/ado/branch-polic
 | Comment resolution | Required | Copilot and human comments are answered, not ignored. |
 | Merge types | Squash merge only | One commit per spec step on main keeps history and reverts simple. |
 | Build validation | The PR pipeline (`azure-pipelines-pr.yml`), required, re-run when main updates | Tamper, traceability, size, Jira key, review rules and the quality gates. |
-| Automatically included reviewers | A test reviewer group, required, for `/tests/*`, `*.unit_tests.yml`, `/evals/*`, `/.claude/*`, `/.lockstep/*`, `/AGENTS.md`, `/azure-pipelines*` | Locked tests and the rules agents work under change only with a second look. |
+| Automatically included reviewers | A test reviewer group, required, for `/tests/*`, `*.unit_tests.yml`, `/evals/*`, `/.claude/*`, `/.lockstep/*`, `/lockstep.toml`, `/AGENTS.md`, `/azure-pipelines*` | Locked tests and the rules agents work under change only with a second look. The checks read `lockstep.toml` from the target branch, so a PR that loosens it is still judged by the old rules. |
 | GitHub Copilot code review | Added as an automatic reviewer (by hand: no CLI yet) | Advisory first review; it reads `.github/copilot-instructions.md` from main. |
 
 **Feature branches.** The test PR merges into `feature/<id>-<slug>`, not main, so red tests never reach main; only
 the green feature branch does. The tests lock when the test PR merges, so `feature/*` (prefix match) gets the same
-reviewer count, comment resolution, build validation and test reviewer group for `/tests/*`, `*.unit_tests.yml` and
-`/evals/*`. Merge types there: squash or merge commit, not rebase, which would hide the commit where the tests locked.
+reviewer count, comment resolution, build validation and test reviewer group for `/tests/*`, `*.unit_tests.yml`,
+`/evals/*` and `/lockstep.toml`. Merge types there: squash or merge commit, not rebase, which would hide the commit where the tests locked.
+The PR pipeline knows the spec's tests are red on purpose there: in a PR into a feature branch, the test files the
+branch adds compared with main run as a report, and the rest of the suite must pass. The PR into main runs everything.
 
 **Jira link.** Azure DevOps' linked-work-item policy covers Azure Boards only, so the PR pipeline's
 `check_jira_key` is what ties a PR to its Jira issue: the title or branch needs a key like `MXAAI-123`.

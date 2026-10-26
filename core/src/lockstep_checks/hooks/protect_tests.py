@@ -9,6 +9,7 @@ is allowed with a warning; CI's check_test_tamper is the backstop either way.
 from __future__ import annotations
 
 import re
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -19,8 +20,17 @@ from ..lock import lock_commit
 from ..paths import matches_any
 from ..spec import SpecError, current_branch, resolve_spec
 from . import Decision, Event, repo_root, run
+from .guard_bash import SHELL_TOOLS, command_of
 
 EDIT_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
+# Shell commands that write, move or delete the files they name. Such a command that names a locked test counts as an
+# edit of it, so `sed -i` or `cat > tests/...` can't do what the Edit tool may not. Commands that only read files they
+# name (pytest, cat, git diff) are not affected; their output redirect is.
+_SEGMENT = re.compile(r"\|\||&&|[;|&\n]")
+_REDIRECT = re.compile(r"(?:^|[^<>&\d])\d?>>?\s*([^\s;&|<>]+)")
+_WRITES_ALL = {"rm", "mv", "truncate", "tee", "unlink", "shred", "Remove-Item", "Move-Item", "Set-Content", "Out-File"}
+_WRITES_LAST = {"cp", "install", "Copy-Item"}
+_GIT_WRITES = {"rm", "mv", "checkout", "restore", "apply"}
 _PATCH_FILE = re.compile(r"^\*\*\* (?:Update|Add|Delete) File: (.+?)\s*$|^\*\*\* Move to: (.+?)\s*$", re.MULTILINE)
 _DIFF_FILE = re.compile(r"^(?:\+\+\+|---) (?:[ab]/)?(.+?)\s*$", re.MULTILINE)
 
@@ -59,21 +69,70 @@ def _exists_on(root: Path, ref: str, rel: str) -> bool | None:
     return False if known.returncode == 0 else None
 
 
+def file_root(path: Path) -> Path | None:
+    """The repo a file belongs to, from its own folder, or None outside any repo. The implement skill's worktree sits
+    next to the repo the agent was started in, so the session's cwd names the wrong repo for its files."""
+    folder = path.parent
+    while not folder.exists() and folder != folder.parent:
+        folder = folder.parent  # a new file in a new folder
+    root = repo_root(folder)
+    return root.resolve() if (root / ".git").exists() else None
+
+
+def shell_paths(command: str) -> list[str]:
+    """The files a shell command would write, move or delete: redirect targets and the file arguments of writing
+    commands. A command that only reads the files it names (pytest, cat, git diff) gives none."""
+    out = []
+    for segment in _SEGMENT.split(command):
+        out += _REDIRECT.findall(segment)
+        try:
+            words = shlex.split(_REDIRECT.sub(" ", segment))
+        except ValueError:
+            words = segment.split()
+        while words and (words[0] in ("sudo", "env", "command") or "=" in words[0]):
+            words = words[1:]
+        if not words:
+            continue
+        cmd, args = words[0].rsplit("/", 1)[-1], [w for w in words[1:] if not w.startswith("-")]
+        if cmd == "git" and args and args[0] in _GIT_WRITES:
+            out += args[1:]
+        elif cmd in _WRITES_ALL or (cmd in ("sed", "perl") and any(re.match(r"-[a-zA-Z]*i", w) for w in words)):
+            out += args[1:] if cmd in ("sed", "perl") else args  # sed's first argument is the script
+        elif cmd in _WRITES_LAST and args:
+            out.append(args[-1])
+        elif cmd == "dd":
+            out += [w[3:] for w in words if w.startswith("of=")]
+    return out
+
+
 def hook(event: Event) -> Decision:
-    if event.tool_name not in EDIT_TOOLS:
+    if event.tool_name in SHELL_TOOLS:
+        paths = shell_paths(command_of(event))
+    elif event.tool_name in EDIT_TOOLS:
+        paths = target_paths(event)
+    else:
         return Decision.allow()
-    root = repo_root(event.cwd)
-    cfg = load_config(root)
-    protected = []
-    for raw_path in target_paths(event):
+    by_root: dict[Path, list[str]] = {}
+    for raw_path in paths:
         p = Path(raw_path)
         p = p if p.is_absolute() else event.cwd / p
-        try:
-            rel = p.resolve().relative_to(root.resolve()).as_posix()
-        except ValueError:
-            continue  # outside the repo
-        if matches_any(rel, cfg.protect.globs):
-            protected.append(rel)
+        root = file_root(p.resolve())
+        if root is None:
+            continue  # not in a git repo
+        rel = p.resolve().relative_to(root).as_posix()
+        by_root.setdefault(root, []).append(rel)
+    warnings: list[str] = []
+    for root, rels in by_root.items():
+        decision = _check(root, rels)
+        if decision.block:
+            return decision
+        warnings += decision.warnings
+    return Decision.allow(*warnings)
+
+
+def _check(root: Path, rels: list[str]) -> Decision:
+    cfg = load_config(root)
+    protected = [rel for rel in rels if matches_any(rel, cfg.protect.globs)]
     if not protected:
         return Decision.allow()
 

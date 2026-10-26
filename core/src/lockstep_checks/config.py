@@ -59,7 +59,8 @@ class PrSize:
     warn_lines: int = 400
     fail_lines: int = 800
     max_files: int = 100  # Copilot code review's hard limit; never raise it
-    ignore: tuple[str, ...] = ("target/**", "**/*.lock", "uv.lock", "**/manifest.json")
+    # .lockstep/ is the vendored core: a setup or upgrade PR copies thousands of lines nobody writes by hand.
+    ignore: tuple[str, ...] = ("target/**", "**/*.lock", "uv.lock", "**/manifest.json", ".lockstep/**")
 
 
 @dataclass(frozen=True)
@@ -192,6 +193,11 @@ def load_config(root: Path) -> Config:
         return Config()  # only a missing file means defaults; a directory or unreadable file is an error
     except OSError as e:
         raise ConfigError(f"{path}: cannot read {CONFIG_FILE}: {e}") from e
+    return parse_config(text, path)
+
+
+def parse_config(text: str, path: Path) -> Config:
+    """``lockstep.toml`` text -> Config; ``path`` names it in errors."""
     try:
         raw = tomllib.loads(text)
     except tomllib.TOMLDecodeError as e:

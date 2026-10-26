@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from ..config import load_config
+from ..config import CONFIG_FILE, ConfigError, load_config
 from ..spec import current_branch
 from . import events
 
@@ -81,9 +81,19 @@ def repo_root(start: Path) -> Path:
     return Path(p.stdout.strip()) if p.returncode == 0 and p.stdout.strip() else start
 
 
+def _fixes_config(raw: dict) -> bool:
+    """An edit whose only target is lockstep.toml: allowed while the config is broken, so it can be repaired."""
+    from .protect_tests import EDIT_TOOLS, target_paths  # here: protect_tests imports this module
+
+    event = Event(raw)
+    paths = target_paths(event) if event.tool_name in EDIT_TOOLS else []
+    return bool(paths) and all(Path(p).name == CONFIG_FILE for p in paths)
+
+
 def run(hook: Callable[[Event], Decision], stdin: str | None = None) -> int:
     """Parse the event, run the hook, print its message, return the exit code. Errors block."""
     name = hook.__module__.rsplit(".", 1)[-1]
+    raw: dict = {}
     try:
         text = sys.stdin.read() if stdin is None else stdin
         raw = json.loads(text) if text.strip() else {}
@@ -98,6 +108,19 @@ def run(hook: Callable[[Event], Decision], stdin: str | None = None) -> int:
             events.record(
                 root, name, "blocked" if mode == "enforce" else "warned", current_branch(root), decision.message
             )
+    except ConfigError as e:
+        if _fixes_config(raw):
+            print(
+                f"lockstep: {CONFIG_FILE} is invalid ({e}); allowing this edit to it so it can be fixed",
+                file=sys.stderr,
+            )
+            return ALLOW
+        print(
+            f"lockstep: {CONFIG_FILE} is invalid, so every Lockstep hook blocks until it is fixed: {e}. "
+            f"Fix {CONFIG_FILE} first (an edit to it is allowed), or ask the user to.",
+            file=sys.stderr,
+        )
+        return BLOCK
     except Exception as e:  # fail closed on anything unexpected
         print(f"lockstep: hook error, blocking to be safe: {type(e).__name__}: {e}", file=sys.stderr)
         return BLOCK

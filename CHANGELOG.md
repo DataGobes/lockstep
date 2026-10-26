@@ -8,6 +8,38 @@ tag the merge commit `v<version>`.
 
 ## Unreleased
 
+- **Fixes from a full review before the first pilot.**
+  - The test lock survives merging main into the feature branch. Before, the lock commit vanished from `git log`'s
+    simplified history, so the hook and `check_test_tamper` let the spec's own tests change.
+  - Test PRs can pass the feature branch's build validation. In a PR into a feature branch, the test files that
+    branch adds (`lockstep_checks.red_phase`) run as a report and coverage is a warning; the PR into main runs
+    everything.
+  - The edit hooks find the repo from each file's folder, so they guard the implement worktree in `../<repo>-<id>`
+    even when the agent's session started in the main checkout.
+  - `protect_tests` also stops shell commands that write, move or delete a locked test (`sed -i`, `>`, `rm`, `mv`,
+    `cp`, `git checkout --`). The settings template registers it for Bash and PowerShell.
+  - The PR into main sets `status: implemented`, and `check_spec_required` fails one that doesn't (a warning
+    locally), so `/lockstep` no longer offers to implement a merged spec again.
+  - The checks read `lockstep.toml` from the target branch, so a PR cannot loosen the rules it is checked by, and
+    the branch policy puts `lockstep.toml` under the test reviewer group.
+  - `new_spec.py` skips ids still on `spec/`, `test/`, `feature/` and `baseline/` branches, so two specs in flight
+    never share an id.
+  - The quick lane works end to end: `start_implement.py` reads the spec from the feature branch, and `/lockstep`
+    reports a quick-lane test PR as a test PR.
+  - `/lockstep` warns when the repo's vendored core is older than the plugin; `lockstep_checks.__version__` and the
+    template's `core_version` are kept in step by `check_release.py`.
+  - Setup and upgrade PRs pass their own checks: `.lockstep/` doesn't count towards the PR size or the tamper scan.
+    Repos keep their own `[pr_size] ignore`; add `".lockstep/**"` to it.
+  - The hooks write no `__pycache__`, and bootstrap adds `.lockstep/.gitignore`.
+  - A broken `lockstep.toml` is named as such, and an edit to it is allowed so it can be fixed; `/lockstep` explains
+    it instead of printing a traceback.
+  - Specs: a wrapped EARS line that starts with "when" or "and" is no longer read as a Given/When/Then step, and
+    "- None" under Open questions is not an open question.
+  - `# noqa` and `type: ignore` in product code are warnings for the reviewer; in test files they still fail.
+  - `[test-change]` PRs use `test/<id>-<slug>-<what>`, which `check_spec_required` accepts, into the feature branch
+    or, for an implemented spec, into main.
+  - Smaller: `bootstrap.py --no-jira`, hotspots skip Lockstep's own setup files, AGENTS.md lists every check.
+
 - **Safety scan of shipped files:** `tools/check_release.py` now also runs `tools/safety_scan.py` over everything
   Lockstep ships (plugins, `core/src`, `core/hooks`, `core/pipelines`, templates). It fails on likely secrets, network
   access outside an allowlist (`ado_pr_title.py` reads the PR title from Azure DevOps), risky calls (`shell=True`,

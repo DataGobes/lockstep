@@ -54,3 +54,8 @@ def test_end_to_end(repo, capsys):
     code = run("check_pr_size", "", _run, ["--root", str(repo.root), "--base", "main", "--title", "MXAAI-1 x"])
     assert code == 1
     assert "901 changed lines" in capsys.readouterr().out
+
+
+def test_the_vendored_core_does_not_count():
+    vendored = files(4000, path=".lockstep/src/lockstep_checks/m{}.py")
+    assert check_pr_size(vendored, CFG, None) == []

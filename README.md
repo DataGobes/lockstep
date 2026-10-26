@@ -93,16 +93,17 @@ the two can never disagree. It starts with:
 ### PR checks
 
 Each check runs as `python -m lockstep_checks.<check>` from the repo root, locally or in Azure Pipelines, where
-findings show up on the PR with file and line. Common options: `--base` (default: the PR target branch, else
+findings show up on the PR with file and line. The checks read `lockstep.toml` from the base branch, so a PR cannot loosen the rules it is
+checked by; only the PR that sets Lockstep up uses its own. Common options: `--base` (default: the PR target branch, else
 `origin/main`) and `--title` (or `$LOCKSTEP_PR_TITLE`; Azure Pipelines has no built-in variable for the PR title).
 
 | Check | Fails when |
 |---|---|
-| `check_test_tamper` | an existing file under `[protect] globs` is modified, renamed or deleted, or a change adds skip/xfail, `# noqa`, `type: ignore`, or disables or downgrades a dbt test. On a feature branch, the spec's own tests are protected from the commit where the test PR merged into it. A title starting with `[test-change]` turns these into warnings. |
+| `check_test_tamper` | an existing file under `[protect] globs` is modified, renamed or deleted, or a change adds skip/xfail, or disables or downgrades a dbt test, or adds `# noqa` or `type: ignore` to a test file (in product code those are warnings for the reviewer). On a feature branch, the spec's own tests are protected from the commit where the test PR merged into it. A title starting with `[test-change]` turns these into warnings. |
 | `check_ac_traceability` | a tests-locked spec has a criterion without a test, a test names an unknown spec or criterion, or a spec is malformed (including criteria not in the `[specs] ac_format`: EARS, Given/When/Then or either). From `approved` on, a spec that takes the research and design step also needs `research.md` with a decision and `design.md` without open questions. `--spec-only` lints specs only. Draft and approved specs also get warnings for hard-to-test wording: should/may, vague words, two SHALLs in one criterion, a non-functional criterion without a number, repeated criteria. |
 | `check_pr_size` | more than 800 changed lines (unless `[large-approved]` is in the title) or more than 100 files. Warns above 400. Generated files don't count. |
 | `check_jira_key` | the title and branch have no issue key of a `[jira] projects` project, have several keys, or the key differs from the spec's. With `required = false`, a missing key passes. |
-| `check_spec_required` | code changes on a branch without a spec at the right status: `feature/<id>-` needs it tests-locked, `test/<id>-` approved, `spec/<id>-` may change only specs and docs; a `test/` PR may bring its own spec only in the quick lane (`[specs] quick_max_criteria`, off by default). `chore/` needs no spec; `bugfix/` and `hotfix/` need a bug report and a new regression test; `baseline/<id>-` changes only tests, specs and docs, for a baseline spec that is implemented by the end of the PR ([baseline specs](docs/baseline-specs.md)). Specs, docs and Markdown never need one. Follows SDTRD's chore exemption and Fast-Track bug lane. |
+| `check_spec_required` | code changes on a branch without a spec at the right status: `feature/<id>-` needs it tests-locked, and implemented in the PR into main, `test/<id>-` approved, `spec/<id>-` may change only specs and docs; a `test/` PR may bring its own spec only in the quick lane (`[specs] quick_max_criteria`, off by default). `chore/` needs no spec; `bugfix/` and `hotfix/` need a bug report and a new regression test; `baseline/<id>-` changes only tests, specs and docs, for a baseline spec that is implemented by the end of the PR ([baseline specs](docs/baseline-specs.md)). Specs, docs and Markdown never need one. Follows SDTRD's chore exemption and Fast-Track bug lane. |
 | `check_living_specs` | with `[specs] living = true`: `specs/living/<capability>.md` is missing or stale, or a spec past draft names no capability. `--write` regenerates them ([living specs](docs/living-specs.md)). Off by default. |
 | `check_team_rules` | an added line matches one of the team's own `[[rules]]` in `lockstep.toml` (a regex, optionally limited to `paths`). Existing code is not checked. |
 | `check_review_rules` | the Lockstep review rules in `.github/copilot-instructions.md` are missing or differ from the block in `AGENTS.md`. `--write` updates the copy and keeps the repo's own rules. |
@@ -135,7 +136,7 @@ the repo's tracks; each gate can be switched off by a parameter until the repo i
 
 | Template | Gate | Track |
 |---|---|---|
-| `python-quality.yml` | pre-commit on changed files, pyright, pytest with diff-cover (80% of changed lines), pip-audit, Bandit (high) | all |
+| `python-quality.yml` | pre-commit on changed files, pyright, pytest with diff-cover (80% of changed lines), pip-audit, Bandit (high). In a PR into a feature branch, the spec's new test files are red on purpose: they run as a report, and coverage is a warning | all |
 | `dbt-slim-ci.yml` | `dbt build --select state:modified+ --defer` against the prod manifest from the deploy pipeline | data |
 | `bundle-validate.yml` | `databricks bundle validate` for the dev target | data |
 | `eval-gate.yml` | the repo's eval command, only when the PR touches prompts, evals or LLM code | ai |
@@ -171,7 +172,7 @@ allows and exit 2 blocks. Hooks fail closed: a crash, bad input or a missing Pyt
 
 | Hook | Event | Blocks when |
 |---|---|---|
-| `protect_tests` | PreToolUse on Edit, Write, MultiEdit, NotebookEdit | the active spec is tests-locked and the file matches `[protect] globs` and exists on origin/main, or on a feature branch at the commit where the test PR merged. New files are allowed. Copilot's `apply_patch` payloads are parsed too. |
+| `protect_tests` | PreToolUse on Edit, Write, MultiEdit, NotebookEdit, and on Bash, PowerShell for commands that write the files they name (`sed -i`, `>`, `rm`, `mv`, `cp`, `git checkout --`) | the active spec is tests-locked and the file matches `[protect] globs` and exists on origin/main, or on a feature branch at the commit where the test PR merged. New files are allowed. Copilot's `apply_patch` payloads are parsed too. |
 | `team_rules` | PreToolUse on edits and on Bash, PowerShell | an edit adds text, or a command matches, one of the team's `[[rules]]` in `lockstep.toml`. Does nothing when there are none. |
 | `guard_bash` | PreToolUse on Bash, PowerShell | the command targets prod, force-pushes, deletes main, skips tests with `-k`/`--deselect`/`--ignore`, or rewrites history while on main. |
 

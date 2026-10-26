@@ -24,6 +24,7 @@
         "matcher": "Bash|PowerShell",
         "hooks": [
           { "type": "command", "command": "\"${CLAUDE_PROJECT_DIR:-.}/.lockstep/hooks/run-hook.sh\" guard_bash" },
+          { "type": "command", "command": "\"${CLAUDE_PROJECT_DIR:-.}/.lockstep/hooks/run-hook.sh\" protect_tests" },
           { "type": "command", "command": "\"${CLAUDE_PROJECT_DIR:-.}/.lockstep/hooks/run-hook.sh\" team_rules" }
         ]
       }

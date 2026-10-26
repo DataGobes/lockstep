@@ -9,8 +9,8 @@ Track: <data | ai | mixed>. Work follows Lockstep: spec first, tests locked, sma
 2. **Spec PR:** `specs/<id>-<slug>/spec.md` with numbered acceptance criteria (AC-001, ...). Nothing is built before it is approved.
 3. **Test PR** from `test/<id>-<slug>` into `feature/<id>-<slug>`, never into main: failing tests that name their
    criterion, then `status.yml` becomes `tests-locked`. The tests are locked once it merges.
-4. **Implementation** on `feature/<id>-<slug>` until every check is green; only then does it merge into main, so main
-   never holds a failing test.
+4. **Implementation** on `feature/<id>-<slug>` until every check is green; its last commit sets `status.yml` to
+   `implemented`. Only then does it merge into main, so main never holds a failing test.
 5. Copilot reviews first, then a human who did not drive the agent approves.
 
 Two lighter lanes skip the spec. **Bugfix** (`bugfix/<KEY>-<slug>`): a bug report in `specs/bug-reports/`, a new
@@ -28,7 +28,8 @@ means the same as a block: stop and say why.
 
 1. **Tests are locked.** Once the spec is `tests-locked`, do not modify, delete, skip or weaken an existing test, fixture,
    snapshot, dbt unit-test YAML, eval dataset or threshold. Adding new tests is fine. A real test change is a separate
-   PR whose title starts with `[test-change]`.
+   PR whose title starts with `[test-change]`, from `test/<id>-<slug>-<what>` into the spec's feature branch while it
+   is being built, or into main once it is implemented; for a test no spec names, from `chore/<what>`.
 2. **Stop rather than cheat.** If a test looks wrong, stop and explain why. Never special-case inputs, detect a test run
    or hard-code expected values to make a test pass.
 3. **PII goes to Copilot.** If the spec has `pii: yes`, stop and tell the user to continue in the company Copilot.
@@ -63,7 +64,7 @@ Use the spec id, because every spec numbers from AC-001:
 - Bundle: `<databricks bundle validate -t dev>`
 - Evals: `<command>`
 - Lockstep checks: `PYTHONPATH=.lockstep/src python -m lockstep_checks.check_<name>` (pr_size, jira_key, spec_required,
-  test_tamper, ac_traceability, review_rules)
+  test_tamper, ac_traceability, review_rules, living_specs, team_rules)
 
 ## Definition of done for an agent task
 

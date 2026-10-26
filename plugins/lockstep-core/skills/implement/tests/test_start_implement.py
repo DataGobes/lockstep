@@ -107,3 +107,18 @@ def test_dry_run_creates_nothing(clone):
     repo = clone()
     out = start_implement.start(repo, "0042", dry_run=True)
     assert not Path(out["worktree"]).exists()
+
+
+def test_quick_lane_spec_is_read_from_its_feature_branch(tmp_path):
+    # Quick lane: the spec arrived in the test PR, so it is on the feature branch and not yet on main.
+    seed = tmp_path / "seed"
+    git(tmp_path, "init", "-q", "-b", "main", str(seed))
+    commit(seed, {"README.md": "x\n"})
+    git(seed, "checkout", "-q", "-b", "feature/0042-churn")
+    commit(seed, {"specs/0042-churn/spec.md": "# s\n", "specs/0042-churn/status.yml": LOCKED})
+    git(seed, "checkout", "-q", "main")
+    subprocess.run(["git", "clone", "-q", "--bare", str(seed), str(tmp_path / "remote")], check=True)
+    work = tmp_path / "work" / "repo"
+    subprocess.run(["git", "clone", "-q", str(tmp_path / "remote"), str(work)], check=True)
+    out = start_implement.start(work, "0042", dry_run=True)
+    assert out["branch"] == "feature/0042-churn" and out["spec_dir"] == "specs/0042-churn"

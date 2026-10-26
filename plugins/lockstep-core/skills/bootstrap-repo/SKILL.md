@@ -21,10 +21,12 @@ It never overwrites a file the repo owns: those come back as **merge** items for
 ## 2. Ask once, in one message
 
 - **Tracks:** data, ai or both. Suggest from what you found (dbt or Databricks → data; prompts, evals or an LLM SDK → ai).
-- **Jira project keys:** default `MXAAI`. If the team has no Jira, set `[jira] required = false` in `lockstep.toml`
-  after applying; specs, branches and PR titles then need no key.
-- **Lockstep version:** a tag of the Lockstep repo, or `main` if the team has no tags yet. On an upgrade, show the
-  current one from `.lockstep/VERSION`.
+- **Jira project keys:** default `MXAAI`. If the team has no Jira, add `--no-jira` to the commands below; specs,
+  branches and PR titles then need no key (`[jira] required = false`).
+- **Lockstep version:** recommend the tag that matches this plugin, `v<version>` with the version from the plugin's
+  `.claude-plugin/plugin.json`, so the skills and the vendored checks agree; `main` only if that tag doesn't exist.
+  On an upgrade, show the current one from `.lockstep/VERSION`. `/lockstep` warns when the vendored core is older
+  than the plugin.
 
 ## 3. Show the plan
 
@@ -71,7 +73,7 @@ only what is missing, and show the user the diff:
 ## 6. Prove it works
 
 - Run every check: `PYTHONPATH=.lockstep/src python3 -m lockstep_checks.check_<name>` for `pr_size`, `spec_required`,
-  `test_tamper`, `ac_traceability` and `review_rules`. They should pass on the `chore/` branch; `jira_key` fails until the branch or title has a key.
+  `test_tamper`, `ac_traceability` and `review_rules`. They should pass on the `chore/` branch (the vendored `.lockstep/` doesn't count towards the PR size or the tamper scan); `jira_key` fails until the branch or title has a key.
 - Smoke-test a hook: `echo '{"tool_name":"Bash","tool_input":{"command":"databricks bundle deploy -t prod"}}' |
   .lockstep/hooks/run-hook.sh guard_bash` must exit 2. With `git status` as the command it must exit 0.
 

@@ -42,7 +42,7 @@ az repos policy build create "${common[@]}" \
 # Changes to tests, evals, agent config and pipelines need a required reviewer.
 az repos policy required-reviewer create "${common[@]}" \
   --required-reviewer-ids "$TEST_REVIEWERS" \
-  --path-filter "/tests/*;*.unit_tests.yml;/evals/*;/.claude/*;/.lockstep/*;/AGENTS.md;/azure-pipelines*" \
+  --path-filter "/tests/*;*.unit_tests.yml;/evals/*;/.claude/*;/.lockstep/*;/lockstep.toml;/AGENTS.md;/azure-pipelines*" \
   --message "Lockstep: tests, evals, agent config and pipelines need a test reviewer"
 
 # Test PRs merge into feature/<id>-<slug>, not main, so red tests never reach main. The tests lock when a test PR
@@ -59,7 +59,7 @@ az repos policy build create "${feature[@]}" \
   --manual-queue-only false --queue-on-source-update-only false --valid-duration 720
 az repos policy required-reviewer create "${feature[@]}" \
   --required-reviewer-ids "$TEST_REVIEWERS" \
-  --path-filter "/tests/*;*.unit_tests.yml;/evals/*" \
+  --path-filter "/tests/*;*.unit_tests.yml;/evals/*;/lockstep.toml" \
   --message "Lockstep: the tests this PR locks need a test reviewer"
 
 echo "Done. Add GitHub Copilot as an automatic reviewer by hand: see docs/branch-policy.md."

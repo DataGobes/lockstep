@@ -6,7 +6,8 @@
 A test is red for the right reason when it fails on an assertion or NotImplementedError. It is not when it passes,
 is skipped, or fails to import, collect or call the code (ImportError, SyntaxError, NameError, AttributeError,
 TypeError, a broken fixture). Other exceptions are listed as "check": they may be the behaviour under test.
-Prints an AC -> test -> result table and exits 1 if any criterion lacks a correctly red test. pytest only;
+Prints an AC -> test -> result table and exits 1 if any criterion lacks a correctly red test. With --expect green
+(after implementation) every test of every criterion must pass instead. pytest only;
 dbt unit tests and eval cases are checked by hand (see SKILL.md).
 """
 
@@ -54,8 +55,10 @@ def run_pytest(root: Path, pytest_cmd: str, extra: list[str]) -> dict[str, dict]
         return json.loads(report.read_text(encoding="utf-8"))
 
 
-def evaluate(criteria: list[str], tests: dict[str, dict]) -> tuple[list[tuple[str, str, str, str]], bool]:
-    """Rows of (AC, test, result, detail), and whether the spec is correctly red."""
+def evaluate(
+    criteria: list[str], tests: dict[str, dict], expect: str = "red"
+) -> tuple[list[tuple[str, str, str, str]], bool]:
+    """Rows of (AC, test, result, detail), and whether every criterion is as expected (red or green)."""
     rows, ok = [], True
     for ac in criteria:
         mine = [(node, t) for node, t in tests.items() if ac in t["acs"]]
@@ -64,9 +67,11 @@ def evaluate(criteria: list[str], tests: dict[str, dict]) -> tuple[list[tuple[st
             ok = False
         for node, t in mine:
             rows.append((ac, node, t["result"], t["detail"]))
-        if mine and not any(t["result"] == "red" for _, t in mine):
-            ok = False
-        ok = ok and not any(t["result"] in PROBLEMS for _, t in mine)
+        if expect == "green":
+            ok = ok and all(t["result"] == "passes" for _, t in mine)
+        else:
+            ok = ok and any(t["result"] == "red" for _, t in mine)
+            ok = ok and not any(t["result"] in PROBLEMS for _, t in mine)
     spec = criteria[0].split("/")[0] + "/" if criteria else ""
     for node, t in tests.items():
         unknown = [a for a in t["acs"] if a.startswith(spec) and a not in criteria]
@@ -86,15 +91,17 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--root", type=Path, default=Path.cwd())
     ap.add_argument("--spec", required=True, help="spec id, e.g. 0042")
+    ap.add_argument("--expect", choices=["red", "green"], default="red", help="green: after implementation")
     ap.add_argument("--pytest", default=f"{shlex.quote(sys.executable)} -m pytest", help="command that runs pytest")
     args = ap.parse_args(argv)
     root = args.root.resolve()
     criteria = spec_criteria(root, args.spec)
-    rows, ok = evaluate(criteria, run_pytest(root, args.pytest, extra))
+    rows, ok = evaluate(criteria, run_pytest(root, args.pytest, extra), args.expect)
     print("\n| AC | Test | Result |\n|----|------|--------|")
     for ac, node, result, detail in rows:
         print(f"| {ac} | {node} | {result}{' (' + detail + ')' if detail else ''} |")
-    print("\nAll criteria are red for the right reason." if ok else "\nNot ready: fix the rows above.")
+    done = "All criteria are red for the right reason." if args.expect == "red" else "All criteria pass."
+    print(f"\n{done}" if ok else "\nNot ready: fix the rows above.")
     return 0 if ok else 1
 
 

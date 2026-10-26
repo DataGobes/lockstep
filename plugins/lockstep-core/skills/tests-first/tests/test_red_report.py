@@ -143,3 +143,15 @@ def test_unknown_criterion_is_reported(repo):
 def test_unknown_spec_exits(repo):
     with pytest.raises(SystemExit, match="no spec 0099"):
         red_report.spec_criteria(repo, "0099")
+
+
+def test_green_after_implementation(repo):
+    impl = (
+        "import logging\n\ndef score(rows):\n    logging.getLogger(__name__).warning('%d rows', len(rows))\n"
+        "    return [0.5 for _ in rows]\n"
+    )
+    write(repo, {"src/churn.py": impl, "tests/test_churn.py": GOOD})
+    tests = red_report.run_pytest(repo, f"{sys.executable} -m pytest", ["tests"])
+    criteria = red_report.spec_criteria(repo, "0042")
+    assert red_report.evaluate(criteria, tests, "green")[1]
+    assert not red_report.evaluate(criteria, tests, "red")[1]

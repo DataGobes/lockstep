@@ -170,7 +170,9 @@ A prompt-screening PII hook is parked: naming a column such as `email` in a prom
 word-based screen blocks too much. Until it returns, `pii: yes` in a spec's status.yml is the signal to work in Copilot.
 
 Run the tests with `cd core && uv run --with pytest python -m pytest`, and the skill scripts' with
-`uv run --with pytest python -m pytest plugins/lockstep-core plugins/lockstep-data plugins/lockstep-ai`.
+`uv run --with pytest python -m pytest plugins/lockstep-core plugins/lockstep-data plugins/lockstep-ai tools/tests`.
+`python3 tools/check_release.py` checks that the marketplace, plugin versions, README and docs agree; CI runs all of
+these and `plugin validate --strict` on every pull request. Releases are described in [CHANGELOG.md](CHANGELOG.md).
 
 ## Repo layout
 

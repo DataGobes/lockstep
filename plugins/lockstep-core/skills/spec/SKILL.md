@@ -40,6 +40,20 @@ It picks the next free id (checking origin/main too, so run `git fetch origin` f
 `status.yml` (status `draft`) and prints the branch name. Create that branch (`spec/<id>-<slug>`) from an up-to-date main.
 Leave `owner` and `reviewer` in the front matter for the user to fill in.
 
+## 4a. Large work: research first
+
+Some work needs the options weighed before anyone writes criteria: a new pipeline, a model or vendor choice, a
+change across several specs. Take the research and design step when the user asks for it, when `[specs]
+design_from_criteria` in `lockstep.toml` is above 0 and the spec will reach that many criteria, or when you expect
+more than about eight criteria; then recommend it and let the user decide. Create the spec with `--design`, which adds
+`research.md` and `design.md` and sets `design: yes` in `status.yml` (or set that line by hand and copy the two files
+from `specs/_template/design/`).
+
+Fill `research.md` before section 3 of the spec: the question and constraints, two or three options from facts you
+checked (the codebase, official docs, a run), the trade-off table, the earlier criteria this replaces, and a
+recommendation. Put the decision to the author as a grilling round; write it as `Chosen: <option>, because ...` in
+section 5. The criteria then follow from the chosen option. This step follows SDTRD's research gate.
+
 ## 5. Write the spec
 
 Fill all seven sections of `spec.md`, keeping the template's headings. One to two pages.
@@ -84,6 +98,10 @@ Use invented values in any example ("Test Person 001"), never data from the issu
 Use business terms as `GLOSSARY.md` defines them. A term that is missing, or used differently in the issue, becomes an
 open question.
 
+For a spec with the design step, fill `design.md` once the criteria are settled: invariants, interfaces and data
+contracts, the data flow (a Mermaid diagram is fine), boundaries and budgets, and a test seam for every criterion.
+Its open questions go through the same interview, and must be empty before approval too.
+
 ## 6. Interview the author until Open questions is empty
 
 Follow [grilling.md](grilling.md): look up the facts yourself, then ask the author the remaining decisions in numbered
@@ -98,7 +116,7 @@ before the spec PR opens; anything the author can't answer yet stays there, name
 
 ## 8. Commit and open the spec PR
 
-Commit `specs/<id>-<slug>/` (and `GLOSSARY.md` if you changed it) only, as `<KEY> Add spec <id>: <title>`. Ask before pushing. The PR title starts with the
+Commit `specs/<id>-<slug>/` (with `research.md` and `design.md` if it has them, and `GLOSSARY.md` if you changed it) only, as `<KEY> Add spec <id>: <title>`. Ask before pushing. The PR title starts with the
 Jira key, and its description says this is a **spec PR**.
 
 Tell the user what happens next: a second engineer reviews the spec; once any open questions left are answered, the

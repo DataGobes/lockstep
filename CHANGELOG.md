@@ -8,6 +8,11 @@ tag the merge commit `v<version>`.
 
 ## Unreleased
 
+- **Research and design step for large specs:** `research.md` (options, trade-offs, a decision) and `design.md`
+  (interfaces, data flow, budgets, test seams) next to `spec.md`, reviewed in the spec PR. A spec takes the step with
+  `design: yes` in `status.yml` (`new_spec.py --design` adds both files), or when it has at least `[specs]
+  design_from_criteria` criteria (default 0: off). From `approved` on, `check_ac_traceability --spec-only` requires
+  both files, a `Chosen: ...` decision and no open design questions. Credited to SDTRD's research and design gates.
 - **Given/When/Then criteria:** an acceptance criterion can be a title with GIVEN / WHEN / THEN steps under it, as
   well as one EARS sentence. `[specs] ac_format` in `lockstep.toml` (`any`, `ears` or `given-when-then`) sets what
   `check_ac_traceability` accepts; the default `any` accepts both and checks the steps' order. The spec template, the

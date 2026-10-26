@@ -77,6 +77,9 @@ class Specs:
     # How acceptance criteria are written: "ears" (WHEN ... THE SYSTEM SHALL ...), "given-when-then" (GIVEN, WHEN and
     # THEN steps under the criterion), or "any" (either, unchecked). check_ac_traceability holds every spec to it.
     ac_format: str = "any"
+    # Specs with at least this many active criteria also need research.md and design.md before approval (0: off).
+    # Any spec can ask for them alone with `design: yes` in status.yml.
+    design_from_criteria: int = 0
 
 
 @dataclass(frozen=True)
@@ -231,6 +234,8 @@ def _validate(path: Path, cfg: Config) -> None:
         raise ConfigError(f"{path}: lanes.chore and lanes.bugfix must be distinct branch prefixes ending in '/'")
     if cfg.specs.ac_format not in AC_FORMATS:
         raise ConfigError(f"{path}: specs.ac_format must be one of {', '.join(AC_FORMATS)}")
+    if cfg.specs.design_from_criteria < 0:
+        raise ConfigError(f"{path}: specs.design_from_criteria must be 0 (off) or more")
     e = cfg.enforcement
     bad_modes = [k for k in e.__dataclass_fields__ if getattr(e, k) not in (MODES if k == "default" else ("", *MODES))]
     if bad_modes:

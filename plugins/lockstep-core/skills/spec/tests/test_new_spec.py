@@ -99,3 +99,14 @@ def test_slugify(title, slug):
 def test_cli_rejects_bad_input(repo, args):
     with pytest.raises(SystemExit):
         new_spec.main(["--root", str(repo), "--title", "x", "--track", "data", "--pii", "no", *args])
+
+
+def test_design_docs_only_on_request(repo):
+    plain = new_spec.create(repo, "Small change", "data", "no", "MXAAI-1")
+    assert sorted(p.name for p in (repo / plain["spec_dir"]).iterdir()) == ["spec.md", "status.yml"]
+    big = new_spec.create(repo, "Churn platform", "data", "no", "MXAAI-2", design=True)
+    folder = repo / big["spec_dir"]
+    assert sorted(p.name for p in folder.iterdir()) == ["design.md", "research.md", "spec.md", "status.yml"]
+    assert (folder / "research.md").read_text(encoding="utf-8").startswith("# Research: Churn platform\n")
+    load_config, _, parse_status = lockstep_core()
+    assert parse_status((folder / "status.yml").read_text(encoding="utf-8"), load_config(repo)).design is True

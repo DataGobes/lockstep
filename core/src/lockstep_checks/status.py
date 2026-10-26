@@ -15,7 +15,7 @@ from .config import TRACKS, Config
 LIFECYCLE = ("draft", "approved", "tests-locked", "implemented")
 LOCKED_STATES = ("tests-locked", "implemented")
 TRACK_VALUES = ("data", "ai", "mixed")
-KEYS = ("status", "pii", "track", "jira", "locked_at_commit")
+KEYS = ("status", "pii", "track", "jira", "locked_at_commit", "design")
 REQUIRED = ("status", "pii", "track")
 
 _LINE = re.compile(r"^(?P<key>[a-z_]+):(?:\s+(?P<value>.*?))?\s*$")
@@ -33,6 +33,7 @@ class SpecStatus:
     track: str
     jira: str | None
     locked_at_commit: str | None
+    design: bool = False  # research.md and design.md are needed before approval
 
     @property
     def tests_locked(self) -> bool:
@@ -87,7 +88,13 @@ def parse_status(text: str, cfg: Config) -> SpecStatus:
     if commit is not None and not _COMMIT.match(commit):
         raise SpecStatusError(f"locked_at_commit must be a commit SHA, got {commit!r}")
 
-    return SpecStatus(status=status, pii=pii == "yes", track=track, jira=jira, locked_at_commit=commit)
+    design = values.get("design") or "no"
+    if design not in ("yes", "no"):
+        raise SpecStatusError(f"design must be 'yes' or 'no', got {design!r}")
+
+    return SpecStatus(
+        status=status, pii=pii == "yes", track=track, jira=jira, locked_at_commit=commit, design=design == "yes"
+    )
 
 
 def _strip_comment(line: str) -> str:

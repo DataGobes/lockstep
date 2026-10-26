@@ -39,6 +39,11 @@ def test_quoted_values_are_unquoted():
     assert s.pii is False
 
 
+def test_design_step_is_optional_and_off_by_default():
+    assert parse_status("status: draft\npii: no\ntrack: data\n", CFG).design is False
+    assert parse_status("status: draft\npii: no\ntrack: data\ndesign: yes\n", CFG).design is True
+
+
 def test_implemented_counts_as_locked():
     text = VALID.replace("tests-locked", "implemented", 1)
     assert parse_status(text, CFG).tests_locked is True
@@ -59,6 +64,7 @@ def test_implemented_counts_as_locked():
         ("status: tests-locked\npii: no\ntrack: data\njira: MXAAI-1\nlocked_at_commit: main\n", "locked_at_commit"),
         ("status: draft\npii: no\ntrack:\n  - data\n", "line 4"),
         ("status: [draft]\npii: no\ntrack: data\n", "status"),
+        ("status: draft\npii: no\ntrack: data\ndesign: maybe\n", "design"),
     ],
 )
 def test_invalid_status_is_rejected(text, fragment):

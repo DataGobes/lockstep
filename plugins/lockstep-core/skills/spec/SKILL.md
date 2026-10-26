@@ -113,6 +113,10 @@ before the spec PR opens; anything the author can't answer yet stays there, name
 ## 7. Check and show it
 
 - Run `PYTHONPATH=.lockstep/src python3 -m lockstep_checks.check_ac_traceability --spec-only` and fix every error.
+- **Fresh-eyes read.** Give a reader with none of this conversation only `spec.md`, `GLOSSARY.md` and the files
+  section 2 names: in Claude a new subagent, in Copilot a fresh chat. Ask it to list terms it can't pin down from
+  those files, criteria it couldn't write a test for, and criteria that contradict each other or the code. Each
+  finding becomes a fix or an open question; tell the user which.
 - Show the user the criteria, and iterate until they are happy.
 
 If `[specs] living = true` in `lockstep.toml`, set `capability:` in `status.yml` (ask the author which area of

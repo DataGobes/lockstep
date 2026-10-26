@@ -8,6 +8,13 @@ tag the merge commit `v<version>`.
 
 ## Unreleased
 
+- **Fresh eyes and evidence:** the `spec` skill has a reader with none of the conversation check the spec for
+  undefined terms, untestable criteria and contradictions before the spec PR (after Google's Elephant-Goldfish
+  model). `implement` gives long plans a fresh context per slice with a review between slices, and no skill reports a
+  pass it didn't just run and show (after superpowers' subagent-driven development and verification before
+  completion). `bugfix` traces the root cause to `path:line` before fixing, and stops after three failed fixes (after
+  superpowers' systematic debugging).
+
 ## 0.3.0
 
 More of SDTRD's strengths, ported with credit, and Jira made optional. Everything that changes the workflow is off

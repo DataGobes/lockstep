@@ -140,3 +140,11 @@ def test_quick_lane_test_pr_is_not_reported_as_implementation(tmp_path):
 def test_locked_spec_without_a_feature_branch_mentions_marking_it_implemented(tmp_path):
     step = by_spec(make_repo(tmp_path))["0003"]
     assert step.skill == "implement" and "set status: implemented" in step.next
+
+
+def test_older_vendored_core_says_to_upgrade(tmp_path):
+    root = make_repo(tmp_path)
+    assert next_step.core_skew(root) is None  # copied from this checkout: same version
+    init = root / ".lockstep" / "src" / "lockstep_checks" / "__init__.py"
+    init.write_text('__version__ = "0.1.0"\n', encoding="utf-8")
+    assert "core is 0.1, older than the plugin" in next_step.core_skew(root)

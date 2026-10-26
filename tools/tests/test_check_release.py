@@ -22,7 +22,7 @@ CURRENT = json.loads((LOCKSTEP / "plugins" / "lockstep-core" / ".claude-plugin" 
 
 @pytest.fixture
 def repo(tmp_path):
-    for rel in ("plugins", "docs", ".claude-plugin", "core"):
+    for rel in ("plugins", "docs", ".claude-plugin", "core", "templates"):
         shutil.copytree(LOCKSTEP / rel, tmp_path / rel, ignore=shutil.ignore_patterns("__pycache__", ".venv"))
     shutil.copy(LOCKSTEP / "README.md", tmp_path / "README.md")
     return tmp_path
@@ -51,7 +51,15 @@ def test_set_version_updates_every_lockstep_plugin(repo):
     assert market["metadata"]["version"] == "9.0.0"
     assert all(v == "9.0.0" for n, v in versions.items() if n.startswith("lockstep-"))
     assert 'version = "9.0.0"' in (repo / "core" / "pyproject.toml").read_text()
+    assert '__version__ = "9.0.0"' in (repo / "core/src/lockstep_checks/__init__.py").read_text()
+    assert 'core_version = "9.0"' in (repo / "templates" / "lockstep.toml").read_text()
     assert check_release.check(repo) == []
+
+
+def test_stale_core_version_is_reported(repo):
+    init = repo / "core/src/lockstep_checks/__init__.py"
+    init.write_text(init.read_text().replace(f'"{CURRENT}"', '"0.0.1"'))
+    assert any("__init__.py: version 0.0.1" in p for p in check_release.check(repo))
 
 
 def test_set_version_for_one_plugin(repo):

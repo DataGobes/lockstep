@@ -20,6 +20,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 PREFIXES = ("spec", "test", "feature", "baseline")
+PLUGIN_JSON = Path(__file__).resolve().parents[3] / ".claude-plugin" / "plugin.json"
 
 
 @dataclass
@@ -43,6 +44,26 @@ def load_core(root: Path):
     finally:
         sys.path.pop(0)
     return config, lock, spec, status
+
+
+def _version(text: str | None, pattern: str) -> tuple[int, ...] | None:
+    m = re.search(pattern, text or "")
+    return tuple(int(n) for n in m[1].split(".")[:2]) if m else None
+
+
+def core_skew(root: Path, plugin_json: Path = PLUGIN_JSON) -> str | None:
+    """A warning when the repo's vendored core is older than this plugin: its skills may expect checks it lacks."""
+    init = root / ".lockstep" / "src" / "lockstep_checks" / "__init__.py"
+    try:
+        vendored = _version(init.read_text(encoding="utf-8"), r'__version__ = "([\d.]+)"')
+        plugin = _version(plugin_json.read_text(encoding="utf-8"), r'"version":\s*"([\d.]+)"')
+    except OSError:
+        return None
+    if plugin is None or (vendored is not None and vendored >= plugin):
+        return None
+    have = ".".join(map(str, vendored)) if vendored else "older than 0.3"
+    want = ".".join(map(str, plugin))
+    return f"This repo's Lockstep core is {have}, older than the plugin ({want}). Run /bootstrap-repo to upgrade it."
 
 
 def git(root: Path, *args: str) -> str | None:
@@ -154,6 +175,9 @@ def main(argv: list[str] | None = None) -> int:
     if load_core(root) is None:
         print("This repo isn't set up for Lockstep yet. Run /bootstrap-repo first.")
         return 1
+    skew = core_skew(root)
+    if skew:
+        print(skew, file=sys.stderr if args.json else sys.stdout)
     found = steps(root, args.base)
     if args.json:
         print(json.dumps([asdict(s) for s in found], indent=2))

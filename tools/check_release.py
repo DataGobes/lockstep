@@ -61,7 +61,29 @@ def check(root: Path) -> list[str]:
             problems.append(f"{rel}: not linked from README.md")
         if not (root / "docs" / "skills" / f"{folder}.md").is_file():
             problems.append(f"{rel}: no page docs/skills/{folder}.md")
-    return problems + _safety_scan().scan(root)
+    return problems + _core_versions(root, plugins) + _safety_scan().scan(root)
+
+
+_INIT = "core/src/lockstep_checks/__init__.py"
+_TOML = "templates/lockstep.toml"
+
+
+def _core_versions(root: Path, plugins: dict[str, dict]) -> list[str]:
+    """The vendored core says which version it is, so /lockstep can tell when a repo's copy is older than the plugin."""
+    want = plugins.get("lockstep-core", {}).get("version")
+    found = {
+        "core/pyproject.toml": re.search(r'(?m)^version = "([^"]*)"', (root / "core/pyproject.toml").read_text()),
+        _INIT: re.search(r'__version__ = "([^"]*)"', (root / _INIT).read_text(encoding="utf-8")),
+    }
+    problems = [
+        f"{p}: version {m[1] if m else None}, lockstep-core is {want}"
+        for p, m in found.items()
+        if not m or m[1] != want
+    ]
+    m = re.search(r'(?m)^core_version = "([^"]*)"', (root / _TOML).read_text(encoding="utf-8"))
+    if want and (not m or m[1] != ".".join(want.split(".")[:2])):
+        problems.append(f"{_TOML}: core_version {m[1] if m else None}, lockstep-core is {want}")
+    return problems
 
 
 def _safety_scan():
@@ -95,7 +117,20 @@ def set_version(root: Path, version: str, plugin: str | None) -> list[str]:
             re.sub(r'(?m)^version = "[^"]*"', f'version = "{version}"', core.read_text(encoding="utf-8"), count=1),
             encoding="utf-8",
         )
-        changed.append("core/pyproject.toml")
+        init = root / _INIT
+        init.write_text(
+            re.sub(r'__version__ = "[^"]*"', f'__version__ = "{version}"', init.read_text(encoding="utf-8"), count=1),
+            encoding="utf-8",
+        )
+        toml = root / _TOML
+        minor = ".".join(version.split(".")[:2])
+        toml.write_text(
+            re.sub(
+                r'(?m)^core_version = "[^"]*"', f'core_version = "{minor}"', toml.read_text(encoding="utf-8"), count=1
+            ),
+            encoding="utf-8",
+        )
+        changed += ["core/pyproject.toml", _INIT, _TOML]
     (root / MARKETPLACE).write_text(text, encoding="utf-8")
     return [*changed, MARKETPLACE]
 

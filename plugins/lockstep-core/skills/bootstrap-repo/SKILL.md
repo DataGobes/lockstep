@@ -23,8 +23,10 @@ It never overwrites a file the repo owns: those come back as **merge** items for
 - **Tracks:** data, ai or both. Suggest from what you found (dbt or Databricks → data; prompts, evals or an LLM SDK → ai).
 - **Jira project keys:** default `MXAAI`. If the team has no Jira, set `[jira] required = false` in `lockstep.toml`
   after applying; specs, branches and PR titles then need no key.
-- **Lockstep version:** a tag of the Lockstep repo, or `main` if the team has no tags yet. On an upgrade, show the
-  current one from `.lockstep/VERSION`.
+- **Lockstep version:** recommend the tag that matches this plugin, `v<version>` with the version from the plugin's
+  `.claude-plugin/plugin.json`, so the skills and the vendored checks agree; `main` only if that tag doesn't exist.
+  On an upgrade, show the current one from `.lockstep/VERSION`. `/lockstep` warns when the vendored core is older
+  than the plugin.
 
 ## 3. Show the plan
 

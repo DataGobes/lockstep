@@ -1,6 +1,7 @@
 ---
 name: retro-capture
-description: Run a short Lockstep retro over a period of work, gather the evidence from git history (reverts, [test-change] PRs, fixes) and from the team (agent actions the hooks blocked, where an agent went wrong), and turn it into exactly one change to the repo's rules, as a PR. Use at the end of a sprint or pilot, after an incident, or when someone says "retro", "what should we change", or "lessons learned" in a Lockstep repo.
+description: Run a short retro over a period of work and turn its evidence into one change to the repo's rules, as a PR.
+disable-model-invocation: true
 ---
 
 # Capture one lesson from a retro

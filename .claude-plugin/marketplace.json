@@ -14,6 +14,13 @@
       "keywords": ["lockstep", "spec-first", "azure-devops", "bootstrap"]
     },
     {
+      "name": "lockstep-data",
+      "source": "./plugins/lockstep-data",
+      "description": "Lockstep skills for the data track: see what a dbt change affects, from changed models to consumers outside dbt.",
+      "version": "0.1.0",
+      "keywords": ["lockstep", "dbt", "databricks", "lineage"]
+    },
+    {
       "name": "copilot-review-instructions",
       "source": "./plugins/copilot-review-instructions",
       "description": "Generate and maintain repo-specific Copilot code review instructions (.github/copilot-instructions.md and path-scoped *.instructions.md) on top of project-wide rules.",

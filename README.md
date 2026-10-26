@@ -137,6 +137,7 @@ The `bootstrap-repo` skill copies these and merges them with files the repo alre
 |---|---|---|
 | [`AGENTS.md`](templates/AGENTS.md) | `AGENTS.md` | Workflow, non-negotiables, commands and definition of done for every agent, plus the Lockstep review rules block that `check_review_rules` copies for Copilot code review, which doesn't read AGENTS.md. |
 | [`CLAUDE.md`](templates/CLAUDE.md) | `CLAUDE.md` | Imports AGENTS.md and adds Claude-only notes. |
+| [`docs/branch-policy.md`](templates/docs/branch-policy.md), [`ado/branch-policy.sh`](templates/ado/branch-policy.sh) | `docs/`, `scripts/ado/` | The branch policies main needs (reviewers, squash, build validation, path-based reviewers) and an `az repos policy` script that sets them, for a person to run. |
 | [`azuredevops/pull_request_template.md`](templates/azuredevops/pull_request_template.md) | `.azuredevops/pull_request_template.md` | Spec link, AC → test → result table, agent used, PII routing and the reviewer checklist. |
 | [`lockstep.toml`](templates/lockstep.toml), [`claude-settings.json`](templates/claude-settings.json), [`specs/_template/`](templates/specs/_template), [`azure-pipelines-pr.yml`](templates/azure-pipelines-pr.yml), [`azure-pipelines-deploy.yml`](templates/azure-pipelines-deploy.yml) | repo root, `.claude/settings.json`, `specs/_template/`, repo root | Config, agent permissions and hooks, the spec template, and the PR and deploy pipelines. |
 

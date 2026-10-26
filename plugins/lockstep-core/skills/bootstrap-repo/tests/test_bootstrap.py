@@ -130,3 +130,12 @@ def test_fetches_a_git_ref_and_records_it(repo):
 def test_unknown_ref_fails_cleanly(repo, capsys):
     assert bootstrap.main(["--root", str(repo), "--git", LOCKSTEP.as_uri(), "--ref", "no-such-ref"]) == 1
     assert "cannot fetch Lockstep no-such-ref" in capsys.readouterr().err
+
+
+def test_branch_policy_script_refuses_until_filled_in(repo):
+    run(repo, "--apply")
+    script = repo / "scripts" / "ado" / "branch-policy.sh"
+    assert script.stat().st_mode & 0o111  # keeps the template's executable bit
+    p = subprocess.run([str(script)], check=False, capture_output=True, text=True)
+    assert p.returncode == 1 and "Fill in the variables" in p.stderr
+    assert subprocess.run(["bash", "-n", str(script)], check=False).returncode == 0

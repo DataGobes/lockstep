@@ -42,6 +42,8 @@ REPO_OWNED = {
     "templates/azuredevops/pull_request_template.md": ".azuredevops/pull_request_template.md",
     "templates/azure-pipelines-pr.yml": "azure-pipelines-pr.yml",
     "templates/azure-pipelines-deploy.yml": "azure-pipelines-deploy.yml",
+    "templates/ado/branch-policy.sh": "scripts/ado/branch-policy.sh",
+    "templates/docs/branch-policy.md": "docs/branch-policy.md",
 }
 VERSION_FILE = ".lockstep/VERSION"
 SKIP = {"__pycache__", ".pytest_cache", ".ruff_cache"}
@@ -125,7 +127,7 @@ def plan(root: Path, source: Path, origin: str, tracks: list[str], jira: list[st
         content = (source / src).read_bytes()
         if dest == "lockstep.toml":
             content = customise_config(content.decode(), tracks, jira).encode()
-        actions.append(_compare(root, dest, content, None, False))
+        actions.append(_compare(root, dest, content, (source / src).stat().st_mode & 0o777, False))
     return actions
 
 

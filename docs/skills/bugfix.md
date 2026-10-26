@@ -1,7 +1,7 @@
 # bugfix
 
 **What it does.** Fixes a bug without a full spec: a short bug report, a new regression test that fails for the bug's
-reason, then the smallest fix, all in one PR on `bugfix/<KEY>-<slug>`. The PR check `check_spec_required` fails a
+reason, then the root cause (traced to `path:line`) and the smallest fix, all in one PR on `bugfix/<KEY>-<slug>`. The PR check `check_spec_required` fails a
 bugfix PR without the report or the new test. The lane follows SDTRD's Fast-Track Protocol.
 
 **When to reach for it.** Something that is already meant to work doesn't. If the fix needs new behaviour, it's a

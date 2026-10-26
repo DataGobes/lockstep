@@ -13,6 +13,21 @@ tag the merge commit `v<version>`.
   and its failing tests together. `check_spec_required` fails a test PR that adds its own spec when the lane is off,
   the spec is bigger, or it takes the design step. Off by default, which also closes the gap where a test PR could
   bring an unreviewed spec. After Kiro's Quick Spec and BMAD's scale-adaptive tracks.
+- **Team rules:** `[[rules]]` in `lockstep.toml` lets a team add its own rules without code: a regex that must not
+  appear in added code (`on = "content"`, optionally only under `paths`) or in an agent's shell command
+  (`on = "command"`). The new `team_rules` hook stops the agent, and the new `check_team_rules` PR check fails added
+  lines that break a content rule, so both apply the same rule. Every key is validated; `[enforcement] team_rules`
+  sets warn or enforce. The settings template registers the hook and the PR pipeline runs the check. After Probity.
+- **Spec analysis:** `check_ac_traceability` warns about criteria that are hard to test, in specs still in draft or
+  approved: should/may/might, vague words (fast, appropriate, and/or, several, ...), two SHALLs in one criterion, a
+  non-functional criterion without a number, and criteria that repeat each other. Warnings only; the `spec` skill
+  fixes them or says why they stay. After Kiro's requirements analysis.
+- **Fresh eyes and evidence:** the `spec` skill has a reader with none of the conversation check the spec for
+  undefined terms, untestable criteria and contradictions before the spec PR (after Google's Elephant-Goldfish
+  model). `implement` gives long plans a fresh context per slice with a review between slices, and no skill reports a
+  pass it didn't just run and show (after superpowers' subagent-driven development and verification before
+  completion). `bugfix` traces the root cause to `path:line` before fixing, and stops after three failed fixes (after
+  superpowers' systematic debugging).
 - **Baseline specs for existing code:** a spec with `kind: baseline` in `status.yml` describes what an area of the
   code does today and pins it with tests that pass today, in one PR from `baseline/<id>-<slug>` into main. Its
   lifecycle is draft, approved, implemented (never tests-locked). `check_spec_required` holds a baseline PR to tests,

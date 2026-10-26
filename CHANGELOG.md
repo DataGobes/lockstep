@@ -8,6 +8,11 @@ tag the merge commit `v<version>`.
 
 ## Unreleased
 
+- **Property tests for invariant criteria:** `tests-first` proposes a Hypothesis property test next to the example
+  tests for criteria that hold for every input (never negative, one row per key, idempotent, round trip), when the
+  repo pins Hypothesis. Settings keep locked property tests deterministic (`derandomize=True`), and found cases are
+  pinned with `@example`. See `tests-first/property-tests.md`. After Kiro's property-based testing.
+
 ## 0.3.0
 
 More of SDTRD's strengths, ported with credit, and Jira made optional. Everything that changes the workflow is off

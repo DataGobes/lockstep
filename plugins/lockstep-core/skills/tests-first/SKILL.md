@@ -29,7 +29,9 @@ spec has a `design.md`, its section 5 already names the seams: use them, and rai
 From section 5 of the spec (test and eval plan), list each criterion with its seam, test type and location. Include the
 edge cases the criterion's WHEN / IF conditions imply: empty input, the boundary values, duplicates, a failing
 upstream. A Given/When/Then criterion maps straight onto the test: GIVEN is the setup, WHEN the one call through the
-seam, THEN and AND the assertions, with the criterion's values. Use business terms as `GLOSSARY.md` defines them. Show the list, and settle anything unclear in rounds as
+seam, THEN and AND the assertions, with the criterion's values. A criterion that holds for every input (always,
+every, never, any) also gets a property test next to its examples; [property-tests.md](property-tests.md) says when
+and how. Use business terms as `GLOSSARY.md` defines them. Show the list, and settle anything unclear in rounds as
 [../spec/grilling.md](../spec/grilling.md) describes, before writing.
 
 ## 3. Write them

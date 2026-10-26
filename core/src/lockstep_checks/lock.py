@@ -35,8 +35,15 @@ def lock_commit(root: Path, base: str, spec: Resolution, cfg: Config, tip: str =
     if spec.state != "found" or not (spec.branch or "").startswith(f"{LOCKED_BRANCH_KIND}/") or spec.spec_dir is None:
         return None
     rel = (spec.spec_dir / "status.yml").relative_to(root).as_posix()
-    log = _git(root, "log", "--first-parent", "--reverse", "--format=%H", f"{base}..{tip}", "--", rel)
+    # No pathspec: with one, git's history simplification drops the test PR's merge commit as soon as main has been
+    # merged into the feature branch (the merge is TREESAME to a parent), and the lock silently disappears.
+    log = _git(root, "rev-list", "--first-parent", "--reverse", f"{base}..{tip}")
+    previous = None
     for sha in (log or "").split():
+        blob = _git(root, "rev-parse", "-q", "--verify", f"{sha}:{rel}")
+        if blob is None or blob == previous:
+            continue  # no status.yml yet, or unchanged since the last commit read
+        previous = blob
         text = _git(root, "show", f"{sha}:{rel}")
         try:
             if text is not None and parse_status(text, cfg).tests_locked:

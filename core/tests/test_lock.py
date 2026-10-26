@@ -134,3 +134,29 @@ def test_stream_pr_into_the_feature_branch_fails_when_a_locked_test_changes(repo
     repo.commit({"tests/test_churn.py": "def test_churn():\n    assert True\n"})
     assert tamper(repo, base="feature/0042-churn") == 1
     assert "tests/test_churn.py" in capsys.readouterr().out
+
+
+def merge_main_into_feature(repo):
+    """Main moves on (another spec merged) and the feature branch takes it in, as teams do before their PR."""
+    repo.git("checkout", "-q", "main")
+    repo.commit({"src/other.py": "y = 2\n"}, "another spec merged")
+    repo.git("update-ref", "refs/remotes/origin/main", "main")
+    repo.git("checkout", "-q", "feature/0042-churn")
+    repo.git("merge", "-q", "--no-ff", "-m", "Merge main", "main")
+
+
+@pytest.mark.parametrize("squash", [False, True])
+def test_lock_survives_merging_main_into_the_feature_branch(repo, squash):
+    stacked(repo, squash)
+    lock = repo.git("rev-parse", "HEAD").strip()
+    merge_main_into_feature(repo)
+    assert lock_of(repo, "feature/0042-churn") == lock
+
+
+def test_locked_tests_stay_locked_after_merging_main(repo, capsys):
+    stacked(repo)
+    merge_main_into_feature(repo)
+    assert run_hook(protect_tests.hook, stdin=edit(repo.root, "tests/test_churn.py")) == 2
+    repo.commit({"tests/test_churn.py": "def test_churn():\n    assert True\n"})
+    assert tamper(repo) == 1
+    assert "tests/test_churn.py: modifies a locked test" in capsys.readouterr().out

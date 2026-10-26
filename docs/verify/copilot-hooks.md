@@ -39,7 +39,7 @@ Run on a developer machine once protect-tests exists (it cannot be run from a cl
 | 1. Edit a locked test | **Pass.** The hook blocked it with the "BLOCKED by lockstep" message. |
 | Hook finds Python | **Failed, then fixed.** `python3` on PATH was the macOS system 3.9, and hooks ignore the editor's selected interpreter, so the shim blocked every edit. The shim now looks for python3.14 down to python3.11 first, plus `LOCKSTEP_PYTHON`. |
 | 3. Prod deploy | Not reached: Copilot refused on its own, following AGENTS.md, before calling the hook. |
-| Allowed edits pass | Copilot refused an out-of-spec edit on its own (AGENTS.md); an in-scope edit is still to check. |
+| Allowed edits pass | **Pass.** A README edit went through with no hook message. (Copilot refused an out-of-spec code edit on its own, following AGENTS.md.) |
 | 2, 4, 5 | Copilot CLI, `apply_patch`, `${CLAUDE_PROJECT_DIR}` expansion on Windows, and payload capture: still to do. |
 
 The model refusing first is the instructions working; the hooks are the backstop for when it doesn't.

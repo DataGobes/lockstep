@@ -41,7 +41,13 @@ def lockstep_core():
 
 def test_first_spec_is_0001(repo):
     out = new_spec.create(repo, "Churn features", "data", "no", "MXAAI-123")
-    assert out == {"id": "0001", "spec_dir": "specs/0001-churn-features", "branch": "spec/0001-churn-features"}
+    assert out == {
+        "id": "0001",
+        "spec_dir": "specs/0001-churn-features",
+        "branch": "test/0001-churn-features",
+        "feature_branch": "feature/0001-churn-features",
+        "spec_pr_branch": "spec/0001-churn-features",
+    }
     load_config, parse_spec, parse_status = lockstep_core()
     status = parse_status((repo / out["spec_dir"] / "status.yml").read_text(encoding="utf-8"), load_config(repo))
     assert (status.status, status.track, status.pii, status.jira) == ("draft", "data", False, "MXAAI-123")
@@ -119,6 +125,20 @@ def test_capability_goes_into_status(repo):
     assert status.capability == "churn-scoring"
 
 
+def test_contract_goes_into_status(repo):
+    out = new_spec.create(repo, "New churn columns", "data", "no", "MXAAI-4", contract=True)
+    load_config, _, parse_status = lockstep_core()
+    status = parse_status((repo / out["spec_dir"] / "status.yml").read_text(encoding="utf-8"), load_config(repo))
+    assert status.contract is True
+
+
+def test_contract_needs_a_template_with_the_line(repo):
+    status = repo / "specs" / "_template" / "status.yml"
+    status.write_text("".join(x for x in status.read_text().splitlines(True) if not x.startswith("contract:")))
+    with pytest.raises(new_spec.SpecError, match="bootstrap-repo"):
+        new_spec.create(repo, "New churn columns", "data", "no", "MXAAI-4", contract=True)
+
+
 def test_baseline_spec_uses_the_baseline_template_and_branch(repo):
     out = new_spec.create(repo, "Pricing as it works today", "data", "no", "MXAAI-7", baseline=True)
     assert out["branch"] == "baseline/0001-pricing-as-it-works-today"
@@ -148,7 +168,7 @@ def test_baseline_without_its_template_creates_nothing(repo):
 
 
 def test_next_id_skips_specs_still_on_their_branches(repo):
-    # A teammate's spec PR, or a quick-lane spec that reaches main only with its implementation.
+    # A teammate's spec PR, or a spec in its test PR that reaches main only with its implementation.
     git(
         repo,
         "-c",

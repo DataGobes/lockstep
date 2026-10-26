@@ -1,6 +1,6 @@
 ---
 name: tests-first
-description: Turn an approved Lockstep spec into failing tests, one or more per acceptance criterion, prove each fails for the right reason, and open the test PR into the feature branch that locks them. Use when a spec's status is approved and someone wants to write the tests, start the red phase, "write tests for spec 0042", or lock the tests before implementation.
+description: Turn an approved Lockstep spec into failing tests, one or more per acceptance criterion, prove each fails for the right reason, and open the PR into the feature branch that locks them, with the spec in it unless it had a spec PR of its own. Use when a spec's status is approved and someone wants to write the tests, start the red phase, "write tests for spec 0042", or lock the tests before implementation.
 ---
 
 # Write the failing tests for a spec
@@ -13,12 +13,14 @@ Paths below are relative to this skill's folder. The scripts need Python 3.11+ a
 ## 1. Check the spec
 
 - Find the spec: from the branch name, or ask for its id. Read `specs/<id>-<slug>/spec.md` and `status.yml`.
-- `status` must be `approved`. If it is `draft`, stop: the spec PR comes first. In the quick lane the approved spec is
-  already committed on this `test/` branch instead (see the `spec` skill); carry on.
+- `status` must be `approved`. By default the approved spec is committed on this `test/` branch and goes into the
+  same PR as its tests (see the `spec` skill); carry on. If the spec has its own `spec/` PR, that PR merges first. If
+  the status is `draft`, stop and finish the spec with the `spec` skill.
 - **If `pii: yes` and you are Claude, stop** and say this spec is worked on in the company Copilot.
 - Red tests never go to main: the test PR merges into the spec's feature branch, and only the green implementation
-  merges into main. From an up-to-date main, create `feature/<id>-<slug>` if it doesn't exist yet and push it
-  unchanged (ask first), then work on a new branch `test/<id>-<slug>` from it. Never on main.
+  merges into main. Create `feature/<id>-<slug>` from the commit the `test/` branch started from (the main the spec
+  was drafted on), or from an up-to-date main after a spec PR merged, and push it unchanged (ask first). Work on
+  `test/<id>-<slug>`: the branch the spec is already on, or a new one from the feature branch. Never on main.
 
 ## 2. Plan the tests
 
@@ -85,7 +87,9 @@ Then run `PYTHONPATH=.lockstep/src python3 -m lockstep_checks.check_ac_traceabil
   when the feature branch merges into main.
 - Ask before pushing. Open the PR from `test/<id>-<slug>` **into `feature/<id>-<slug>`, not main**. The title starts
   with the Jira key; the description has the AC → test → result table from step 4, with each failure reason, and says
-  the PR is a **test PR** (in the quick lane: **spec and test PR**, asking the reviewer to check the criteria first). Review fixes to the tests go on the test branch; they are allowed until it merges.
+  the PR is a **spec and test PR** (the default; it asks the reviewer to check the criteria first, then the tests)
+  or a **test PR** (after a spec PR). Review fixes to the spec and the tests go on the test branch; they are allowed
+  until it merges.
 
 Tell the user what comes next: a reviewer checks that the tests match the criteria (the feature branch's path-based
 required reviewer covers `tests/`). Merge it with a squash or a merge commit, not a rebase. After merge, any change to

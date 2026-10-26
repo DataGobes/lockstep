@@ -121,7 +121,7 @@ def test_end_to_end(repo, capsys):
     assert "needs it tests-locked or implemented" in capsys.readouterr().out
 
 
-QUICK_SPEC = """\
+ONE_PR_SPEC = """\
 ## 1. Problem and outcome
 ## 2. Scope / non-goals
 ## 3. Acceptance criteria
@@ -133,43 +133,77 @@ QUICK_SPEC = """\
 """
 
 
-def quick(tmp_path, n_criteria: int, limit: int, design: bool = False):
-    (tmp_path / "lockstep.toml").write_text(f"[specs]\nquick_max_criteria = {limit}\n")
+def spec_in_test_pr(tmp_path, n_criteria: int, toml: str = "", **traits):
+    tmp_path.mkdir(exist_ok=True)
+    (tmp_path / "lockstep.toml").write_text(f"[specs]\n{toml}\n")
     folder = tmp_path / "specs" / "0042-churn"
     folder.mkdir(parents=True)
-    criteria = "\n".join(f"- AC-00{i} THE SYSTEM SHALL do {i}." for i in range(1, n_criteria + 1))
-    (folder / "spec.md").write_text(QUICK_SPEC.format(criteria=criteria))
-    st = SpecStatus("tests-locked", False, "data", "MXAAI-42", "abc1234", design=design)
+    criteria = "\n".join(f"- AC-{i:03d} THE SYSTEM SHALL do {i}." for i in range(1, n_criteria + 1))
+    (folder / "spec.md").write_text(ONE_PR_SPEC.format(criteria=criteria))
+    st = SpecStatus("tests-locked", traits.pop("pii", False), "data", "MXAAI-42", "abc1234", **traits)
     res = Resolution("found", "test/0042-churn", "0042", folder, st)
     files = [ChangedFile("specs/0042-churn/spec.md", "A"), ChangedFile("tests/test_churn.py", "A")]
     return check_spec_required(files, "test/0042-churn", res, load_config(tmp_path))
 
 
-def test_quick_lane_takes_a_small_spec_in_the_test_pr(tmp_path):
-    assert quick(tmp_path, 2, 3) == []
+def test_one_pr_is_the_default_for_a_spec_and_its_tests(tmp_path):
+    assert spec_in_test_pr(tmp_path, 8) == []
 
 
-def test_quick_lane_off_needs_a_spec_pr(tmp_path):
-    found = errors(quick(tmp_path, 1, 0))
-    assert "without a spec PR of its own" in found[0] and "quick_max_criteria = 0" in found[0]
+def test_a_spec_above_the_default_size_needs_a_spec_pr(tmp_path):
+    found = errors(spec_in_test_pr(tmp_path, 9))
+    assert "needs a spec PR of its own first" in found[0] and "9 criteria" in found[0]
+    assert "spec/0042-churn" in found[0]
 
 
-def test_quick_lane_refuses_a_bigger_spec(tmp_path):
-    assert "it has 4 criteria and the quick lane takes at most 3" in errors(quick(tmp_path, 4, 3))[0]
+def test_size_threshold_is_configurable(tmp_path):
+    assert spec_in_test_pr(tmp_path, 12, "spec_pr_above_criteria = 12") == []
 
 
-def test_quick_lane_refuses_a_spec_with_the_design_step(tmp_path):
-    assert "research and design step" in errors(quick(tmp_path, 1, 3, design=True))[0]
+def test_zero_sends_every_spec_through_a_spec_pr(tmp_path):
+    found = errors(spec_in_test_pr(tmp_path, 1, "spec_pr_above_criteria = 0"))
+    assert "every spec gets a spec PR first" in found[0]
 
 
-def test_test_pr_for_a_spec_already_merged_is_not_the_quick_lane():
+def test_the_unreleased_quick_lane_setting_is_gone(tmp_path):
+    (tmp_path / "lockstep.toml").write_text("[specs]\nquick_max_criteria = 3\n")
+    with pytest.raises(ValueError, match="unknown key specs.quick_max_criteria"):
+        load_config(tmp_path)
+
+
+@pytest.mark.parametrize(
+    ("trait", "why"),
+    [("design", "research and design step"), ("contract", "contract: yes")],
+)
+def test_design_and_contract_specs_need_a_spec_pr_by_default(tmp_path, trait, why):
+    assert why in errors(spec_in_test_pr(tmp_path, 1, **{trait: True}))[0]
+
+
+def test_pii_needs_a_spec_pr_by_default_and_a_repo_can_drop_it(tmp_path):
+    assert "pii: yes" in errors(spec_in_test_pr(tmp_path, 1, pii=True))[0]
+    assert spec_in_test_pr(tmp_path / "relaxed", 1, 'spec_pr_for = ["design", "contract"]', pii=True) == []
+
+
+def test_traits_left_out_of_spec_pr_for_allow_one_pr(tmp_path):
+    assert spec_in_test_pr(tmp_path, 1, "spec_pr_for = []", design=True, contract=True) == []
+
+
+def test_test_pr_for_a_spec_already_merged_is_not_checked_again():
     files = [ChangedFile("specs/0042-churn/spec.md", "M"), ChangedFile("tests/test_churn.py", "A")]
     assert check_spec_required(files, "test/0042-churn", spec("tests-locked", "test/0042-churn"), CFG) == []
 
 
-def test_quick_max_criteria_cannot_be_negative(tmp_path):
-    (tmp_path / "lockstep.toml").write_text("[specs]\nquick_max_criteria = -1\n")
-    with pytest.raises(Exception, match="quick_max_criteria"):
+@pytest.mark.parametrize(
+    ("toml", "match"),
+    [
+        ("spec_pr_above_criteria = -1", "spec_pr_above_criteria"),
+        ('spec_pr_for = ["size"]', "spec_pr_for"),
+        ('spec_pr_for = ["design", "design"]', "spec_pr_for"),
+    ],
+)
+def test_bad_spec_pr_settings_are_a_config_error(tmp_path, toml, match):
+    (tmp_path / "lockstep.toml").write_text(f"[specs]\n{toml}\n")
+    with pytest.raises(ValueError, match=match):
         load_config(tmp_path)
 
 

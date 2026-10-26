@@ -27,7 +27,8 @@ With a person writing code, test-first is a design aid. With an agent writing co
 - An agent that may edit the tests can make any change "pass", and will under pressure. Locked tests, a hook that
   blocks edits to them, and a CI check that fails on changed tests remove that option.
 - The test PR is reviewed by a person before any code exists, so the reviewer checks the tests against the spec on
-  their own, not against code that already looks plausible.
+  their own, not against code that already looks plausible. By default the spec is in the same PR, so the reviewer
+  agrees the criteria and checks the tests against them in one sitting; large or risky specs get a spec PR first.
 - The test PR merges into the spec's feature branch, not main, so main never holds a failing test (Mohammed's rule,
   from SDTRD). The lock is the commit where it merged: the history proves the tests came first, and the hook and CI
   protect the tests from that commit on.

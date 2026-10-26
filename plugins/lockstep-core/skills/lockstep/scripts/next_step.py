@@ -94,7 +94,9 @@ def decide(
             )
         return "describe what the code does today and pin it with passing tests", "baseline"
     if status == "draft":
-        return "finish the spec and its interview, then open the spec PR for review", "spec"
+        if "spec" in has:
+            return "finish the spec and its interview, then open the spec PR for review", "spec"
+        return "finish the spec and its interview, then write its failing tests for one PR with the spec", "spec"
     if status == "approved":
         if "test" in has:
             return "the test PR is in progress: prove every criterion red, then get it reviewed", "tests-first"
@@ -139,7 +141,7 @@ def steps(root: Path, base: str) -> list[Step]:
             )
         phase = st.status
         if ref and on_feature is None and phase == "tests-locked":
-            phase = "approved"  # quick lane: spec and tests are still in the test PR, not on the feature branch yet
+            phase = "approved"  # one PR: spec and tests are still in the test PR, not on the feature branch yet
         # getattr: a repo's vendored core older than 0.4 has no baseline specs
         nxt, skill = decide(phase, mine, implementing, getattr(st, "baseline", False))
         if phase == "tests-locked" and not feature:

@@ -4,7 +4,7 @@ Prefixes the checks read: [test-change] for a deliberate change to locked tests,
 -->
 
 **Spec:** specs/<id>-<slug>/spec.md
-**PR type:** spec | tests | implementation | test-change | bugfix | chore | baseline
+**PR type:** spec and tests | spec | tests | implementation | test-change | bugfix | chore | baseline
 **Agent used:** Copilot | Claude | none
 
 ## What and why

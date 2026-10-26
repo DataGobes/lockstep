@@ -54,9 +54,13 @@ design_from_criteria = 0
 # that names the capability in its status.yml, minus the superseded ones. check_living_specs generates them
 # (--write) and fails a PR that leaves them stale. See docs/living-specs.md.
 living = false
-# Quick lane: a spec with at most this many criteria (and no design step) may skip its own spec PR and arrive in the
-# test PR, so the reviewer approves the spec and its failing tests together. 0 turns it off: every spec gets a spec PR.
-quick_max_criteria = 0
+# One PR by default: a new spec arrives in its test PR (test/<id>- into feature/<id>-), so the reviewer approves the
+# spec and its failing tests together. Large or risky specs get a spec PR of its own first, into main:
+# - more active criteria than this (0: every spec gets a spec PR, the three-PR flow before 0.4);
+spec_pr_above_criteria = 8
+# - any of these traits: "design" (the research and design step), "contract" (status.yml contract: yes, for a
+#   change to an enforced data contract or an interface others use), "pii" (status.yml pii: yes).
+spec_pr_for = ["design", "contract", "pii"]
 
 [enforcement]
 # "enforce" blocks. "warn" lets the change through, reports that it would have been blocked, and counts it

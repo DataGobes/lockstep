@@ -109,8 +109,8 @@ def test_dry_run_creates_nothing(clone):
     assert not Path(out["worktree"]).exists()
 
 
-def test_quick_lane_spec_is_read_from_its_feature_branch(tmp_path):
-    # Quick lane: the spec arrived in the test PR, so it is on the feature branch and not yet on main.
+def test_one_pr_spec_is_read_from_its_feature_branch(tmp_path):
+    # One PR: the spec arrived in the test PR, so it is on the feature branch and not yet on main.
     seed = tmp_path / "seed"
     git(tmp_path, "init", "-q", "-b", "main", str(seed))
     commit(seed, {"README.md": "x\n"})

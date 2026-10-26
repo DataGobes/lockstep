@@ -21,6 +21,8 @@ TRACKS = ("data", "ai")
 MODES = ("warn", "enforce")
 RULE_TARGETS = ("content", "command")
 AC_FORMATS = ("any", "ears", "given-when-then")
+# Traits that send a spec through a spec PR of its own before its test PR ([specs] spec_pr_for).
+SPEC_PR_TRIGGERS = ("design", "contract", "pii")
 
 
 class ConfigError(ValueError):
@@ -84,9 +86,13 @@ class Specs:
     design_from_criteria: int = 0
     # Keep specs/living/<capability>.md: the criteria in force per capability, generated from the specs.
     living: bool = False
-    # Quick lane: a spec with at most this many criteria (and no design step) may skip its own spec PR and arrive in
-    # the test PR, reviewed together with its failing tests (0: off, every spec needs a spec PR first).
-    quick_max_criteria: int = 0
+    # One PR by default: a new spec arrives in its test PR, so the reviewer approves the spec and its failing tests
+    # together. A spec with more active criteria than this, or with one of the spec_pr_for traits, gets a spec PR
+    # of its own first (0: every spec does, the flow before 0.4).
+    spec_pr_above_criteria: int = 8
+    # "design": it takes the research and design step. "contract": its status.yml says contract: yes (it changes an
+    # enforced data contract or another interface others consume). "pii": it touches personal data.
+    spec_pr_for: tuple[str, ...] = ("design", "contract", "pii")
 
 
 @dataclass(frozen=True)
@@ -307,8 +313,13 @@ def _validate(path: Path, cfg: Config) -> None:
         raise ConfigError(f"{path}: specs.ac_format must be one of {', '.join(AC_FORMATS)}")
     if cfg.specs.design_from_criteria < 0:
         raise ConfigError(f"{path}: specs.design_from_criteria must be 0 (off) or more")
-    if cfg.specs.quick_max_criteria < 0:
-        raise ConfigError(f"{path}: specs.quick_max_criteria must be 0 (off) or more")
+    if cfg.specs.spec_pr_above_criteria < 0:
+        raise ConfigError(f"{path}: specs.spec_pr_above_criteria must be 0 (every spec gets a spec PR) or more")
+    triggers = cfg.specs.spec_pr_for
+    if any(t not in SPEC_PR_TRIGGERS for t in triggers) or len(set(triggers)) != len(triggers):
+        raise ConfigError(
+            f"{path}: specs.spec_pr_for must be distinct values from {list(SPEC_PR_TRIGGERS)}, got {list(triggers)}"
+        )
     e = cfg.enforcement
     bad_modes = [k for k in e.__dataclass_fields__ if getattr(e, k) not in (MODES if k == "default" else ("", *MODES))]
     if bad_modes:

@@ -65,6 +65,7 @@ def test_implemented_counts_as_locked():
         ("status: draft\npii: no\ntrack:\n  - data\n", "line 4"),
         ("status: [draft]\npii: no\ntrack: data\n", "status"),
         ("status: draft\npii: no\ntrack: data\ndesign: maybe\n", "design"),
+        ("status: draft\npii: no\ntrack: data\ncapability: Churn Scoring\n", "capability"),
     ],
 )
 def test_invalid_status_is_rejected(text, fragment):

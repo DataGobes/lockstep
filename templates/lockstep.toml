@@ -49,6 +49,10 @@ ac_format = "any"
 # seams) before approval: research.md and design.md next to spec.md. Specs with at least this many criteria need
 # them; 0 turns the rule off. Any spec can opt in alone with `design: yes` in its status.yml.
 design_from_criteria = 0
+# Living specs: specs/living/<capability>.md lists what is true now, per capability: the criteria of every spec
+# that names the capability in its status.yml, minus the superseded ones. check_living_specs generates them
+# (--write) and fails a PR that leaves them stale. See docs/living-specs.md.
+living = false
 
 [enforcement]
 # "enforce" blocks. "warn" lets the change through, reports that it would have been blocked, and counts it
@@ -64,3 +68,4 @@ default = "warn"
 # jira_key = "enforce"          # CI: Jira issue key in the PR title or branch
 # pr_size = "enforce"           # CI: PR above fail_lines or max_files
 # review_rules = "enforce"      # CI: Copilot review rules in sync with AGENTS.md
+# living_specs = "enforce"      # CI: specs/living/ regenerated after a spec changed

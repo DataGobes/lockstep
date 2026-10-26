@@ -115,9 +115,15 @@ before the spec PR opens; anything the author can't answer yet stays there, name
 - Run `PYTHONPATH=.lockstep/src python3 -m lockstep_checks.check_ac_traceability --spec-only` and fix every error.
 - Show the user the criteria, and iterate until they are happy.
 
+If `[specs] living = true` in `lockstep.toml`, set `capability:` in `status.yml` (ask the author which area of
+behaviour this belongs to; reuse a name from `specs/living/` where one fits), and once the status is `approved`, run
+`PYTHONPATH=.lockstep/src python3 -m lockstep_checks.check_living_specs --write` so the living spec shows the change
+as coming.
+
 ## 8. Commit and open the spec PR
 
-Commit `specs/<id>-<slug>/` (with `research.md` and `design.md` if it has them, and `GLOSSARY.md` if you changed it) only, as `<KEY> Add spec <id>: <title>`. Ask before pushing. The PR title starts with the
+Commit `specs/<id>-<slug>/` (with `research.md` and `design.md` if it has them, `specs/living/` if it changed, and `GLOSSARY.md` if you changed
+it) only, as `<KEY> Add spec <id>: <title>`. Ask before pushing. The PR title starts with the
 Jira key, and its description says this is a **spec PR**.
 
 Tell the user what happens next: a second engineer reviews the spec; once any open questions left are answered, the

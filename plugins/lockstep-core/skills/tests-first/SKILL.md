@@ -76,7 +76,10 @@ Then run `PYTHONPATH=.lockstep/src python3 -m lockstep_checks.check_ac_traceabil
 
 - Commit the tests and stubs as `<KEY> Add failing tests for spec <id>`.
 - In a second commit, set `status: tests-locked` in `status.yml` and `locked_at_commit:` to the SHA of the first
-  commit. The lock starts when a human approves and merges this PR into the feature branch.
+  commit. The lock starts when a human approves and merges this PR into the feature branch. If the repo keeps living
+  specs (`[specs] living = true`), run `PYTHONPATH=.lockstep/src python3 -m lockstep_checks.check_living_specs
+  --write` and add `specs/living/` to this commit: the criteria move from "Coming" to "In force", which becomes true
+  when the feature branch merges into main.
 - Ask before pushing. Open the PR from `test/<id>-<slug>` **into `feature/<id>-<slug>`, not main**. The title starts
   with the Jira key; the description has the AC → test → result table from step 4, with each failure reason, and says
   the PR is a **test PR**. Review fixes to the tests go on the test branch; they are allowed until it merges.

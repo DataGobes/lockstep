@@ -51,7 +51,7 @@ Run, in this order, and fix what fails:
 2. The repo's full test suite, lint, format and type checks (the commands in AGENTS.md).
 3. For dbt work: `dbt build` on the changed models and their children (see AGENTS.md).
 4. The Lockstep checks: `PYTHONPATH=.lockstep/src python3 -m lockstep_checks.check_<name>` for `spec_required`,
-   `test_tamper`, `ac_traceability`, `pr_size` and `review_rules`.
+   `test_tamper`, `ac_traceability`, `pr_size`, `review_rules` and `living_specs`.
 
 The hooks stay on. A hook block is information, not an obstacle: never look for another way to make the same change.
 

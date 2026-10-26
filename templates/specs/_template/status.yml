@@ -4,3 +4,4 @@ track: data            # data | ai | mixed
 jira:                  # Jira issue key, required from approved onwards
 locked_at_commit:      # commit SHA, filled when status becomes tests-locked
 design: no             # yes = research.md and design.md before approval (new_spec.py --design adds them)
+capability:            # living spec this belongs to, e.g. churn-scoring (needed when [specs] living = true)

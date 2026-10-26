@@ -20,8 +20,8 @@ test_tamper = "enforce"        # one line per check overrides the default
 ```
 
 Checks: `protect_tests` (the hook on edits to locked tests), `test_tamper`, `spec_required`, `ac_traceability`,
-`jira_key`, `pr_size`, `review_rules`. A repo without an `[enforcement]` table enforces everything, as in 0.1.0, so
-upgrading never weakens a gate silently.
+`jira_key`, `pr_size`, `review_rules`, `living_specs`. A repo without an `[enforcement]` table enforces everything, as
+in 0.1.0, so upgrading never weakens a gate silently.
 
 Three things block in either mode:
 

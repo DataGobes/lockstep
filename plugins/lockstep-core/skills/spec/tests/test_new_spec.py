@@ -110,3 +110,10 @@ def test_design_docs_only_on_request(repo):
     assert (folder / "research.md").read_text(encoding="utf-8").startswith("# Research: Churn platform\n")
     load_config, _, parse_status = lockstep_core()
     assert parse_status((folder / "status.yml").read_text(encoding="utf-8"), load_config(repo)).design is True
+
+
+def test_capability_goes_into_status(repo):
+    out = new_spec.create(repo, "Daily churn", "data", "no", "MXAAI-3", capability="churn-scoring")
+    load_config, _, parse_status = lockstep_core()
+    status = parse_status((repo / out["spec_dir"] / "status.yml").read_text(encoding="utf-8"), load_config(repo))
+    assert status.capability == "churn-scoring"

@@ -15,11 +15,12 @@ from .config import TRACKS, Config
 LIFECYCLE = ("draft", "approved", "tests-locked", "implemented")
 LOCKED_STATES = ("tests-locked", "implemented")
 TRACK_VALUES = ("data", "ai", "mixed")
-KEYS = ("status", "pii", "track", "jira", "locked_at_commit", "design")
+KEYS = ("status", "pii", "track", "jira", "locked_at_commit", "design", "capability")
 REQUIRED = ("status", "pii", "track")
 
 _LINE = re.compile(r"^(?P<key>[a-z_]+):(?:\s+(?P<value>.*?))?\s*$")
 _COMMIT = re.compile(r"^[0-9a-f]{7,40}$")
+_SLUG = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 
 class SpecStatusError(ValueError):
@@ -34,6 +35,7 @@ class SpecStatus:
     jira: str | None
     locked_at_commit: str | None
     design: bool = False  # research.md and design.md are needed before approval
+    capability: str | None = None  # the living spec this spec's criteria belong to
 
     @property
     def tests_locked(self) -> bool:
@@ -92,8 +94,18 @@ def parse_status(text: str, cfg: Config) -> SpecStatus:
     if design not in ("yes", "no"):
         raise SpecStatusError(f"design must be 'yes' or 'no', got {design!r}")
 
+    capability = values.get("capability")
+    if capability is not None and not _SLUG.match(capability):
+        raise SpecStatusError(f"capability must be lower-case words joined by hyphens, got {capability!r}")
+
     return SpecStatus(
-        status=status, pii=pii == "yes", track=track, jira=jira, locked_at_commit=commit, design=design == "yes"
+        status=status,
+        pii=pii == "yes",
+        track=track,
+        jira=jira,
+        locked_at_commit=commit,
+        design=design == "yes",
+        capability=capability,
     )
 
 

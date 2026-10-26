@@ -45,9 +45,11 @@ def used_ids(root: Path, specs_dir: str) -> set[int]:
     return {int(m[1]) for name in names if (m := _ID.match(name))}
 
 
-def fill_status(text: str, track: str, pii: str, jira: str | None, design: str | None = None) -> str:
+def fill_status(
+    text: str, track: str, pii: str, jira: str | None, design: str | None = None, capability: str | None = None
+) -> str:
     lines = text.splitlines()
-    for key, value in (("pii", pii), ("track", track), ("jira", jira), ("design", design)):
+    for key, value in (("pii", pii), ("track", track), ("jira", jira), ("design", design), ("capability", capability)):
         for i, line in enumerate(lines):
             if value is not None and re.match(rf"{key}:(\s|$)", line):
                 hash_at = line.find("#")
@@ -76,6 +78,7 @@ def create(
     spec_id: str | None = None,
     slug: str | None = None,
     design: bool = False,
+    capability: str | None = None,
 ) -> dict:
     template = root / specs_dir / "_template"
     if not (template / "spec.md").is_file() or not (template / "status.yml").is_file():
@@ -97,7 +100,8 @@ def create(
     spec_md, status = folder / "spec.md", folder / "status.yml"
     spec_md.write_text(fill_spec(spec_md.read_text(encoding="utf-8"), spec_id, title), encoding="utf-8")
     status.write_text(
-        fill_status(status.read_text(encoding="utf-8"), track, pii, jira, "yes" if design else None), encoding="utf-8"
+        fill_status(status.read_text(encoding="utf-8"), track, pii, jira, "yes" if design else None, capability),
+        encoding="utf-8",
     )
     return {"id": spec_id, "spec_dir": folder.relative_to(root).as_posix(), "branch": f"spec/{spec_id}-{slug}"}
 
@@ -113,11 +117,14 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--slug", help="folder slug (default: from the title)")
     ap.add_argument("--specs-dir", default="specs")
     ap.add_argument("--design", action="store_true", help="add research.md and design.md (large specs)")
+    ap.add_argument("--capability", help="living spec the criteria belong to, e.g. churn-scoring")
     args = ap.parse_args(argv)
     if args.jira and not _JIRA.fullmatch(args.jira):
         ap.error("--jira takes an issue key such as MXAAI-123")
     if args.spec_id and not re.fullmatch(r"\d{4}", args.spec_id):
         ap.error("--id takes four digits, e.g. 0042")
+    if args.capability and not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", args.capability):
+        ap.error("--capability takes lower-case words joined by hyphens")
     if args.slug and not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", args.slug):
         ap.error("--slug takes lower-case words joined by hyphens")
     try:
@@ -131,6 +138,7 @@ def main(argv: list[str] | None = None) -> int:
             args.spec_id,
             args.slug,
             args.design,
+            args.capability,
         )
     except SpecError as e:
         print(f"new_spec: {e}", file=sys.stderr)

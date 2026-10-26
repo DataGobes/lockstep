@@ -38,6 +38,7 @@ from hypothesis import example, given, settings, strategies as st
 
 amounts = st.decimals(min_value=0, max_value=10_000, places=2)
 
+
 @pytest.mark.ac("0042/AC-003")
 @settings(derandomize=True, max_examples=200, deadline=None)
 @given(st.lists(amounts, max_size=50))

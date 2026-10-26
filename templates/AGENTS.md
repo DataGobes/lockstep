@@ -72,7 +72,7 @@ Use the spec id, because every spec numbers from AC-001:
 
 - All tests and checks are green locally.
 - No existing test file changed. New tests are allowed.
-- The PR description has the AC → test → result table filled in.
+- The Lockstep summary comment on the PR is clean, or the description says why a line in it is not.
 - Assumptions you made are listed in the PR description.
 
 <!-- lockstep:review-rules -->

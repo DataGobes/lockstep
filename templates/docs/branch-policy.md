@@ -19,6 +19,10 @@ reviewer count, comment resolution, build validation and test reviewer group for
 The PR pipeline knows the spec's tests are red on purpose there: in a PR into a feature branch, the test files the
 branch adds compared with main run as a report, and the rest of the suite must pass. The PR into main runs everything.
 
+**Lockstep summary.** The summary stage posts one comment on each PR (created closed, so comment resolution never
+waits on it). Give the project's build service (*Project Collection Build Service* or *<project> Build Service*)
+**Contribute to pull requests** on the repository; without it the stage warns and keeps the summary as an artifact.
+
 **Jira link.** Azure DevOps' linked-work-item policy covers Azure Boards only, so the PR pipeline's
 `check_jira_key` is what ties a PR to its Jira issue: the title or branch needs a key like `MXAAI-123`.
 

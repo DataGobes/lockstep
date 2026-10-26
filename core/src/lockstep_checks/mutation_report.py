@@ -23,6 +23,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from . import evidence
 from .gitdiff import GitError, base_ref, changed_files
 from .report import Finding, emit
 
@@ -152,9 +153,11 @@ def report(root: Path, base: str, source_dir: str, mutmut: list[str], everything
         try:
             paths = [f.path for f in changed_files(root, base) if f.status != "D"]
         except GitError as e:
+            _not_measured("error", f"cannot read the PR's changes: {e}")
             return emit([Finding("warning", f"cannot read the PR's changes, so no mutation report: {e}")], CHECK)
         modules = changed_modules(paths, source_dir)
         if not modules:
+            _not_measured("skipped", f"the PR changed no Python modules under {source_dir}/")
             print(f"{CHECK}: no changed Python modules under {source_dir}/, nothing to mutate")
             return 0
         patterns = patterns_for(modules)
@@ -165,6 +168,7 @@ def report(root: Path, base: str, source_dir: str, mutmut: list[str], everything
         run = _mutmut(mutmut, "run", *(patterns or []), root=root, capture=False)
         results = _mutmut(mutmut, "results", "--all", "true", root=root)
     except OSError as e:
+        _not_measured("error", f"cannot run mutmut: {e}")
         return emit([Finding("warning", f"cannot run mutmut ({shlex.join(mutmut)}): {e}")], CHECK)
     if run.returncode != 0:
         findings.append(Finding("warning", f"mutmut run exited {run.returncode}; the score may be incomplete"))
@@ -172,8 +176,28 @@ def report(root: Path, base: str, source_dir: str, mutmut: list[str], everything
     missed = [m for m in mutants if m.status in MISSED]
     located = {m.name: locate(m, _mutmut(mutmut, "show", m.name, root=root).stdout, root) for m in missed[:max_listed]}
     mutants = [located.get(m.name, m) for m in mutants]
+    _record(mutants)
     emit([*findings, *findings_for(mutants, summarize(mutants), max_listed)], CHECK)
     return 0
+
+
+def _record(mutants: list[Mutant]) -> None:
+    """The mutation evidence for the trust summary, when the pipeline asks for it."""
+    folder = evidence.evidence_dir()
+    if folder is not None:
+        counts = {
+            "caught": sum(m.status in CAUGHT for m in mutants),
+            "survived": sum(m.status == "survived" for m in mutants),
+            "no_tests": sum(m.status == "no tests" for m in mutants),
+        }
+        counts["total"] = counts["caught"] + counts["survived"] + counts["no_tests"]
+        evidence.update(folder, "mutation", {"mutation": counts})
+
+
+def _not_measured(status: str, reason: str) -> None:
+    folder = evidence.evidence_dir()
+    if folder is not None:
+        evidence.not_measured(folder, "mutation", status, reason)
 
 
 def main(argv: list[str] | None = None) -> int:

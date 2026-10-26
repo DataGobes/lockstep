@@ -54,3 +54,10 @@ steps:
     continueOnError: true
     env:
       PYTHONPATH: $(Build.SourcesDirectory)/${{ parameters.lockstepDir }}/src
+      LOCKSTEP_EVIDENCE_DIR: $(Build.ArtifactStagingDirectory)/lockstep-evidence
+
+  - publish: $(Build.ArtifactStagingDirectory)/lockstep-evidence
+    artifact: lockstep-evidence-$(System.JobName)
+    displayName: "Mutation: publish evidence for the summary"
+    condition: always()
+    continueOnError: true

@@ -79,7 +79,8 @@ every criterion needs a passing test. For dbt and eval tests, run them and confi
   on, run `check_living_specs --write` and add `specs/living/` to it. Set the status last: from then on the hooks
   treat existing tests as locked.
 - Ask before pushing. Open the PR from `baseline/<id>-<slug>` into main. The title starts with the Jira key; in the PR
-  template choose **PR type: baseline** and paste the green AC → test table.
+  template choose **PR type: baseline**. The pipeline's Lockstep summary comment shows each criterion with its green
+  test; don't paste a table.
 
 Tell the user what comes next: a reviewer checks that each criterion is behaviour worth keeping. After merge, a change
 spec that alters it strikes the criterion (`~~AC-002~~ superseded by 0057/AC-001`), and a person updates its test in

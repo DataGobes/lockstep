@@ -47,3 +47,11 @@ steps:
         condition: succeededOrFailed()
         env:
           PYTHONPATH: $(Build.SourcesDirectory)/${{ parameters.lockstepDir }}/src
+          LOCKSTEP_EVIDENCE_DIR: $(Build.ArtifactStagingDirectory)/lockstep-evidence
+
+  # What the checks found, for the trust summary job (trust-summary.yml).
+  - publish: $(Build.ArtifactStagingDirectory)/lockstep-evidence
+    artifact: lockstep-evidence-$(System.JobName)
+    displayName: "Lockstep: publish evidence for the summary"
+    condition: always()
+    continueOnError: true

@@ -8,6 +8,15 @@ tag the merge commit `v<version>`.
 
 ## Unreleased
 
+- **Lockstep summary on every PR** (spec 0001). A summary stage after the PR jobs posts one comment on the Azure
+  DevOps PR and replaces it on later runs: each criterion with its tests and their results in this run, the commit
+  where the tests locked and whether a protected file changed since, the test-tamper check, changed-line coverage and
+  the mutation score. Anything a job didn't measure says "not measured", never clean, and the PR description is never
+  read. Each job writes `lockstep-evidence/<producer>.json` (`lockstep_checks.evidence`); `python -m
+  lockstep_checks.trust_summary` prints the same summary locally, `--json` for tools. The PR template drops its
+  hand-filled AC table, and the pytest plugin the red report uses moved into core as
+  `lockstep_checks.pytest_evidence`. Upgrading: the PR pipeline template now has a checks stage and a summary stage,
+  and the build service needs *Contribute to pull requests* ([docs](docs/trust-summary.md)).
 - **Fixes from a full review before the first pilot.**
   - The test lock survives merging main into the feature branch. Before, the lock commit vanished from `git log`'s
     simplified history, so the hook and `check_test_tamper` let the spec's own tests change.

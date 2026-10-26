@@ -76,18 +76,31 @@ steps:
       ignore=()
       for f in $red; do ignore+=("--ignore=$f"); done
       status=0
-      uv run --with pytest-cov --with diff-cover pytest "${ignore[@]}" --cov=${{ parameters.sourceDir }} --cov-report=xml --junitxml=test-results.xml || status=1
+      uv run --with pytest-cov --with diff-cover pytest -p lockstep_checks.pytest_evidence "${ignore[@]}" --cov=${{ parameters.sourceDir }} --cov-report=xml --junitxml=test-results.xml || status=1
       if [ -n "$red" ]; then
         echo "Red on purpose until the feature branch is implemented (report only):"
-        uv run pytest $red -p no:cacheprovider -q || echo "##vso[task.logissue type=warning]Spec tests still red in this PR into a feature branch; expected until the implementation is done"
+        uv run pytest -p lockstep_checks.pytest_evidence $red -p no:cacheprovider -q || echo "##vso[task.logissue type=warning]Spec tests still red in this PR into a feature branch; expected until the implementation is done"
         uv run --with diff-cover diff-cover coverage.xml --compare-branch="$base" --fail-under=${{ parameters.coverage }} \
-          || echo "##vso[task.logissue type=warning]Coverage of changed lines below ${{ parameters.coverage }}%; enforced on the PR into main"
+          --json-report diff-cover.json || echo "##vso[task.logissue type=warning]Coverage of changed lines below ${{ parameters.coverage }}%; enforced on the PR into main"
       else
-        uv run --with diff-cover diff-cover coverage.xml --compare-branch="$base" --fail-under=${{ parameters.coverage }} || status=1
+        uv run --with diff-cover diff-cover coverage.xml --compare-branch="$base" --fail-under=${{ parameters.coverage }} \
+          --json-report diff-cover.json || status=1
       fi
+      PYTHONPATH="${{ parameters.lockstepDir }}/src" python -m lockstep_checks.evidence coverage \
+        --report diff-cover.json --minimum ${{ parameters.coverage }}
       exit $status
     displayName: "Quality: pytest and coverage of changed lines (${{ parameters.coverage }}%)"
     condition: succeededOrFailed()
+    env:
+      # The pytest plugin and the evidence writer live in the Lockstep core; the evidence feeds the trust summary.
+      PYTHONPATH: $(Build.SourcesDirectory)/${{ parameters.lockstepDir }}/src
+      LOCKSTEP_EVIDENCE_DIR: $(Build.ArtifactStagingDirectory)/lockstep-evidence
+
+  - publish: $(Build.ArtifactStagingDirectory)/lockstep-evidence
+    artifact: lockstep-evidence-$(System.JobName)
+    displayName: "Quality: publish evidence for the summary"
+    condition: always()
+    continueOnError: true
 
   - task: PublishTestResults@2
     displayName: "Quality: publish test results"

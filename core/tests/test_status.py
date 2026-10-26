@@ -89,3 +89,11 @@ def test_jira_key_must_belong_to_a_configured_project(tmp_path):
     for key in ("PROJ-1", "MXAAI-123-x", "XOPS-1", "mxaai-1", "MXAAI-0"):
         with pytest.raises(SpecStatusError, match="jira"):
             parse_status(f"status: approved\npii: no\ntrack: data\njira: {key}\n", cfg)
+
+
+def test_approved_needs_no_jira_when_jira_is_optional(tmp_path):
+    (tmp_path / "lockstep.toml").write_text("[jira]\nrequired = false\n", encoding="utf-8")
+    cfg = load_config(tmp_path)
+    assert parse_status("status: approved\npii: no\ntrack: data\njira:\n", cfg).jira is None
+    with pytest.raises(SpecStatusError, match="jira"):
+        parse_status("status: approved\npii: no\ntrack: data\njira: mxaai-1\n", cfg)

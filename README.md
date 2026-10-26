@@ -84,7 +84,7 @@ The `lockstep-checks` Python package (import name `lockstep_checks`; stdlib only
 the two can never disagree. It starts with:
 
 - `lockstep_checks.config`: loads a repo's `lockstep.toml` (template in [`templates/lockstep.toml`](templates/lockstep.toml)).
-  Unknown keys are errors, so a typo never switches a gate off. Jira project keys are set in `[jira] projects` (default `MXAAI`).
+  Unknown keys are errors, so a typo never switches a gate off. Jira project keys are set in `[jira] projects` (default `MXAAI`); a team without Jira sets `[jira] required = false`, so specs, branches and PRs need no key.
   `[enforcement]` puts each gate in `warn` or `enforce` mode: new repos start in warn and switch on the evidence, see
   [Warn first, then enforce](docs/enforcement-modes.md).
 - `lockstep_checks.spec`: finds the active spec from the branch name (`feature/0042-*` -> `specs/0042-*/status.yml`).
@@ -101,7 +101,7 @@ findings show up on the PR with file and line. Common options: `--base` (default
 | `check_test_tamper` | an existing file under `[protect] globs` is modified, renamed or deleted, or a change adds skip/xfail, `# noqa`, `type: ignore`, or disables or downgrades a dbt test. On a feature branch, the spec's own tests are protected from the commit where the test PR merged into it. A title starting with `[test-change]` turns these into warnings. |
 | `check_ac_traceability` | a tests-locked spec has a criterion without a test, a test names an unknown spec or criterion, or a spec is malformed (including criteria not in the `[specs] ac_format`: EARS, Given/When/Then or either). From `approved` on, a spec that takes the research and design step also needs `research.md` with a decision and `design.md` without open questions. `--spec-only` lints specs only. |
 | `check_pr_size` | more than 800 changed lines (unless `[large-approved]` is in the title) or more than 100 files. Warns above 400. Generated files don't count. |
-| `check_jira_key` | the title and branch have no issue key of a `[jira] projects` project, have several keys, or the key differs from the spec's. |
+| `check_jira_key` | the title and branch have no issue key of a `[jira] projects` project, have several keys, or the key differs from the spec's. With `required = false`, a missing key passes. |
 | `check_spec_required` | code changes on a branch without a spec at the right status: `feature/<id>-` needs it tests-locked, `test/<id>-` approved, `spec/<id>-` may change only specs and docs. `chore/` needs no spec; `bugfix/` and `hotfix/` need a bug report and a new regression test. Specs, docs and Markdown never need one. Follows SDTRD's chore exemption and Fast-Track bug lane. |
 | `check_review_rules` | the Lockstep review rules in `.github/copilot-instructions.md` are missing or differ from the block in `AGENTS.md`. `--write` updates the copy and keeps the repo's own rules. |
 

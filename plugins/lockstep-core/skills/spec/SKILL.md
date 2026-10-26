@@ -18,7 +18,8 @@ Paths below are relative to this skill's folder. `scripts/new_spec.py` needs Pyt
 ## 2. Ask before you read the issue
 
 Ask in one message:
-- **Jira key:** use the one in the branch name if there is one, else ask (for example `MXAAI-123`).
+- **Jira key:** use the one in the branch name if there is one, else ask (for example `MXAAI-123`). If `lockstep.toml`
+  sets `[jira] required = false`, the key is optional: leave `jira:` empty when there is no ticket.
 - **Track:** data, ai or mixed.
 - **PII:** does the work touch personal data (names, contact details, customer records)? yes or no.
 

@@ -171,3 +171,50 @@ def test_quick_max_criteria_cannot_be_negative(tmp_path):
     (tmp_path / "lockstep.toml").write_text("[specs]\nquick_max_criteria = -1\n")
     with pytest.raises(Exception, match="quick_max_criteria"):
         load_config(tmp_path)
+
+
+def baseline(status: str, branch: str = "baseline/0042-churn") -> Resolution:
+    st = SpecStatus(status, False, "data", "MXAAI-42", "abc1234" if status == "implemented" else None, kind="baseline")
+    return Resolution("found", branch, "0042", Path("specs/0042-churn"), st)
+
+
+TEST = ChangedFile("tests/test_churn_today.py", "A")
+
+
+def test_baseline_pr_with_passing_tests_and_implemented_spec_passes():
+    files = [TEST, ChangedFile("tests/test_old.py", "M"), ChangedFile("specs/0042-churn/spec.md", "A")]
+    assert check_spec_required(files, "baseline/0042-churn", baseline("implemented"), CFG) == []
+
+
+def test_baseline_pr_with_only_the_spec_needs_no_status():
+    files = [ChangedFile("specs/0042-churn/spec.md", "A")]
+    assert check_spec_required(files, "baseline/0042-churn", baseline("draft"), CFG) == []
+
+
+@pytest.mark.parametrize("status", ["draft", "approved"])
+def test_baseline_pr_adding_tests_must_end_implemented(status):
+    found = errors(check_spec_required([TEST], "baseline/0042-churn", baseline(status), CFG))
+    assert len(found) == 1 and "set status: implemented" in found[0] and status in found[0]
+
+
+def test_baseline_pr_must_not_change_code():
+    found = errors(check_spec_required([TEST, CODE], "baseline/0042-churn", baseline("implemented"), CFG))
+    assert len(found) == 1 and "src/app.py" in found[0] and "changes only tests, specs and docs" in found[0]
+
+
+def test_baseline_branch_needs_a_baseline_spec():
+    found = errors(check_spec_required([TEST], "baseline/0042-churn", spec("implemented", "baseline/0042-churn"), CFG))
+    assert "kind: baseline" in found[0]
+
+
+@pytest.mark.parametrize("branch", ["feature/0042-churn", "test/0042-churn"])
+def test_baseline_spec_cannot_be_built_on(branch):
+    found = errors(check_spec_required([CODE], branch, baseline("implemented", branch), CFG))
+    assert "is a baseline" in found[0] and "baseline/0042-churn" in found[0]
+
+
+def test_baseline_branch_outside_a_custom_branch_pattern_says_so(tmp_path):
+    (tmp_path / "lockstep.toml").write_text("[lockstep]\nbranch_pattern = '^(?:feature|test|spec)/(?P<id>\\\\d{4})-'\n")
+    cfg = load_config(tmp_path)
+    found = errors(check_spec_required([TEST], "baseline/0042-churn", NO_SPEC, cfg))
+    assert "add 'baseline'" in found[0]

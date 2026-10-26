@@ -15,7 +15,10 @@ from .config import TRACKS, Config
 LIFECYCLE = ("draft", "approved", "tests-locked", "implemented")
 LOCKED_STATES = ("tests-locked", "implemented")
 TRACK_VALUES = ("data", "ai", "mixed")
-KEYS = ("status", "pii", "track", "jira", "locked_at_commit", "design", "capability")
+# change: new behaviour, tests written red first. baseline: behaviour the code already has, pinned by tests that pass
+# today (characterisation tests), so a repo with existing code can join without a spec for everything it does.
+KINDS = ("change", "baseline")
+KEYS = ("status", "pii", "track", "jira", "locked_at_commit", "design", "capability", "kind")
 REQUIRED = ("status", "pii", "track")
 
 _LINE = re.compile(r"^(?P<key>[a-z_]+):(?:\s+(?P<value>.*?))?\s*$")
@@ -36,10 +39,15 @@ class SpecStatus:
     locked_at_commit: str | None
     design: bool = False  # research.md and design.md are needed before approval
     capability: str | None = None  # the living spec this spec's criteria belong to
+    kind: str = "change"  # or "baseline": pins existing behaviour, never tests-locked (no red phase)
 
     @property
     def tests_locked(self) -> bool:
         return self.status in LOCKED_STATES
+
+    @property
+    def baseline(self) -> bool:
+        return self.kind == "baseline"
 
     def to_dict(self) -> dict:
         return {**asdict(self), "tests_locked": self.tests_locked}
@@ -98,6 +106,14 @@ def parse_status(text: str, cfg: Config) -> SpecStatus:
     if capability is not None and not _SLUG.match(capability):
         raise SpecStatusError(f"capability must be lower-case words joined by hyphens, got {capability!r}")
 
+    kind = values.get("kind") or "change"
+    if kind not in KINDS:
+        raise SpecStatusError(f"kind must be one of {', '.join(KINDS)}, got {kind!r}")
+    if kind == "baseline" and status == "tests-locked":
+        raise SpecStatusError(
+            "a baseline spec has no red phase: it goes from approved to implemented when its passing tests merge"
+        )
+
     return SpecStatus(
         status=status,
         pii=pii == "yes",
@@ -106,6 +122,7 @@ def parse_status(text: str, cfg: Config) -> SpecStatus:
         locked_at_commit=commit,
         design=design == "yes",
         capability=capability,
+        kind=kind,
     )
 
 

@@ -117,3 +117,31 @@ def test_capability_goes_into_status(repo):
     load_config, _, parse_status = lockstep_core()
     status = parse_status((repo / out["spec_dir"] / "status.yml").read_text(encoding="utf-8"), load_config(repo))
     assert status.capability == "churn-scoring"
+
+
+def test_baseline_spec_uses_the_baseline_template_and_branch(repo):
+    out = new_spec.create(repo, "Pricing as it works today", "data", "no", "MXAAI-7", baseline=True)
+    assert out["branch"] == "baseline/0001-pricing-as-it-works-today"
+    folder = repo / out["spec_dir"]
+    assert not (folder / "baseline").exists() and not (folder / "design").exists()
+    load_config, parse_spec, parse_status = lockstep_core()
+    cfg = load_config(repo)
+    status = parse_status((folder / "status.yml").read_text(), cfg)
+    assert status.kind == "baseline" and status.status == "draft"
+    text = (folder / "spec.md").read_text()
+    assert "# Pricing as it works today" in text and "Observed in:" in text and "0001/AC-001" in text
+    assert parse_spec(text).problems == []
+
+
+def test_change_spec_stays_a_change(repo):
+    out = new_spec.create(repo, "Churn features", "data", "no", "MXAAI-123")
+    load_config, _, parse_status = lockstep_core()
+    status = parse_status((repo / out["spec_dir"] / "status.yml").read_text(), load_config(repo))
+    assert status.kind == "change"
+
+
+def test_baseline_without_its_template_creates_nothing(repo):
+    shutil.rmtree(repo / "specs" / "_template" / "baseline")
+    with pytest.raises(new_spec.SpecError, match="baseline"):
+        new_spec.create(repo, "Pricing", "data", "no", None, baseline=True)
+    assert sorted(p.name for p in (repo / "specs").iterdir()) == ["_template"]

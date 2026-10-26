@@ -35,6 +35,8 @@ most advanced first. Skip specs that are done unless the user asks.
 | tests-locked, commits after the lock | finish, then review and open the PR into main | `/self-review` |
 | implemented | done; lessons go to the next retro | `/retro-capture` |
 | a bug in existing behaviour | report, red regression test, fix | `bugfix` |
+| baseline spec, draft or approved | describe what the code does today, pin it with passing tests | `baseline` |
+| existing code with no spec, about to change | pin it first | `baseline` |
 
 A spec with `pii: yes` is worked on in the company Copilot only; say so if you are Claude.
 

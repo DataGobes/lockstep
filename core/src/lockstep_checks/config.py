@@ -83,6 +83,9 @@ class Specs:
     design_from_criteria: int = 0
     # Keep specs/living/<capability>.md: the criteria in force per capability, generated from the specs.
     living: bool = False
+    # Quick lane: a spec with at most this many criteria (and no design step) may skip its own spec PR and arrive in
+    # the test PR, reviewed together with its failing tests (0: off, every spec needs a spec PR first).
+    quick_max_criteria: int = 0
 
 
 @dataclass(frozen=True)
@@ -298,6 +301,8 @@ def _validate(path: Path, cfg: Config) -> None:
         raise ConfigError(f"{path}: specs.ac_format must be one of {', '.join(AC_FORMATS)}")
     if cfg.specs.design_from_criteria < 0:
         raise ConfigError(f"{path}: specs.design_from_criteria must be 0 (off) or more")
+    if cfg.specs.quick_max_criteria < 0:
+        raise ConfigError(f"{path}: specs.quick_max_criteria must be 0 (off) or more")
     e = cfg.enforcement
     bad_modes = [k for k in e.__dataclass_fields__ if getattr(e, k) not in (MODES if k == "default" else ("", *MODES))]
     if bad_modes:

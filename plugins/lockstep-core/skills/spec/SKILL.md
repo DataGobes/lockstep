@@ -41,6 +41,12 @@ It picks the next free id (checking origin/main too, so run `git fetch origin` f
 `status.yml` (status `draft`) and prints the branch name. Create that branch (`spec/<id>-<slug>`) from an up-to-date main.
 Leave `owner` and `reviewer` in the front matter for the user to fill in.
 
+**Quick lane.** If `[specs] quick_max_criteria` in `lockstep.toml` is above 0, the work is small (expect that many
+criteria or fewer) and needs no research step, offer the quick lane: the spec skips its own PR and goes into the test
+PR, so one review covers the spec and its failing tests. If the user takes it, create `feature/<id>-<slug>` from an
+up-to-date main and work on `test/<id>-<slug>` from it instead of the `spec/` branch. `check_spec_required` fails the
+test PR if the spec turns out bigger, and then it needs a spec PR after all.
+
 ## 4a. Large work: research first
 
 Some work needs the options weighed before anyone writes criteria: a new pipeline, a model or vendor choice, a
@@ -132,6 +138,9 @@ Commit `specs/<id>-<slug>/` (with `research.md` and `design.md` if it has them, 
 it) only, as `<KEY> Add spec <id>: <title>`. Ask before pushing. The PR title starts with the
 Jira key, and its description says this is a **spec PR**.
 
-Tell the user what happens next: a second engineer reviews the spec; once any open questions left are answered, the
+**In the quick lane**, don't open a PR here: set `status: approved` once the author agrees and section 7 is empty,
+commit the spec on the `test/` branch, and continue with the `tests-first` skill, which opens one PR for both.
+
+Otherwise, tell the user what happens next: a second engineer reviews the spec; once any open questions left are answered, the
 author sets `status: approved` in `status.yml` in the same PR, and the checks then require section 7 to be empty. After merge,
 the tests-first step writes failing tests for each criterion.

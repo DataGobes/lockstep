@@ -8,6 +8,11 @@ tag the merge commit `v<version>`.
 
 ## Unreleased
 
+- **Quick lane for small specs:** with `[specs] quick_max_criteria` above 0, a spec with at most that many criteria
+  and no research and design step may skip its spec PR and arrive in the test PR, so the reviewer approves the spec
+  and its failing tests together. `check_spec_required` fails a test PR that adds its own spec when the lane is off,
+  the spec is bigger, or it takes the design step. Off by default, which also closes the gap where a test PR could
+  bring an unreviewed spec. After Kiro's Quick Spec and BMAD's scale-adaptive tracks.
 - **Team rules:** `[[rules]]` in `lockstep.toml` lets a team add its own rules without code: a regex that must not
   appear in added code (`on = "content"`, optionally only under `paths`) or in an agent's shell command
   (`on = "command"`). The new `team_rules` hook stops the agent, and the new `check_team_rules` PR check fails added

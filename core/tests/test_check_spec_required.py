@@ -218,3 +218,20 @@ def test_baseline_branch_outside_a_custom_branch_pattern_says_so(tmp_path):
     cfg = load_config(tmp_path)
     found = errors(check_spec_required([TEST], "baseline/0042-churn", NO_SPEC, cfg))
     assert "add 'baseline'" in found[0]
+
+
+def test_feature_pr_into_main_must_mark_the_spec_implemented():
+    found = check_spec_required([CODE], "feature/0042-churn", spec("tests-locked"), CFG, into_main="error")
+    assert errors(found) and "set status: implemented" in found[0].message
+    assert check_spec_required([CODE], "feature/0042-churn", spec("implemented"), CFG, into_main="error") == []
+    assert check_spec_required([CODE], "feature/0042-churn", spec("tests-locked"), CFG) == []
+
+
+def test_marking_implemented_is_a_warning_locally_and_an_error_in_the_pr_into_main(monkeypatch):
+    from lockstep_checks.check_spec_required import _into_main
+
+    monkeypatch.delenv("SYSTEM_PULLREQUEST_TARGETBRANCH", raising=False)
+    assert _into_main("origin/main") == "warning"
+    assert _into_main("origin/feature/0042-churn") is None
+    monkeypatch.setenv("SYSTEM_PULLREQUEST_TARGETBRANCH", "refs/heads/main")
+    assert _into_main("origin/main") == "error"

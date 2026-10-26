@@ -82,7 +82,8 @@ Run, in this order, and fix what fails:
 2. The repo's full test suite, lint, format and type checks (the commands in AGENTS.md).
 3. For dbt work: `dbt build` on the changed models and their children (see AGENTS.md).
 4. The Lockstep checks: `PYTHONPATH=.lockstep/src python3 -m lockstep_checks.check_<name>` for `spec_required`,
-   `test_tamper`, `ac_traceability`, `pr_size`, `review_rules` and `living_specs`.
+   `test_tamper`, `ac_traceability`, `pr_size`, `review_rules`, `living_specs` and `team_rules`. Until you mark the
+   spec implemented (section 6), `spec_required` warns that it is still tests-locked; that warning is expected.
 
 The hooks stay on. A hook block is information, not an obstacle: never look for another way to make the same change.
 
@@ -100,5 +101,7 @@ and give that to the user. A real test fix is a separate `[test-change]` PR that
 ## 6. Finish
 
 When everything is green, run the `self-review` skill. It checks the diff against the spec and fills in the PR
-description. Then ask before pushing and opening the PR from `feature/<id>-<slug>` into main. Main gets the tests and
-the code together, green.
+description. Then, as the last commit, set `status: implemented` in `status.yml` (`<KEY> Mark spec <id> implemented`;
+with living specs on, run `check_living_specs --write` and add `specs/living/`). The PR pipeline fails a PR into main
+whose spec is still tests-locked, so that once it merges, `/lockstep` shows the spec as done. Ask before pushing and
+opening the PR from `feature/<id>-<slug>` into main. Main gets the tests and the code together, green.

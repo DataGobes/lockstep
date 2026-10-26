@@ -8,6 +8,11 @@ tag the merge commit `v<version>`.
 
 ## Unreleased
 
+- **Parallel streams:** the `implement` skill can run independent slices in parallel, one agent per git worktree.
+  `scripts/streams.py` creates a branch `feature/<id>-<slug>--<stream>` and a worktree per stream from the feature
+  branch, lists them, and removes a stream once its PR into the feature branch has merged (squash merges included).
+  Shared contracts come first; the hooks and checks keep the locked tests locked in every stream. Credited to SDTRD's
+  multi-agent worktree protocol.
 - **Living specs:** with `[specs] living = true`, each spec names its `capability` in `status.yml`, and
   `check_living_specs` keeps `specs/living/<capability>.md` current: the criteria in force (tests-locked or
   implemented specs, which reach main only with their code) and coming (approved), superseded ones left out. `--write` regenerates them; the PR check fails when

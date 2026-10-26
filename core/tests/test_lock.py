@@ -113,3 +113,24 @@ def test_hook_blocks_locked_test_on_the_feature_branch(repo):
 def test_hook_allows_review_fixes_on_the_test_branch(repo):
     stacked(repo, merge=False)
     assert run_hook(protect_tests.hook, stdin=edit(repo.root, "tests/test_churn.py")) == 0
+
+
+def test_parallel_stream_branch_keeps_the_lock(repo):
+    # A stream of the implement skill's parallel mode branches from the feature branch: same spec, same lock.
+    stacked(repo)
+    lock = repo.git("rev-parse", "HEAD").strip()
+    repo.branch("feature/0042-churn--storage")
+    repo.commit({"src/storage.py": "x = 1\n"})
+    assert lock_of(repo, "feature/0042-churn--storage") == lock
+    assert run_hook(protect_tests.hook, stdin=edit(repo.root, "tests/test_churn.py")) == 2
+    assert run_hook(protect_tests.hook, stdin=edit(repo.root, "tests/test_storage_unit.py")) == 0
+
+
+def test_stream_pr_into_the_feature_branch_fails_when_a_locked_test_changes(repo, capsys):
+    stacked(repo)
+    repo.branch("feature/0042-churn--storage")
+    repo.commit({"src/storage.py": "x = 1\n", "tests/test_storage.py": "def test_s():\n    assert 1\n"})
+    assert tamper(repo, base="feature/0042-churn") == 0, capsys.readouterr().out
+    repo.commit({"tests/test_churn.py": "def test_churn():\n    assert True\n"})
+    assert tamper(repo, base="feature/0042-churn") == 1
+    assert "tests/test_churn.py" in capsys.readouterr().out

@@ -15,7 +15,7 @@ from ..config import load_config
 from ..rules import command_hits, content_hits
 from . import Decision, Event, repo_root, run
 from .guard_bash import SHELL_TOOLS, command_of
-from .protect_tests import EDIT_TOOLS
+from .protect_tests import EDIT_TOOLS, file_root
 
 _PATCH_HEAD = re.compile(r"^\*\*\* (?:Update|Add) File: (.+?)\s*$|^\+\+\+ (?:b/)?(.+?)\s*$")
 
@@ -51,18 +51,17 @@ def _patch_lines(body: str) -> list[tuple[str | None, list[str]]]:
 def hook(event: Event) -> Decision:
     if event.tool_name not in EDIT_TOOLS | SHELL_TOOLS:
         return Decision.allow()
-    root = repo_root(event.cwd)
-    cfg = load_config(root)
-    if not cfg.rules:
-        return Decision.allow()
     if event.tool_name in SHELL_TOOLS:
+        cfg = load_config(repo_root(event.cwd))
         hits = [f"{r.name}: {r.message}" for r in command_hits(cfg, command_of(event))]
     else:
         hits = []
         for raw_path, lines in added_text(event):
-            rel = _relative(root, event.cwd, raw_path)
-            if rel is None:
+            located = _locate(event.cwd, raw_path)
+            if located is None:
                 continue
+            root, rel = located
+            cfg = load_config(root)
             hits += [f"{r.name} ({rel}): {r.message}" for _, r in content_hits(cfg, rel, enumerate(lines, start=1))]
     if not hits:
         return Decision.allow()
@@ -73,15 +72,14 @@ def hook(event: Event) -> Decision:
     )
 
 
-def _relative(root: Path, cwd: Path, raw: str | None) -> str | None:
+def _locate(cwd: Path, raw: str | None) -> tuple[Path, str] | None:
+    """(repo root, repo-relative path) of the file an edit writes, judged from the file's own folder (protect_tests)."""
     if raw is None:
         return None
     p = Path(raw)
-    p = p if p.is_absolute() else cwd / p
-    try:
-        return p.resolve().relative_to(root.resolve()).as_posix()
-    except ValueError:
-        return None  # outside the repo
+    p = (p if p.is_absolute() else cwd / p).resolve()
+    root = file_root(p)
+    return None if root is None else (root, p.relative_to(root).as_posix())
 
 
 def main() -> None:

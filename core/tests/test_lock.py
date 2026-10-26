@@ -160,3 +160,23 @@ def test_locked_tests_stay_locked_after_merging_main(repo, capsys):
     repo.commit({"tests/test_churn.py": "def test_churn():\n    assert True\n"})
     assert tamper(repo) == 1
     assert "tests/test_churn.py: modifies a locked test" in capsys.readouterr().out
+
+
+def test_hook_guards_the_implement_worktree_from_the_main_checkout(repo, tmp_path_factory):
+    # start_implement puts the feature branch in ../<repo>-<id>; Claude Code's cwd stays in the main checkout.
+    stacked(repo)
+    repo.git("checkout", "-q", "main")
+    worktree = tmp_path_factory.mktemp("wt") / "app-0042"
+    repo.git("worktree", "add", "-q", str(worktree), "feature/0042-churn")
+    event = json.dumps(
+        {"tool_name": "Edit", "tool_input": {"file_path": str(worktree / "tests/test_churn.py")}, "cwd": str(repo.root)}
+    )
+    assert run_hook(protect_tests.hook, stdin=event) == 2
+    new = json.dumps(
+        {
+            "tool_name": "Write",
+            "tool_input": {"file_path": str(worktree / "tests/x/test_new.py")},
+            "cwd": str(repo.root),
+        }
+    )
+    assert run_hook(protect_tests.hook, stdin=new) == 0

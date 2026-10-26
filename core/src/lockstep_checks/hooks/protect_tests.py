@@ -59,21 +59,40 @@ def _exists_on(root: Path, ref: str, rel: str) -> bool | None:
     return False if known.returncode == 0 else None
 
 
+def file_root(path: Path) -> Path | None:
+    """The repo a file belongs to, from its own folder, or None outside any repo. The implement skill's worktree sits
+    next to the repo the agent was started in, so the session's cwd names the wrong repo for its files."""
+    folder = path.parent
+    while not folder.exists() and folder != folder.parent:
+        folder = folder.parent  # a new file in a new folder
+    root = repo_root(folder)
+    return root.resolve() if (root / ".git").exists() else None
+
+
 def hook(event: Event) -> Decision:
     if event.tool_name not in EDIT_TOOLS:
         return Decision.allow()
-    root = repo_root(event.cwd)
-    cfg = load_config(root)
-    protected = []
+    by_root: dict[Path, list[str]] = {}
     for raw_path in target_paths(event):
         p = Path(raw_path)
         p = p if p.is_absolute() else event.cwd / p
-        try:
-            rel = p.resolve().relative_to(root.resolve()).as_posix()
-        except ValueError:
-            continue  # outside the repo
-        if matches_any(rel, cfg.protect.globs):
-            protected.append(rel)
+        root = file_root(p.resolve())
+        if root is None:
+            continue  # not in a git repo
+        rel = p.resolve().relative_to(root).as_posix()
+        by_root.setdefault(root, []).append(rel)
+    warnings: list[str] = []
+    for root, rels in by_root.items():
+        decision = _check(root, rels)
+        if decision.block:
+            return decision
+        warnings += decision.warnings
+    return Decision.allow(*warnings)
+
+
+def _check(root: Path, rels: list[str]) -> Decision:
+    cfg = load_config(root)
+    protected = [rel for rel in rels if matches_any(rel, cfg.protect.globs)]
     if not protected:
         return Decision.allow()
 

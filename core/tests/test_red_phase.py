@@ -7,7 +7,9 @@ def feature_with_red_tests(repo):
     repo.commit({"tests/test_old.py": "def test_old():\n    assert 1\n", "src/app.py": "x = 1\n"})
     repo.git("update-ref", "refs/remotes/origin/main", "main")
     repo.branch("feature/0042-churn")
-    repo.commit({"tests/test_churn.py": "def test_churn():\n    assert 0\n", "tests/conftest.py": "", "src/churn.py": ""})
+    repo.commit(
+        {"tests/test_churn.py": "def test_churn():\n    assert 0\n", "tests/conftest.py": "", "src/churn.py": ""}
+    )
     repo.commit({"tests/test_old.py": "def test_old():\n    assert 2\n"})
     return repo
 

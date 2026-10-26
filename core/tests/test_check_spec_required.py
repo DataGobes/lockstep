@@ -119,3 +119,55 @@ def test_end_to_end(repo, capsys):
     repo.commit({"src/app.py": "x = 2\n"})
     assert run("check_spec_required", "", _run, ["--root", str(repo.root), "--base", "main"]) == 1
     assert "needs it tests-locked or implemented" in capsys.readouterr().out
+
+
+QUICK_SPEC = """\
+## 1. Problem and outcome
+## 2. Scope / non-goals
+## 3. Acceptance criteria
+{criteria}
+## 4. Interfaces and data contract
+## 5. Test and eval plan
+## 6. Risks, rollout, rollback
+## 7. Open questions
+"""
+
+
+def quick(tmp_path, n_criteria: int, limit: int, design: bool = False):
+    (tmp_path / "lockstep.toml").write_text(f"[specs]\nquick_max_criteria = {limit}\n")
+    folder = tmp_path / "specs" / "0042-churn"
+    folder.mkdir(parents=True)
+    criteria = "\n".join(f"- AC-00{i} THE SYSTEM SHALL do {i}." for i in range(1, n_criteria + 1))
+    (folder / "spec.md").write_text(QUICK_SPEC.format(criteria=criteria))
+    st = SpecStatus("tests-locked", False, "data", "MXAAI-42", "abc1234", design=design)
+    res = Resolution("found", "test/0042-churn", "0042", folder, st)
+    files = [ChangedFile("specs/0042-churn/spec.md", "A"), ChangedFile("tests/test_churn.py", "A")]
+    return check_spec_required(files, "test/0042-churn", res, load_config(tmp_path))
+
+
+def test_quick_lane_takes_a_small_spec_in_the_test_pr(tmp_path):
+    assert quick(tmp_path, 2, 3) == []
+
+
+def test_quick_lane_off_needs_a_spec_pr(tmp_path):
+    found = errors(quick(tmp_path, 1, 0))
+    assert "without a spec PR of its own" in found[0] and "quick_max_criteria = 0" in found[0]
+
+
+def test_quick_lane_refuses_a_bigger_spec(tmp_path):
+    assert "it has 4 criteria and the quick lane takes at most 3" in errors(quick(tmp_path, 4, 3))[0]
+
+
+def test_quick_lane_refuses_a_spec_with_the_design_step(tmp_path):
+    assert "research and design step" in errors(quick(tmp_path, 1, 3, design=True))[0]
+
+
+def test_test_pr_for_a_spec_already_merged_is_not_the_quick_lane():
+    files = [ChangedFile("specs/0042-churn/spec.md", "M"), ChangedFile("tests/test_churn.py", "A")]
+    assert check_spec_required(files, "test/0042-churn", spec("tests-locked", "test/0042-churn"), CFG) == []
+
+
+def test_quick_max_criteria_cannot_be_negative(tmp_path):
+    (tmp_path / "lockstep.toml").write_text("[specs]\nquick_max_criteria = -1\n")
+    with pytest.raises(Exception, match="quick_max_criteria"):
+        load_config(tmp_path)

@@ -53,6 +53,9 @@ design_from_criteria = 0
 # that names the capability in its status.yml, minus the superseded ones. check_living_specs generates them
 # (--write) and fails a PR that leaves them stale. See docs/living-specs.md.
 living = false
+# Quick lane: a spec with at most this many criteria (and no design step) may skip its own spec PR and arrive in the
+# test PR, so the reviewer approves the spec and its failing tests together. 0 turns it off: every spec gets a spec PR.
+quick_max_criteria = 0
 
 [enforcement]
 # "enforce" blocks. "warn" lets the change through, reports that it would have been blocked, and counts it

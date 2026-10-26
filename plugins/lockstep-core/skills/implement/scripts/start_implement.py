@@ -3,7 +3,7 @@
 
   python3 start_implement.py --root <repo> --spec 0042 [--dry-run]
 
-Ready means: the spec is on origin/main (the spec PR merged), its status on origin/feature/<id>-<slug> is
+Ready means: the spec is on origin/main (the spec PR merged) or, in the quick lane, on its feature branch; its status on origin/feature/<id>-<slug> is
 tests-locked (the test PR merged into the feature branch, so the lock is real; red tests never go to main), it is not
 marked pii: yes, and no worktree has the feature branch checked out (one implementation per spec at a time).
 Creates ../<repo>-<id> as a git worktree on feature/<id>-<slug>. Prints JSON. Stdlib only.
@@ -34,12 +34,23 @@ def git(root: Path, *args: str, check: bool = True) -> str:
 
 
 def spec_folder(root: Path, spec_id: str, specs_dir: str) -> str:
+    """The spec's folder name: from main once the spec PR merged, else from its feature branch (the quick lane, where
+    the spec arrives in the test PR and reaches main only with the implementation)."""
     names = git(root, "ls-tree", "--name-only", f"origin/main:{specs_dir}", check=False).split()
     folders = [n for n in names if n.startswith(f"{spec_id}-")]
     if not folders:
-        raise NotReady(f"spec {spec_id} is not on origin/main yet; merge the spec PR first")
+        refs = git(root, "for-each-ref", "--format=%(refname:short)", f"refs/remotes/origin/feature/{spec_id}-*")
+        for ref in refs.split():
+            folder = ref.removeprefix("origin/feature/")
+            if "--" not in folder and has_ref(root, f"{ref}:{specs_dir}/{folder}/status.yml"):
+                folders.append(folder)
+    if not folders:
+        raise NotReady(
+            f"spec {spec_id} is not on origin/main or on its feature branch yet; merge the spec PR (or, in the quick "
+            "lane, the test PR) first"
+        )
     if len(folders) > 1:
-        raise NotReady(f"spec id {spec_id} has more than one folder on main: {', '.join(folders)}")
+        raise NotReady(f"spec id {spec_id} has more than one folder: {', '.join(folders)}")
     return folders[0]
 
 

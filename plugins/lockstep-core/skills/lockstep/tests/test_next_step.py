@@ -122,3 +122,21 @@ def test_baseline_spec_routes_to_the_baseline_skill(tmp_path):
     git(root, "branch", "baseline/0004-pricing")
     step = by_spec(root)["0004"]
     assert step.branches == ["baseline/0004-pricing"] and "baseline in progress" in step.next
+
+
+def test_quick_lane_test_pr_is_not_reported_as_implementation(tmp_path):
+    # The spec and its tests are on the test branch; the feature branch has neither until the test PR merges.
+    root = make_repo(tmp_path)
+    git(root, "branch", "feature/0004-quick")
+    git(root, "checkout", "-q", "-b", "test/0004-quick")
+    write(root, {"specs/0004-quick/status.yml": STATUS.format("tests-locked", "no")})
+    git(root, "add", "-A")
+    git(root, "commit", "-qm", "spec and failing tests")
+    step = by_spec(root)["0004"]
+    assert step.status == "tests-locked"
+    assert step.skill == "tests-first" and "test PR is in progress" in step.next
+
+
+def test_locked_spec_without_a_feature_branch_mentions_marking_it_implemented(tmp_path):
+    step = by_spec(make_repo(tmp_path))["0003"]
+    assert step.skill == "implement" and "set status: implemented" in step.next

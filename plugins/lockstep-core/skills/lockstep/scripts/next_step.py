@@ -100,7 +100,8 @@ def steps(root: Path, base: str) -> list[Step]:
         ref = None
         if feature:  # the local branch may be ahead of origin with implementation commits
             ref = feature if git(root, "rev-parse", "--verify", "-q", f"refs/heads/{feature}") else f"origin/{feature}"
-        text = (git(root, "show", f"{ref}:{rel}") if ref else None) or git(root, "show", f"{base}:{rel}")
+        on_feature = git(root, "show", f"{ref}:{rel}") if ref else None
+        text = on_feature or git(root, "show", f"{base}:{rel}")
         if text is None:
             text = (folder / "status.yml").read_text(encoding="utf-8")
         try:
@@ -115,11 +116,17 @@ def steps(root: Path, base: str) -> list[Step]:
             implementing = (
                 locked_at is None or (git(root, "rev-list", "--count", f"{locked_at}..{ref}") or "0").strip() != "0"
             )
+        phase = st.status
+        if ref and on_feature is None and phase == "tests-locked":
+            phase = "approved"  # quick lane: spec and tests are still in the test PR, not on the feature branch yet
         # getattr: a repo's vendored core older than 0.4 has no baseline specs
-        nxt, skill = decide(st.status, mine, implementing, getattr(st, "baseline", False))
+        nxt, skill = decide(phase, mine, implementing, getattr(st, "baseline", False))
+        if phase == "tests-locked" and not feature:
+            nxt += "; if its feature branch already merged into main, set status: implemented there"
+        status_name = st.status
         if st.pii and skill:
             nxt += " (pii: yes, so in Copilot only)"
-        out.append(Step(spec_id, st.status, st.pii, mine, nxt, skill))
+        out.append(Step(spec_id, status_name, st.pii, mine, nxt, skill))
     return out
 
 

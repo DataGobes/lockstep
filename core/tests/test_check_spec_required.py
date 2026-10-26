@@ -88,6 +88,11 @@ def test_bugfix_with_report_and_new_test_passes():
     assert check_spec_required(files, "hotfix/MXAAI-7-null-prices", NO_SPEC, CFG) == []
 
 
+def test_editing_the_template_is_not_a_bug_report():
+    files = [CODE, ChangedFile("specs/bug-reports/_template.md", "M"), ChangedFile("tests/test_bug_7.py", "A")]
+    assert "bug report" in errors(check_spec_required(files, "bugfix/MXAAI-7", NO_SPEC, CFG))[0]
+
+
 def test_changing_an_existing_test_is_not_a_regression_test():
     files = [CODE, ChangedFile("specs/bug-reports/MXAAI-7.md", "A"), ChangedFile("tests/test_a.py", "M")]
     assert "regression test" in errors(check_spec_required(files, "bugfix/MXAAI-7", NO_SPEC, CFG))[0]

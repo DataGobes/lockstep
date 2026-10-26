@@ -10,6 +10,7 @@ Run [`/lockstep`](lockstep.md) when unsure which one comes next.
 | Lock the tests | [tests-first](tests-first.md), [eval-case](eval-case.md) |
 | Build it | [implement](implement.md), [dbt-impact](dbt-impact.md) |
 | Check it | [self-review](self-review.md) |
+| Fix a bug | [bugfix](bugfix.md) |
 | Improve the process | [retro-capture](retro-capture.md) |
 | Copilot review rules | [copilot-review-instructions](copilot-review-instructions.md) |
 

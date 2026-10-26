@@ -10,6 +10,7 @@ tag the merge commit `v<version>`.
 
 - **`check_spec_required`:** fails a PR that changes code without a spec at the right status. `chore/` branches need
   no spec; `bugfix/` and `hotfix/` branches need a bug report and a new regression test. Both lanes follow SDTRD.
+- **`bugfix` skill:** the light lane for bugs, with a bug report template in `specs/bug-reports/`.
 
 ## 0.1.0
 

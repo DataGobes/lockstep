@@ -70,7 +70,9 @@ def check_spec_required(files: list[ChangedFile], branch: str | None, spec: Reso
 def _bug_lane(files: list[ChangedFile], cfg: Config) -> list[Finding]:
     reports = cfg.lanes.bug_reports_dir.rstrip("/")
     findings = []
-    if not any(f.status != "D" and matches(f.path, f"{reports}/*.md") for f in files):
+    # _template.md is the blank template, not a report.
+    is_report = [matches(f.path, f"{reports}/*.md") and not f.path.endswith("/_template.md") for f in files]
+    if not any(f.status != "D" and ok for f, ok in zip(files, is_report, strict=True)):
         findings.append(
             Finding("error", f"a bugfix PR needs its bug report: add {reports}/<KEY>-<slug>.md from the template")
         )

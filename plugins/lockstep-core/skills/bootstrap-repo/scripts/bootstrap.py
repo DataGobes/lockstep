@@ -39,6 +39,7 @@ REPO_OWNED = {
     "templates/AGENTS.md": "AGENTS.md",
     "templates/CLAUDE.md": "CLAUDE.md",
     "templates/GLOSSARY.md": "GLOSSARY.md",
+    "templates/specs/bug-reports/_template.md": "specs/bug-reports/_template.md",
     "templates/claude-settings.json": ".claude/settings.json",
     "templates/azuredevops/pull_request_template.md": ".azuredevops/pull_request_template.md",
     "templates/azure-pipelines-pr.yml": "azure-pipelines-pr.yml",

@@ -11,6 +11,10 @@ Track: <data | ai | mixed>. Work follows Lockstep: spec first, tests locked, sma
 4. **Implementation PR** on `feature/<id>-<slug>`, until every check is green.
 5. Copilot reviews first, then a human who did not drive the agent approves.
 
+Two lighter lanes skip the spec. **Bugfix** (`bugfix/<KEY>-<slug>`): a bug report in `specs/bug-reports/`, a new
+regression test shown red, then the smallest fix, in one PR. **Chore** (`chore/<slug>`): dependency bumps, config and
+tooling that change no behaviour. The PR pipeline fails any other code change without a spec.
+
 ## Non-negotiables
 
 Hooks and the PR pipeline enforce these. Do not try to work around them.

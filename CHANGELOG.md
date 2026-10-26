@@ -8,6 +8,10 @@ tag the merge commit `v<version>`.
 
 ## Unreleased
 
+- **Living specs:** with `[specs] living = true`, each spec names its `capability` in `status.yml`, and
+  `check_living_specs` keeps `specs/living/<capability>.md` current: the criteria in force (tests-locked or
+  implemented specs, which reach main only with their code) and coming (approved), superseded ones left out. `--write` regenerates them; the PR check fails when
+  they are stale. Test ids don't change. Credited to SDTRD's living specs. See `docs/living-specs.md`.
 - **Research and design step for large specs:** `research.md` (options, trade-offs, a decision) and `design.md`
   (interfaces, data flow, budgets, test seams) next to `spec.md`, reviewed in the spec PR. A spec takes the step with
   `design: yes` in `status.yml` (`new_spec.py --design` adds both files), or when it has at least `[specs]

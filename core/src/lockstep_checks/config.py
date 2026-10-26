@@ -80,6 +80,8 @@ class Specs:
     # Specs with at least this many active criteria also need research.md and design.md before approval (0: off).
     # Any spec can ask for them alone with `design: yes` in status.yml.
     design_from_criteria: int = 0
+    # Keep specs/living/<capability>.md: the criteria in force per capability, generated from the specs.
+    living: bool = False
 
 
 @dataclass(frozen=True)
@@ -95,6 +97,7 @@ class Enforcement:
     test_tamper: str = ""
     ac_traceability: str = ""
     review_rules: str = ""
+    living_specs: str = ""
 
     def mode(self, check: str) -> str:
         """The mode for a hook or check name, with or without its ``check_`` prefix."""

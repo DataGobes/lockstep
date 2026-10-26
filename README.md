@@ -103,6 +103,7 @@ findings show up on the PR with file and line. Common options: `--base` (default
 | `check_pr_size` | more than 800 changed lines (unless `[large-approved]` is in the title) or more than 100 files. Warns above 400. Generated files don't count. |
 | `check_jira_key` | the title and branch have no issue key of a `[jira] projects` project, have several keys, or the key differs from the spec's. |
 | `check_spec_required` | code changes on a branch without a spec at the right status: `feature/<id>-` needs it tests-locked, `test/<id>-` approved, `spec/<id>-` may change only specs and docs. `chore/` needs no spec; `bugfix/` and `hotfix/` need a bug report and a new regression test. Specs, docs and Markdown never need one. Follows SDTRD's chore exemption and Fast-Track bug lane. |
+| `check_living_specs` | with `[specs] living = true`: `specs/living/<capability>.md` is missing or stale, or a spec past draft names no capability. `--write` regenerates them ([living specs](docs/living-specs.md)). Off by default. |
 | `check_review_rules` | the Lockstep review rules in `.github/copilot-instructions.md` are missing or differ from the block in `AGENTS.md`. `--write` updates the copy and keeps the repo's own rules. |
 
 Tests name criteria with the spec id, because every spec numbers from AC-001: `@pytest.mark.ac("0042/AC-001")`,

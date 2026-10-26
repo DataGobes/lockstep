@@ -112,7 +112,7 @@ class Config:
     core_version: str = "0.3"
     specs_dir: str = "specs"
     # Must capture the spec id in a group named "id".
-    branch_pattern: str = r"^(?:feature|bugfix|hotfix|test|spec)/(?P<id>\d{4})-"
+    branch_pattern: str = r"^(?:feature|bugfix|hotfix|test|spec|baseline)/(?P<id>\d{4})-"
     tracks: tuple[str, ...] = TRACKS
     # Jira project keys this repo's work items live in; issue keys look like MXAAI-123.
     jira_projects: tuple[str, ...] = ("MXAAI",)

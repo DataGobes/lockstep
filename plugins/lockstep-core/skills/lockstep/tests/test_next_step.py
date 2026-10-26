@@ -107,3 +107,18 @@ def test_repo_without_lockstep(tmp_path, capsys):
     git(tmp_path, "init", "-q")
     assert next_step.main(["--root", str(tmp_path)]) == 1
     assert "/bootstrap-repo" in capsys.readouterr().out
+
+
+def test_baseline_spec_routes_to_the_baseline_skill(tmp_path):
+    root = make_repo(tmp_path)
+    write(
+        root,
+        {"specs/0004-pricing/status.yml": "status: approved\npii: no\ntrack: data\njira: MXAAI-4\nkind: baseline\n"},
+    )
+    git(root, "add", "-A")
+    git(root, "commit", "-qm", "baseline spec")
+    step = by_spec(root)["0004"]
+    assert step.skill == "baseline" and "passing tests" in step.next
+    git(root, "branch", "baseline/0004-pricing")
+    step = by_spec(root)["0004"]
+    assert step.branches == ["baseline/0004-pricing"] and "baseline in progress" in step.next

@@ -6,6 +6,15 @@ pin a tag (`--ref v0.1.0`); upgrading is running `/bootstrap-repo` again with a 
 To release: add the version's section here, run `python3 tools/check_release.py --set-version <version>`, merge, then
 tag the merge commit `v<version>`.
 
+## Unreleased
+
+- **Build only what a criterion needs:** a YAGNI non-negotiable in the AGENTS.md template, the scope-creep review
+  rule and the self-review scope pass now cover speculative code (unused helpers, abstractions, config flags, new
+  dependencies). Credited to SDTRD.
+- **Superseding criteria across specs:** a struck criterion can point to a later spec (`~~AC-003~~ superseded by
+  0057/AC-001`). `check_ac_traceability` fails a pointer to a missing or inactive criterion, and its warning on tests
+  that still name the old criterion says where to point them. The spec template and the `spec` skill explain how.
+
 ## 0.2.0
 
 Ready for the pilot: gates start in warn mode, and red tests never reach main. Both follow points Mohammed

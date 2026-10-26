@@ -1,7 +1,8 @@
 """Parse a spec's ``spec.md``: its sections and acceptance criteria.
 
 Criteria are list items in section 3 that start with ``AC-<n>``. A superseded
-criterion is struck through and points forward (``- ~~AC-002~~ superseded by AC-007``);
+criterion is struck through and points forward, to a criterion in the same spec or a
+later one (``- ~~AC-002~~ superseded by AC-007`` or ``superseded by 0057/AC-001``);
 it stays in the spec but needs no test.
 """
 
@@ -22,6 +23,7 @@ REQUIRED_SECTIONS = {
 
 _HEADING = re.compile(r"^##\s+(\d+)\.\s*(.*?)\s*$")
 _AC_ITEM = re.compile(r"^\s*[-*]\s+(?P<struck>~~)?(?P<id>AC-\d+)\b")
+_POINTER = re.compile(r"\bsuperseded\s+by\s+(?:(?P<spec>\d+)/)?(?P<ac>AC-\d+)\b", re.IGNORECASE)
 _LIST_ITEM = re.compile(r"^\s*(?:[-*]|\d+\.)\s+\S")
 
 
@@ -30,6 +32,7 @@ class SpecDoc:
     sections: dict[int, list[tuple[int, str]]]  # section number -> (line number, text) in it
     criteria: dict[str, int]  # active AC id -> line number
     superseded: dict[str, int]
+    replacements: dict[str, tuple[str | None, str]]  # superseded AC id -> (spec id or None for this spec, AC id)
     problems: list[tuple[int | None, str]]  # (line number, message)
 
     def open_questions(self) -> list[tuple[int, str]]:
@@ -61,6 +64,7 @@ def parse_spec(text: str) -> SpecDoc:
 
     criteria: dict[str, int] = {}
     superseded: dict[str, int] = {}
+    replacements: dict[str, tuple[str | None, str]] = {}
     for n, line in sections.get(3, []):
         m = _AC_ITEM.match(line)
         if not m:
@@ -69,7 +73,16 @@ def parse_spec(text: str) -> SpecDoc:
         if ac in criteria or ac in superseded:
             problems.append((n, f"{ac} is defined twice"))
             continue
-        (superseded if m["struck"] else criteria)[ac] = n
+        if not m["struck"]:
+            criteria[ac] = n
+            continue
+        superseded[ac] = n
+        pointer = _POINTER.search(line, m.end())
+        if pointer:
+            replacements[ac] = (pointer["spec"], pointer["ac"])
     if 3 in sections and not criteria:
         problems.append((None, "section 3 has no acceptance criteria (list items starting with AC-001)"))
-    return SpecDoc(sections, criteria, superseded, problems)
+    for ac, (spec, target) in replacements.items():
+        if spec is None and target not in criteria:
+            problems.append((superseded[ac], f"{ac} is superseded by {target}, which is not an active criterion here"))
+    return SpecDoc(sections, criteria, superseded, replacements, problems)

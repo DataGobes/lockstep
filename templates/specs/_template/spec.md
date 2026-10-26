@@ -18,6 +18,9 @@ Who needs what, why, and how we will know it worked.
 - AC-001 WHEN <condition> THE SYSTEM SHALL <behaviour>.
 - AC-002 (non-functional) THE pipeline SHALL complete in < 15 min on staging.
 
+Never delete or renumber a criterion. To replace one, strike it and point to its replacement, here or in a later spec:
+`- ~~AC-003~~ superseded by AC-004` or `- ~~AC-003~~ superseded by 0057/AC-001`.
+
 ## 4. Interfaces and data contract
 Inputs, outputs, contract enforced?, versioning impact, downstream consumers (paste UC lineage query result).
 

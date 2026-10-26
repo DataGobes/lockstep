@@ -146,6 +146,7 @@ def check_traceability(root: Path, cfg: Config, spec_only: bool) -> list[Finding
                 msg = f"open question must be resolved before '{status.status}': {q}"
                 findings.append(Finding("error", msg, rel_md, line))
         docs[spec_id] = (spec_dir, doc, status.tests_locked)
+    findings.extend(_check_cross_spec_pointers(root, docs))
     if spec_only:
         return findings
 
@@ -160,7 +161,9 @@ def check_traceability(root: Path, cfg: Config, spec_only: bool) -> list[Finding
         if r.ac in doc.criteria:
             covered.add((r.spec, r.ac))
         elif r.ac in doc.superseded:
-            msg = f"{r.spec}/{r.ac} is superseded; point the test at its replacement"
+            spec, ac = doc.replacements.get(r.ac, (None, "its replacement"))
+            target = f"{spec or r.spec}/{ac}" if ac.startswith("AC-") else ac
+            msg = f"{r.spec}/{r.ac} is superseded; point the test at {target} in a [test-change] PR"
             findings.append(Finding("warning", msg, r.path, r.line))
         else:
             findings.append(Finding("error", f"{r.spec}/{r.ac}: spec {spec_dir.name} has no {r.ac}", r.path, r.line))
@@ -172,6 +175,23 @@ def check_traceability(root: Path, cfg: Config, spec_only: bool) -> list[Finding
         for ac, line in doc.criteria.items():
             if (spec_id, ac) not in covered:
                 findings.append(Finding("error", f"{spec_id}/{ac} has no test", rel_md, line))
+    return findings
+
+
+def _check_cross_spec_pointers(root: Path, docs: dict[str, tuple[Path, SpecDoc, bool]]) -> list[Finding]:
+    findings = []
+    for spec_id, (spec_dir, doc, _) in docs.items():
+        rel_md = (spec_dir / "spec.md").relative_to(root).as_posix()
+        for ac, (spec, target) in doc.replacements.items():
+            if spec is None or (spec == spec_id and target in doc.criteria):
+                continue
+            if spec not in docs:
+                msg = f"{ac} is superseded by {spec}/{target}, but there is no spec {spec}"
+            elif target not in docs[spec][1].criteria:
+                msg = f"{ac} is superseded by {spec}/{target}, which is not an active criterion of spec {spec}"
+            else:
+                continue
+            findings.append(Finding("error", msg, rel_md, doc.superseded[ac]))
     return findings
 
 

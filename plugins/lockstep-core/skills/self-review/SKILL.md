@@ -54,7 +54,8 @@ For **each criterion**, quote it by id and give one verdict with the evidence (f
 - **wrong**: the code does something else, or only passes the test without meeting the words.
 
 Then **scope**: for each changed file, the criterion that needs it. A file no criterion needs, or anything section 2
-lists as out of scope, is scope creep: revert it or move it to its own PR.
+lists as out of scope, is scope creep: revert it or move it to its own PR. The same goes for code inside a needed file that no
+criterion uses yet: a helper, an abstraction, a config flag or a new dependency.
 
 ## 3. Fix, then report
 

@@ -7,6 +7,13 @@
   },
   "plugins": [
     {
+      "name": "lockstep-core",
+      "source": "./plugins/lockstep-core",
+      "description": "Lockstep workflow skills for any track: set up a repo for spec-first, test-locked work with coding agents.",
+      "version": "0.1.0",
+      "keywords": ["lockstep", "spec-first", "azure-devops", "bootstrap"]
+    },
+    {
       "name": "copilot-review-instructions",
       "source": "./plugins/copilot-review-instructions",
       "description": "Generate and maintain repo-specific Copilot code review instructions (.github/copilot-instructions.md and path-scoped *.instructions.md) on top of project-wide rules.",

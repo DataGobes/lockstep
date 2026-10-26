@@ -27,7 +27,7 @@ capability: churn-scoring
 ```
 
 A capability is an area of behaviour the business would name: churn scoring, invoice matching, the refund assistant.
-Pick it in the spec PR; `new_spec.py --capability churn-scoring` sets it.
+Pick it when you write the spec; `new_spec.py --capability churn-scoring` sets it.
 
 ## What the file holds
 
@@ -36,8 +36,8 @@ Pick it in the spec PR; `new_spec.py --capability churn-scoring` sets it.
 - **In force:** the active criteria of every `tests-locked` or `implemented` spec that names the capability. Since
   0.2.0 a spec reaches main as `tests-locked` only together with its green code (the test PR merges into the feature
   branch), so on main this is what the code does.
-- **Coming:** the active criteria of `approved` specs: merged, tests not written yet. A reviewer sees what is about to
-  change.
+- **Coming:** the active criteria of `approved` specs: merged through a spec PR of their own, tests not written yet.
+  A reviewer sees what is about to change. A spec that comes in one PR with its tests goes straight to In force.
 
 A struck criterion (`~~AC-003~~ superseded by 0057/AC-001`) drops out, and its replacement appears under its own
 spec. Drafts are left out. Given/When/Then steps are kept under their criterion.
@@ -48,8 +48,8 @@ spec. Drafts are left out. Given/When/Then steps are kept under their criterion.
 PYTHONPATH=.lockstep/src python3 -m lockstep_checks.check_living_specs --write
 ```
 
-Run it after changing a spec or its status, and commit the result in the same PR: the `spec` skill does this in the
-spec PR, the `tests-first` skill in the test PR, where the status becomes `tests-locked`. In CI the check fails (or
+Run it after changing a spec or its status, and commit the result in the same PR: the `spec` skill does this when the
+spec is approved, the `tests-first` skill in the test PR, where the status becomes `tests-locked`. In CI the check fails (or
 warns, in warn mode) on:
 
 - a living spec that is missing or out of date,

@@ -50,7 +50,7 @@ gets its own change spec.
 
 ## When a change spec alters pinned behaviour
 
-1. In the change spec's spec PR, strike the baseline criterion and point to its replacement:
+1. In the change spec's PR (its spec PR, or the spec and test PR), strike the baseline criterion and point to its replacement:
    `- ~~AC-002~~ superseded by 0057/AC-001`. `check_ac_traceability` checks that the pointer resolves.
 2. The test that pins the old behaviour fails once the new behaviour is built. Agents cannot edit it (it existed
    before the change spec was tests-locked), so a person updates or removes it on the feature branch, in a commit of

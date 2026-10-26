@@ -18,7 +18,7 @@ TRACK_VALUES = ("data", "ai", "mixed")
 # change: new behaviour, tests written red first. baseline: behaviour the code already has, pinned by tests that pass
 # today (characterisation tests), so a repo with existing code can join without a spec for everything it does.
 KINDS = ("change", "baseline")
-KEYS = ("status", "pii", "track", "jira", "locked_at_commit", "design", "capability", "kind")
+KEYS = ("status", "pii", "track", "jira", "locked_at_commit", "design", "capability", "kind", "contract")
 REQUIRED = ("status", "pii", "track")
 
 _LINE = re.compile(r"^(?P<key>[a-z_]+):(?:\s+(?P<value>.*?))?\s*$")
@@ -40,6 +40,7 @@ class SpecStatus:
     design: bool = False  # research.md and design.md are needed before approval
     capability: str | None = None  # the living spec this spec's criteria belong to
     kind: str = "change"  # or "baseline": pins existing behaviour, never tests-locked (no red phase)
+    contract: bool = False  # changes an enforced data contract or another interface others consume
 
     @property
     def tests_locked(self) -> bool:
@@ -102,6 +103,10 @@ def parse_status(text: str, cfg: Config) -> SpecStatus:
     if design not in ("yes", "no"):
         raise SpecStatusError(f"design must be 'yes' or 'no', got {design!r}")
 
+    contract = values.get("contract") or "no"
+    if contract not in ("yes", "no"):
+        raise SpecStatusError(f"contract must be 'yes' or 'no', got {contract!r}")
+
     capability = values.get("capability")
     if capability is not None and not _SLUG.match(capability):
         raise SpecStatusError(f"capability must be lower-case words joined by hyphens, got {capability!r}")
@@ -123,6 +128,7 @@ def parse_status(text: str, cfg: Config) -> SpecStatus:
         design=design == "yes",
         capability=capability,
         kind=kind,
+        contract=contract == "yes",
     )
 
 

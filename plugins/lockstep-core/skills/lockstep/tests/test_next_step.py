@@ -97,6 +97,11 @@ def test_unmerged_spec_reads_the_working_tree(tmp_path):
     assert "On spec/0004-new: finish the spec" in out and "(/spec)" in out
 
 
+def test_draft_points_to_one_pr_unless_it_is_on_a_spec_branch():
+    assert "open the spec PR" in next_step.decide("draft", ["spec/0004-new"])[0]
+    assert "for one PR with the spec" in next_step.decide("draft", ["test/0004-new"])[0]
+
+
 def test_invalid_status_is_reported(tmp_path):
     root = make_repo(tmp_path)
     write(root, {"specs/0005-bad/status.yml": "status: nonsense\n"})
@@ -124,7 +129,7 @@ def test_baseline_spec_routes_to_the_baseline_skill(tmp_path):
     assert step.branches == ["baseline/0004-pricing"] and "baseline in progress" in step.next
 
 
-def test_quick_lane_test_pr_is_not_reported_as_implementation(tmp_path):
+def test_one_pr_test_pr_is_not_reported_as_implementation(tmp_path):
     # The spec and its tests are on the test branch; the feature branch has neither until the test PR merges.
     root = make_repo(tmp_path)
     git(root, "branch", "feature/0004-quick")

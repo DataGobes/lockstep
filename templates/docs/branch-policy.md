@@ -12,7 +12,7 @@ Repositories → <repo> → Policies → main*, or run `scripts/ado/branch-polic
 | Automatically included reviewers | A test reviewer group, required, for `/tests/*`, `*.unit_tests.yml`, `/evals/*`, `/.claude/*`, `/.lockstep/*`, `/lockstep.toml`, `/AGENTS.md`, `/azure-pipelines*` | Locked tests and the rules agents work under change only with a second look. The checks read `lockstep.toml` from the target branch, so a PR that loosens it is still judged by the old rules. |
 | GitHub Copilot code review | Added as an automatic reviewer (by hand: no CLI yet) | Advisory first review; it reads `.github/copilot-instructions.md` from main. |
 
-**Feature branches.** The test PR merges into `feature/<id>-<slug>`, not main, so red tests never reach main; only
+**Feature branches.** The test PR (by default with its spec) merges into `feature/<id>-<slug>`, not main, so red tests never reach main; only
 the green feature branch does. The tests lock when the test PR merges, so `feature/*` (prefix match) gets the same
 reviewer count, comment resolution, build validation and test reviewer group for `/tests/*`, `*.unit_tests.yml`,
 `/evals/*` and `/lockstep.toml`. Merge types there: squash or merge commit, not rebase, which would hide the commit where the tests locked.

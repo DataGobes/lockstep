@@ -6,9 +6,11 @@ Track: <data | ai | mixed>. Work follows Lockstep: spec first, tests locked, sma
 ## How work flows
 
 1. A Jira issue sets the track and the PII flag.
-2. **Spec PR:** `specs/<id>-<slug>/spec.md` with numbered acceptance criteria (AC-001, ...). Nothing is built before it is approved.
-3. **Test PR** from `test/<id>-<slug>` into `feature/<id>-<slug>`, never into main: failing tests that name their
-   criterion, then `status.yml` becomes `tests-locked`. The tests are locked once it merges.
+2. **Spec:** `specs/<id>-<slug>/spec.md` with numbered acceptance criteria (AC-001, ...). Nothing is built before it is approved.
+3. **Spec and test PR** from `test/<id>-<slug>` into `feature/<id>-<slug>`, never into main: the spec, and failing
+   tests that name their criterion, then `status.yml` becomes `tests-locked`. The tests are locked once it merges.
+   A large or risky spec (`[specs]` in `lockstep.toml`) gets a spec PR of its own into main first, from
+   `spec/<id>-<slug>`; the test PR then holds only the tests.
 4. **Implementation** on `feature/<id>-<slug>` until every check is green; its last commit sets `status.yml` to
    `implemented`. Only then does it merge into main, so main never holds a failing test.
 5. Copilot reviews first, then a human who did not drive the agent approves.

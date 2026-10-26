@@ -9,9 +9,9 @@ locally, but only when the agent uses it. Changes under ``[lanes] no_spec_needed
   test/<id>-      the spec is approved or tests-locked; the test PR adds stubs and merges into feature/<id>-.
                   A [test-change] PR uses test/<id>-<slug>-<what> too, into the feature branch while the spec is
                   built, into main once it is implemented.
-                  The spec must have had its own spec PR, unless it is small enough for the quick lane
-                  ([specs] quick_max_criteria): then it may arrive in the test PR, reviewed with its tests.
-  spec/<id>-      specs and docs only; code waits for the test PR
+                  By default the spec arrives in this PR too, reviewed with its tests. A spec over the
+                  [specs] thresholds (spec_pr_above_criteria, spec_pr_for) needs its own spec PR first.
+  spec/<id>-      specs and docs only, for a spec that needs a spec PR first; code waits for the test PR
   baseline/<id>-  a baseline spec (kind: baseline) pins behaviour the code already has: tests, specs and docs only,
                   and the spec is implemented once its tests are in (they pass on today's code)
   bugfix/, hotfix/  a bug report under ``bug_reports_dir`` and a new regression test
@@ -30,7 +30,7 @@ from .gitdiff import ChangedFile, changed_files
 from .paths import matches, matches_any
 from .report import Finding
 from .spec import Resolution, resolve_spec
-from .specdoc import parse_spec
+from .spec_pr import reasons
 from .status import LOCKED_STATES
 
 # test/ with an implemented spec: a [test-change] PR into main for tests that have shipped.
@@ -93,7 +93,7 @@ def check_spec_required(
             )
         ]
     if kind == "test" and spec.spec_dir is not None:
-        return _quick_lane(files, spec, cfg)
+        return _spec_in_test_pr(files, spec, cfg)
     if kind == "feature" and into_main and status == "tests-locked":
         return [
             Finding(
@@ -106,30 +106,23 @@ def check_spec_required(
     return []
 
 
-def _quick_lane(files: list[ChangedFile], spec: Resolution, cfg: Config) -> list[Finding]:
-    """A test PR that adds its own spec skipped the spec PR: allowed only for small specs, when the repo allows it."""
-    md = spec.spec_dir / "spec.md"
+def _spec_in_test_pr(files: list[ChangedFile], spec: Resolution, cfg: Config) -> list[Finding]:
+    """A test PR that adds its own spec: the default one-PR flow, unless the spec crosses a [specs] threshold."""
     rel = f"{cfg.specs_dir}/{spec.spec_dir.name}/spec.md"
     if not any(f.path == rel and f.status == "A" for f in files):
         return []
-    limit = cfg.specs.quick_max_criteria
-    if limit == 0:
-        why = "this repo has no quick lane ([specs] quick_max_criteria = 0)"
-    elif spec.status and spec.status.design:
-        why = "it takes the research and design step"
-    else:
-        try:
-            count = len(parse_spec(md.read_text(encoding="utf-8"), cfg.specs.ac_format).criteria)
-        except OSError:
-            return []  # the traceability check reports a missing spec.md
-        if count <= limit:
-            return []
-        why = f"it has {count} criteria and the quick lane takes at most {limit}"
+    try:
+        text = (spec.spec_dir / "spec.md").read_text(encoding="utf-8")
+    except OSError:
+        return []  # the traceability check reports a missing spec.md
+    why = reasons(text, spec.status, cfg)
+    if not why:
+        return []
     return [
         Finding(
             "error",
-            f"spec {spec.spec_id} arrives in this test PR without a spec PR of its own, but {why}. Open the spec PR "
-            "first, then the test PR",
+            f"spec {spec.spec_id} arrives in this test PR, but it needs a spec PR of its own first: {'; '.join(why)}. "
+            f"Move the spec to spec/{spec.spec_dir.name} and open that PR into main; the tests follow once it merges",
             path=rel,
         )
     ]

@@ -4,7 +4,9 @@
   python3 new_spec.py --root <repo> --title "Churn features" --track data --pii no [--jira MXAAI-123]
 
 Copies specs/_template/ to specs/<id>-<slug>/, fills in the id, title and status.yml, and prints JSON with the folder,
-the id and the branch name to use (spec/<id>-<slug>, or baseline/<id>-<slug> with --baseline). The id is one more
+the id and the branches. By default the spec goes in one PR with its failing tests: "branch" is test/<id>-<slug>, made
+from "feature_branch" (feature/<id>-<slug>). A spec that needs a spec PR first (python -m lockstep_checks.spec_pr <id>
+says) uses "spec_pr_branch" (spec/<id>-<slug>) instead. With --baseline, "branch" is baseline/<id>-<slug>. The id is one more
 than the highest id in the working tree, on origin/main and in the spec/, test/, feature/ and baseline/ branch names
 (local and fetched), so a spec someone merged since you branched, or one still on its branches, is not reused. Stdlib only.
 """
@@ -45,7 +47,7 @@ def used_ids(root: Path, specs_dir: str) -> set[int]:
     )
     names |= set(p.stdout.split()) if p.returncode == 0 else set()
     ids = {int(m[1]) for name in names if (m := _ID.match(name))}
-    # Specs still on their branches: someone's spec PR, or a quick-lane spec that reaches main only with its code.
+    # Specs still on their branches: someone's spec PR, or a spec in its test PR that reaches main only with its code.
     refs = subprocess.run(
         ["git", "-C", str(root), "for-each-ref", "--format=%(refname:short)", "refs/heads", "refs/remotes"],
         check=False,
@@ -63,9 +65,17 @@ def fill_status(
     design: str | None = None,
     capability: str | None = None,
     kind: str | None = None,
+    contract: str | None = None,
 ) -> str:
     lines = text.splitlines()
-    filled = (("pii", pii), ("track", track), ("jira", jira), ("design", design), ("capability", capability))
+    filled = (
+        ("pii", pii),
+        ("track", track),
+        ("jira", jira),
+        ("design", design),
+        ("capability", capability),
+        ("contract", contract),
+    )
     for key, value in (*filled, ("kind", kind)):
         for i, line in enumerate(lines):
             if value is not None and re.match(rf"{key}:(\s|$)", line):
@@ -97,10 +107,15 @@ def create(
     design: bool = False,
     capability: str | None = None,
     baseline: bool = False,
+    contract: bool = False,
 ) -> dict:
     template = root / specs_dir / "_template"
     if not (template / "spec.md").is_file() or not (template / "status.yml").is_file():
         raise SpecError(f"{template.relative_to(root)} is missing; set the repo up with the bootstrap-repo skill first")
+    if contract and "\ncontract:" not in "\n" + (template / "status.yml").read_text(encoding="utf-8"):
+        raise SpecError(
+            f"{(template / 'status.yml').relative_to(root)} has no contract: line; run bootstrap-repo to update it"
+        )
     if baseline and not (template / "baseline" / "spec.md").is_file():
         raise SpecError(
             f"{(template / 'baseline').relative_to(root)}/spec.md is missing; run bootstrap-repo to update it"
@@ -133,11 +148,15 @@ def create(
             "yes" if design else None,
             capability,
             "baseline" if baseline else None,
+            "yes" if contract else None,
         ),
         encoding="utf-8",
     )
-    branch = f"{'baseline' if baseline else 'spec'}/{spec_id}-{slug}"
-    return {"id": spec_id, "spec_dir": folder.relative_to(root).as_posix(), "branch": branch}
+    name = f"{spec_id}-{slug}"
+    found = {"id": spec_id, "spec_dir": folder.relative_to(root).as_posix()}
+    if baseline:
+        return {**found, "branch": f"baseline/{name}"}
+    return {**found, "branch": f"test/{name}", "feature_branch": f"feature/{name}", "spec_pr_branch": f"spec/{name}"}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -153,6 +172,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--design", action="store_true", help="add research.md and design.md (large specs)")
     ap.add_argument("--capability", help="living spec the criteria belong to, e.g. churn-scoring")
     ap.add_argument("--baseline", action="store_true", help="pin behaviour the code already has (kind: baseline)")
+    ap.add_argument(
+        "--contract", action="store_true", help="changes an enforced data contract or an interface others use"
+    )
     args = ap.parse_args(argv)
     if args.jira and not _JIRA.fullmatch(args.jira):
         ap.error("--jira takes an issue key such as MXAAI-123")
@@ -175,6 +197,7 @@ def main(argv: list[str] | None = None) -> int:
             args.design,
             args.capability,
             args.baseline,
+            args.contract,
         )
     except SpecError as e:
         print(f"new_spec: {e}", file=sys.stderr)

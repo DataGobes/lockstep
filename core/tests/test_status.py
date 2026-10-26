@@ -44,6 +44,13 @@ def test_design_step_is_optional_and_off_by_default():
     assert parse_status("status: draft\npii: no\ntrack: data\ndesign: yes\n", CFG).design is True
 
 
+def test_contract_flag_is_optional_and_off_by_default():
+    assert parse_status("status: draft\npii: no\ntrack: data\n", CFG).contract is False
+    assert parse_status("status: draft\npii: no\ntrack: data\ncontract: yes\n", CFG).contract is True
+    with pytest.raises(SpecStatusError, match="contract"):
+        parse_status("status: draft\npii: no\ntrack: data\ncontract: maybe\n", CFG)
+
+
 def test_implemented_counts_as_locked():
     text = VALID.replace("tests-locked", "implemented", 1)
     assert parse_status(text, CFG).tests_locked is True

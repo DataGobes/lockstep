@@ -24,8 +24,8 @@ tag the merge commit `v<version>`.
     the branch policy puts `lockstep.toml` under the test reviewer group.
   - `new_spec.py` skips ids still on `spec/`, `test/`, `feature/` and `baseline/` branches, so two specs in flight
     never share an id.
-  - The quick lane works end to end: `start_implement.py` reads the spec from the feature branch, and `/lockstep`
-    reports a quick-lane test PR as a test PR.
+  - A spec that came in its test PR works end to end: `start_implement.py` reads the spec from the feature branch,
+    and `/lockstep` reports that PR as a test PR.
   - `/lockstep` warns when the repo's vendored core is older than the plugin; `lockstep_checks.__version__` and the
     template's `core_version` are kept in step by `check_release.py`.
   - Setup and upgrade PRs pass their own checks: `.lockstep/` doesn't count towards the PR size or the tamper scan.
@@ -49,11 +49,17 @@ tag the merge commit `v<version>`.
   tests for criteria that hold for every input (never negative, one row per key, idempotent, round trip), when the
   repo pins Hypothesis. Settings keep locked property tests deterministic (`derandomize=True`), and found cases are
   pinned with `@example`. See `tests-first/property-tests.md`. After Kiro's property-based testing.
-- **Quick lane for small specs:** with `[specs] quick_max_criteria` above 0, a spec with at most that many criteria
-  and no research and design step may skip its spec PR and arrive in the test PR, so the reviewer approves the spec
-  and its failing tests together. `check_spec_required` fails a test PR that adds its own spec when the lane is off,
-  the spec is bigger, or it takes the design step. Off by default, which also closes the gap where a test PR could
-  bring an unreviewed spec. After Kiro's Quick Spec and BMAD's scale-adaptive tracks.
+- **One spec-and-tests PR by default:** a new spec goes into its test PR (`test/<id>-` into `feature/<id>-`), so a
+  change takes two PRs instead of three: the reviewer agrees the criteria and checks the failing tests against them
+  in one sitting, then the implementation PR goes into main. The tests still lock when that PR merges, the red
+  phase is still proven, and red tests still stay off main. A large or risky spec gets a spec PR of its own first,
+  by the lines in `[specs]`: more criteria than `spec_pr_above_criteria` (8 by default; 0 restores a spec PR for
+  every spec), or a trait in `spec_pr_for` (by default `design`, the research and design step, and `contract`, the
+  new `contract: yes` in `status.yml` for a change to an enforced data contract or an interface others use; `pii` can
+  be added). `check_spec_required` fails a test PR that brings a spec over a line, and the new `lockstep_checks.spec_pr
+  <id>` tells the `spec` skill which way to go. `new_spec.py` now starts the spec on `test/<id>-<slug>` and takes
+  `--contract`. Replaces the unreleased opt-in quick lane (`quick_max_criteria`). After Kiro's Quick Spec and BMAD's
+  scale-adaptive tracks.
 - **Team rules:** `[[rules]]` in `lockstep.toml` lets a team add its own rules without code: a regex that must not
   appear in added code (`on = "content"`, optionally only under `paths`) or in an agent's shell command
   (`on = "command"`). The new `team_rules` hook stops the agent, and the new `check_team_rules` PR check fails added

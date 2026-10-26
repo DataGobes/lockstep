@@ -73,7 +73,9 @@ only what is missing, and show the user the diff:
 Commit as `chore(lockstep): set up Lockstep <version>` (or `upgrade Lockstep to <version>`). Ask before pushing or
 opening a PR; the PR title needs a Jira key. Then give the user the Azure DevOps steps that only they can do:
 
-1. Create a pipeline from `azure-pipelines-pr.yml`.
+1. Create a pipeline from `azure-pipelines-pr.yml`, and one from `azure-pipelines-deploy.yml`. Delete the PR jobs
+   for tracks the repo doesn't have. Create the variable groups and environments the two files' header comments list,
+   with service principals that have no SELECT on tables holding personal data.
 2. Branch policy on main: that pipeline as required **Build validation**; at least 1 reviewer; no approving your own
    changes; reset votes on new pushes; comments must be resolved; squash merge only.
 3. **Automatically included reviewers**, required, for `/tests/*`, `*.unit_tests.yml`, `/evals/*`, `/.claude/*`,

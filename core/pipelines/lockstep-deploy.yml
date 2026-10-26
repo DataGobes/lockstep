@@ -1,0 +1,118 @@
+# Lockstep deploy: one environment's deployment job. A jobs template, used once per stage of the deploy pipeline.
+#
+#   jobs:
+#     - template: .lockstep/pipelines/lockstep-deploy.yml
+#       parameters: { target: prod, environment: <repo>-prod, publishState: true }
+#
+# Deploys the Databricks bundle to the target, builds the dbt models that changed since the last prod deploy (and
+# their children), then runs the repo's smoke tests and evals. The job runs in an Azure DevOps environment, so the
+# approvals and checks set on that environment apply: give the prod environment one required approver and switch
+# off "approvers can approve their own runs", so the person who merged cannot release alone.
+# With publishState, the new dbt manifest is published as the dbt-prod-state artifact that Slim CI defers to.
+
+parameters:
+  - name: target
+    displayName: Bundle and dbt target
+    type: string
+  - name: environment
+    displayName: Azure DevOps environment (holds the approvals)
+    type: string
+  - name: dbtProjectDir
+    displayName: Folder with dbt_project.yml; empty for no dbt
+    type: string
+    default: .
+  - name: smokeCommand
+    displayName: Command that runs the smoke tests against the target; empty for none
+    type: string
+    default: ""
+  - name: evalCommand
+    displayName: Command that runs the evals against the target; empty for none
+    type: string
+    default: ""
+  - name: publishState
+    displayName: Publish the dbt manifest for Slim CI (prod only)
+    type: boolean
+    default: false
+  - name: cliVersion
+    type: string
+    default: "0.250.0"
+  - name: pythonVersion
+    type: string
+    default: "3.11"
+
+jobs:
+  - deployment: deploy_${{ parameters.target }}
+    displayName: Deploy to ${{ parameters.target }}
+    environment: ${{ parameters.environment }}
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - checkout: self
+              fetchDepth: 1
+
+            - task: UsePythonVersion@0
+              inputs:
+                versionSpec: ${{ parameters.pythonVersion }}
+
+            - script: |
+                python -m pip install --quiet uv
+                uv sync --frozen --all-extras
+                curl -fsSL "https://raw.githubusercontent.com/databricks/setup-cli/v${{ parameters.cliVersion }}/install.sh" | sh
+              displayName: Install dependencies and the Databricks CLI
+
+            - script: databricks bundle deploy --target ${{ parameters.target }}
+              displayName: Deploy the bundle to ${{ parameters.target }}
+              env:
+                DATABRICKS_HOST: $(DATABRICKS_HOST)
+                DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
+
+            - ${{ if ne(parameters.dbtProjectDir, '') }}:
+                # The last prod manifest from this pipeline: build only what changed since then.
+                - task: DownloadPipelineArtifact@2
+                  displayName: Download the last prod dbt manifest
+                  continueOnError: true
+                  inputs:
+                    source: specific
+                    project: $(System.TeamProjectId)
+                    pipeline: $(System.DefinitionId)
+                    runVersion: latestFromBranch
+                    runBranch: refs/heads/main
+                    artifact: dbt-prod-state
+                    path: $(Build.SourcesDirectory)/${{ parameters.dbtProjectDir }}/prod-state
+
+                - script: |
+                    uv run dbt deps
+                    if [ -f prod-state/manifest.json ]; then
+                      uv run dbt build --select state:modified+ --state prod-state --target ${{ parameters.target }}
+                    else
+                      echo "##vso[task.logissue type=warning]dbt: no prod manifest yet, so every model is built"
+                      uv run dbt build --target ${{ parameters.target }}
+                    fi
+                  displayName: dbt build of the changed models on ${{ parameters.target }}
+                  workingDirectory: $(Build.SourcesDirectory)/${{ parameters.dbtProjectDir }}
+                  env:
+                    DATABRICKS_HOST: $(DATABRICKS_HOST)
+                    DATABRICKS_HTTP_PATH: $(DATABRICKS_HTTP_PATH)
+                    DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
+
+                - ${{ if parameters.publishState }}:
+                    - task: PublishPipelineArtifact@1
+                      displayName: Publish the dbt manifest for Slim CI
+                      inputs:
+                        targetPath: $(Build.SourcesDirectory)/${{ parameters.dbtProjectDir }}/target/manifest.json
+                        artifact: dbt-prod-state
+
+            - ${{ if ne(parameters.smokeCommand, '') }}:
+                - script: ${{ parameters.smokeCommand }}
+                  displayName: Smoke tests on ${{ parameters.target }}
+                  env:
+                    DATABRICKS_HOST: $(DATABRICKS_HOST)
+                    DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
+
+            - ${{ if ne(parameters.evalCommand, '') }}:
+                - script: ${{ parameters.evalCommand }}
+                  displayName: Evals on ${{ parameters.target }}
+                  env:
+                    DATABRICKS_HOST: $(DATABRICKS_HOST)
+                    DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)

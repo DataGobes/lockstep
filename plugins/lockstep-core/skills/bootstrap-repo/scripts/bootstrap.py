@@ -41,6 +41,7 @@ REPO_OWNED = {
     "templates/claude-settings.json": ".claude/settings.json",
     "templates/azuredevops/pull_request_template.md": ".azuredevops/pull_request_template.md",
     "templates/azure-pipelines-pr.yml": "azure-pipelines-pr.yml",
+    "templates/azure-pipelines-deploy.yml": "azure-pipelines-deploy.yml",
 }
 VERSION_FILE = ".lockstep/VERSION"
 SKIP = {"__pycache__", ".pytest_cache", ".ruff_cache"}

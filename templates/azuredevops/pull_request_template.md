@@ -17,6 +17,14 @@ Prefixes the checks read: [test-change] for a deliberate change to locked tests,
 |----|------|--------|
 | 0042/AC-001 | tests/test_x.py::test_y | passes |
 
+## Self-review
+
+Implementation PRs: the two reports from the self-review skill, kept separate.
+
+**Standards:** <findings and what was fixed, or "none">
+
+**Spec:** <each criterion: met | missing | wrong, with evidence; scope: files no criterion needs, or "none">
+
 ## Assumptions
 
 - <Anything you or the agent decided that the spec does not say.>

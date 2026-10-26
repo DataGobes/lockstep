@@ -32,9 +32,7 @@ SKIP_DIRS = {".git", ".venv", "venv", "node_modules", "target", "dbt_packages", 
 _REF = re.compile(r"(?<![\w/])(?P<spec>\d+)/(?P<ac>AC-\d+)\b")
 _BARE_REF = re.compile(r"(?<![\w/])AC-\d+\b")
 # A decorator or a module-level pytestmark; mentions inside strings or comments do not count.
-_PYTEST_MARK = re.compile(
-    r"^[ \t]*(?:@|pytestmark\s*=\s*\[?\s*)(?:pytest\.)?mark\.ac\((?P<args>[^)]*)\)", re.MULTILINE
-)
+_PYTEST_MARK = re.compile(r"^[ \t]*(?:@|pytestmark\s*=\s*\[?\s*)(?:pytest\.)?mark\.ac\((?P<args>[^)]*)\)", re.MULTILINE)
 _UNIT_TEST_NAME = re.compile(r"^\s*-?\s*name:\s*['\"]?ac_(?P<spec>\d+)_(?P<n>\d+)(?:_|\b)", re.MULTILINE)
 _UNIT_TEST_BARE = re.compile(r"^\s*-?\s*name:\s*['\"]?ac_(?P<n>\d+)_[a-z]", re.MULTILINE)
 _AC_KEY = re.compile(r"""['"]?\bac['"]?\s*[:=]\s*(?P<rest>.*)""")

@@ -89,6 +89,21 @@ Tests name criteria with the spec id, because every spec numbers from AC-001: `@
 dbt unit test `ac_0042_001_<what>`, `meta: {ac: 0042/AC-001}`, or an `ac` field `0042/AC-001` in an eval row. Register the
 marker in the product repo's `pyproject.toml`: `markers = ["ac(id): acceptance criterion this test covers"]`.
 
+### Agent hooks
+
+`core/hooks/run-hook.sh <hook>` runs a hook from `lockstep_checks.hooks` with the agent's event JSON on stdin. Exit 0
+allows and exit 2 blocks. Hooks fail closed: a crash, bad input or a missing Python 3.11+ blocks. Claude Code and Copilot
+(CLI and VS Code) both read the registration in a product repo's `.claude/settings.json`; see
+[`templates/claude-settings.json`](templates/claude-settings.json), which expects `core/` copied to `.lockstep/`.
+
+| Hook | Event | Blocks when |
+|---|---|---|
+| `protect_tests` | PreToolUse on Edit, Write, MultiEdit, NotebookEdit | the active spec is tests-locked and the file matches `[protect] globs` and exists on origin/main. New files are allowed. Copilot's `apply_patch` payloads are parsed too. |
+| `guard_bash` | PreToolUse on Bash, PowerShell | the command targets prod, force-pushes, deletes main, skips tests with `-k`/`--deselect`/`--ignore`, or rewrites history while on main. |
+
+A prompt-screening PII hook is parked: naming a column such as `email` in a prompt is not sending its data, so a
+word-based screen blocks too much. Until it returns, `pii: yes` in a spec's status.yml is the signal to work in Copilot.
+
 Run the tests with `cd core && uv run --with pytest python -m pytest`.
 
 ## Repo layout

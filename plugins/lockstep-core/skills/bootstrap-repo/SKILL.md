@@ -73,11 +73,13 @@ only what is missing, and show the user the diff:
 Commit as `chore(lockstep): set up Lockstep <version>` (or `upgrade Lockstep to <version>`). Ask before pushing or
 opening a PR; the PR title needs a Jira key. Then give the user the Azure DevOps steps that only they can do:
 
-1. Create a pipeline from `azure-pipelines-pr.yml`.
-2. Branch policy on main: that pipeline as required **Build validation**; at least 1 reviewer; no approving your own
-   changes; reset votes on new pushes; comments must be resolved; squash merge only.
-3. **Automatically included reviewers**, required, for `/tests/*`, `*.unit_tests.yml`, `/evals/*`, `/.claude/*`,
-   `/.lockstep/*`, `/AGENTS.md` and `/azure-pipelines*`.
+1. Create a pipeline from `azure-pipelines-pr.yml`, and one from `azure-pipelines-deploy.yml`. Delete the PR jobs
+   for tracks the repo doesn't have. Create the variable groups and environments the two files' header comments list,
+   with service principals that have no SELECT on tables holding personal data.
+2. Branch policies on main, as listed in `docs/branch-policy.md`: fill in the variables at the top of
+   `scripts/ado/branch-policy.sh` and run it (it uses `az repos policy`), or set them by hand. The user runs it, not you:
+   it changes the repo's settings.
+3. Create the prod environment's approval as `docs/branch-policy.md` describes.
 4. Add GitHub Copilot as an automatic reviewer, if the project has Copilot code review.
 
 Remind them that Copilot reads `.github/copilot-instructions.md` from the target branch, so the review rules apply to

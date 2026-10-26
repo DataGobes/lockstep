@@ -137,6 +137,7 @@ the repo's tracks; each gate can be switched off by a parameter until the repo i
 | `dbt-slim-ci.yml` | `dbt build --select state:modified+ --defer` against the prod manifest from the deploy pipeline | data |
 | `bundle-validate.yml` | `databricks bundle validate` for the dev target | data |
 | `eval-gate.yml` | the repo's eval command, only when the PR touches prompts, evals or LLM code | ai |
+| `mutation-report.yml` | report only: mutmut on the PR's changed modules, score and missed mutants as warnings ([why](docs/mutation-testing.md)) | all |
 
 The Databricks gates read their credentials from a variable group (`lockstep-ci` in the root pipeline); use a CI
 service principal without SELECT on tables that hold personal data. None of these templates has run in a real

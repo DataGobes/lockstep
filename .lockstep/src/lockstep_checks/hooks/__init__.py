@@ -106,7 +106,7 @@ def run(hook: Callable[[Event], Decision], stdin: str | None = None) -> int:
             root = repo_root(event.cwd)
             mode = load_config(root).enforcement.mode(name)  # a broken config raises, and so blocks
             events.record(
-                root, name, "blocked" if mode == "enforce" else "warned", current_branch(root), decision.message
+                root, name, "blocked" if mode == "enforce" else "warned", current_branch(root, env={}), decision.message
             )
     except ConfigError as e:
         if _fixes_config(raw):

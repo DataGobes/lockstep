@@ -110,7 +110,9 @@ def _history_folders(cmd: str, cwd: Path) -> tuple[list[Path], bool]:
             options = [w for w in words[1:] if w.startswith("-") and w not in _SAFE_OPTIONS and not _COUNT.fullmatch(w)]
             # A fetch refspec with a destination (`main:feature/x`) writes that branch.
             writes = subcommand == "fetch" and any(":" in w for w in words[2:])
-            trusted &= at is not None and subcommand in _READ_ONLY_GIT and not options and not writes
+            # A word with a `$` becomes whatever the shell makes of it: `$'--upload-pack=...'`, `$OPT`.
+            expands = any("$" in w for w in words)
+            trusted &= at is not None and subcommand in _READ_ONLY_GIT and not (options or writes or expands)
     return folders, followed
 
 

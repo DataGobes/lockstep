@@ -108,6 +108,31 @@ def customise_config(text: str, tracks: list[str], jira: list[str], jira_require
     return re.sub(r"^projects = \[.*?\]", f"projects = {json.dumps(jira)}", text, count=1, flags=re.MULTILINE)
 
 
+PR_PIPELINE = "azure-pipelines-pr.yml"
+# The PR pipeline's jobs that belong to one track; every other job runs in every repo.
+TRACK_JOBS = {"data": ("dbt", "bundle"), "ai": ("evals",)}
+_JOB = re.compile(r"^      - job: (\S+)$")
+
+
+def trim_pipeline(text: str, tracks: list[str]) -> str:
+    """The PR pipeline without the job blocks of tracks the repo did not choose.
+
+    A job block runs from its `- job:` line through the blank line that ends it, so removing one leaves no
+    doubled blank line.
+    """
+    drop = {job for track, jobs in TRACK_JOBS.items() if track not in tracks for job in jobs}
+    out, skipping = [], False
+    for line in text.splitlines(keepends=True):
+        job = _JOB.match(line.rstrip())  # rstrip(): CRLF endings and trailing spaces must not hide a job line
+        if job:
+            skipping = job.group(1) in drop
+        if not skipping:
+            out.append(line)
+        elif not line.strip():
+            skipping = False
+    return "".join(out)
+
+
 def _compare(root: Path, rel: str, content: bytes, mode: int | None, owned_by_lockstep: bool) -> Action:
     dest = root / rel
     if not dest.exists():
@@ -137,6 +162,8 @@ def plan(
         content = (source / src).read_bytes()
         if dest == "lockstep.toml":
             content = customise_config(content.decode(), tracks, jira, jira_required).encode()
+        elif dest == PR_PIPELINE:
+            content = trim_pipeline(content.decode(), tracks).encode()
         actions.append(_compare(root, dest, content, (source / src).stat().st_mode & 0o777, False))
     return actions
 

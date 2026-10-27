@@ -153,9 +153,11 @@ def test_runner_fails_closed_on_bad_input(capsys):
     assert "blocking to be safe" in capsys.readouterr().err
 
 
-def test_runner_exit_codes(capsys):
-    assert run(guard_bash.hook, stdin=json.dumps({"tool_name": "Bash", "tool_input": {"command": "ls"}})) == 0
-    cmd = {"tool_name": "Bash", "tool_input": {"command": "git push -f"}}
+def test_runner_exit_codes(capsys, repo):
+    # A cwd in a throwaway repo: without one the runner logs the block in the repo pytest runs from.
+    ls = {"tool_name": "Bash", "tool_input": {"command": "ls"}, "cwd": str(repo.root)}
+    assert run(guard_bash.hook, stdin=json.dumps(ls)) == 0
+    cmd = {"tool_name": "Bash", "tool_input": {"command": "git push -f"}, "cwd": str(repo.root)}
     assert run(guard_bash.hook, stdin=json.dumps(cmd)) == 2
     assert "force-pushes" in capsys.readouterr().err
 

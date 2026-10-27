@@ -59,25 +59,47 @@ def hook(event: Event) -> Decision:
     return Decision.allow()
 
 
-_SEGMENT = re.compile(r"\|\||&&|[;|&\n]")
+_SEPARATOR = re.compile(r"(\|\||&&|[;|&\n])")
+# Shell that moves a command to a folder this parser doesn't follow: subshells, command substitution, the directory
+# stack, and git's own ways to name another repo.
+_UNFOLLOWED = re.compile(r"[()`]|\$\(|\b(?:pushd|popd)\b|\bGIT_(?:DIR|WORK_TREE)=|--git-dir\b|--work-tree\b")
 
 
 def _history_folders(cmd: str, cwd: Path) -> list[Path]:
-    """The folder each history-rewriting git command runs in, after any `cd` before it and its own `-C`. A folder that
-    can't be resolved (`cd $DIR`, `cd -`) counts as the session's folder."""
-    folders, here = [], cwd
-    for segment in _SEGMENT.split(cmd):
+    """The folder each history-rewriting git command runs in, after any `cd` before it and its own `-C`s. When the
+    command changes folder in a way this doesn't follow, the session's folder counts too: a false block costs a retry.
+    A folder that can't be resolved (`cd $DIR`, `cd -`) counts as the session's folder."""
+    parts = _SEPARATOR.split(cmd)
+    folders, here, unsure = [], cwd, bool(_UNFOLLOWED.search(cmd))
+    for segment, after in zip(parts[0::2], parts[1::2] + [""]):
         try:
             words = shlex.split(segment)
         except ValueError:
-            words = segment.split()
-        if len(words) == 2 and words[0].lstrip("(") == "cd":
-            here = _folder(here, words[1], cwd)
+            words, unsure = segment.split(), True
+        if words[:1] == ["cd"]:
+            # Only `cd <folder> && ...` or `cd <folder>; ...` carries over to the next command.
+            unsure |= len(words) != 2 or after not in ("&&", ";", "\n")
+            here = _folder(here, words[1], cwd) if len(words) == 2 else cwd
         elif _HISTORY.search(segment):
-            i = words.index("git") if "git" in words else -1
-            dash_c = i >= 0 and words[i + 1 : i + 2] == ["-C"] and len(words) > i + 2
-            folders.append(_folder(here, words[i + 2], cwd) if dash_c else here)
-    return folders
+            at, followed = _git_folder(words, here, cwd)
+            folders.append(at)
+            unsure |= not followed
+    return folders + [cwd] if folders and unsure else folders
+
+
+def _git_folder(words: list[str], here: Path, cwd: Path) -> tuple[Path, bool]:
+    """The folder git runs in after its `-C` options, applied in order as git does, and whether every option before
+    the subcommand was one this understands."""
+    if "git" not in words:
+        return here, False
+    i = words.index("git") + 1
+    while i < len(words) and words[i].startswith("-"):
+        if words[i] in ("-C", "-c") and i + 1 < len(words):
+            here = _folder(here, words[i + 1], cwd) if words[i] == "-C" else here
+            i += 2
+        else:
+            return here, False
+    return here, True
 
 
 def _folder(here: Path, target: str, fallback: Path) -> Path:

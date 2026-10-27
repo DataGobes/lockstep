@@ -31,6 +31,16 @@ FAILED core/tests/test_guard_bash_cd.py::test_git_dash_c_into_main_blocks_rebase
 FAILED core/tests/test_guard_bash_cd.py::test_git_dash_c_into_a_feature_worktree_allows_amend - AssertionError: BLOCKED by lockstep: this command rewrites history on main; work on a feature branch
 ```
 
+A security review of the first fix found that trusting every `cd` opened a bypass the old rule didn't have: in
+`(cd ../app-0042 && git log); git reset --hard HEAD~1`, the `cd` stays in the subshell and the reset runs on `main`.
+The fix therefore fails closed: a folder is followed only through `cd <folder> &&` or `cd <folder>;` and git's `-C` /
+`-c` options; with a subshell, command substitution, a pipe or `||` after a `cd`, `pushd`/`popd`, `GIT_DIR`,
+`--git-dir`, `--work-tree` or another git option, the session's folder is checked as well.
+`test_a_folder_change_it_cannot_follow_still_checks_the_session_folder` covers each of these.
+
+Still open, and older than this fix: an earlier command in the same line that switches the target checkout to `main`
+(`git checkout main && git reset --hard ...` from a feature branch) is judged by the branch before the switch.
+
 ## Why the tests missed it
 `test_history_rewrite_blocked_only_on_main` runs every command from the repo's own folder; no test moved to another
 checkout first. Worktrees became the normal way to implement a spec (the implement skill) after the rule was written.

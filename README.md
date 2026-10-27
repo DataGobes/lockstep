@@ -193,6 +193,13 @@ allows and exit 2 blocks. Hooks fail closed: a crash, bad input or a missing Pyt
 | `team_rules` | PreToolUse on edits and on Bash, PowerShell | an edit adds text, or a command matches, one of the team's `[[rules]]` in `lockstep.toml`. Does nothing when there are none. |
 | `guard_bash` | PreToolUse on Bash, PowerShell | the command targets prod, force-pushes, deletes main, skips tests with `-k`/`--deselect`/`--ignore`, or rewrites history while on main. |
 
+The hooks are an early warning, not the gate. They match the tool call in front of them: a file path, or patterns in
+a shell command's text. A write they don't recognise (a script, `python -c`, a tool they don't know) gets past them, and
+text that only mentions a blocked command, such as a heredoc, can be blocked by mistake. In warn mode a match is
+allowed, and stopping is up to the agent. What can't be talked around is the PR pipeline: `check_test_tamper` and the
+other checks compare the PR with its target branch, whatever ran on the laptop, so make the Lockstep pipeline a
+required check ([docs/branch-policy.md](docs/branch-policy.md)).
+
 A prompt-screening PII hook is parked: naming a column such as `email` in a prompt is not sending its data, so a
 word-based screen blocks too much. Until it returns, `pii: yes` in a spec's status.yml is the signal to work in Copilot.
 

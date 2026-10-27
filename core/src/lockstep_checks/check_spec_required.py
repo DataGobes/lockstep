@@ -22,8 +22,7 @@ The chore exemption and the bug lane follow SDTRD (Fast-Track Protocol, Gates B1
 
 from __future__ import annotations
 
-import os
-
+from . import ci
 from .cli import PrContext, main_for
 from .config import Config
 from .gitdiff import ChangedFile, changed_files
@@ -178,7 +177,7 @@ def _into_main(base: str) -> str | None:
     """An error in a PR build into main; a warning locally, where the implementation may still be under way."""
     if base.removeprefix("origin/").startswith("feature/"):
         return None
-    return "error" if os.environ.get("SYSTEM_PULLREQUEST_TARGETBRANCH") else "warning"
+    return "error" if ci.target_branch() else "warning"
 
 
 def _run(ctx: PrContext) -> list[Finding]:

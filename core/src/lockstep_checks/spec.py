@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 import subprocess
 import sys
@@ -25,13 +24,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
+from . import ci
 from .config import Config, ConfigError, load_config
 from .status import SpecStatus, SpecStatusError, parse_status
 
 STATUS_FILE = "status.yml"
-
-# Azure Pipelines sets these; in a PR build HEAD is a detached merge commit.
-_BRANCH_ENV = ("SYSTEM_PULLREQUEST_SOURCEBRANCH", "BUILD_SOURCEBRANCH")
 
 
 class SpecError(ValueError):
@@ -57,11 +54,10 @@ class Resolution:
 
 
 def current_branch(root: Path, env: Mapping[str, str] | None = None) -> str | None:
-    env = os.environ if env is None else env
-    for name in _BRANCH_ENV:
-        ref = env.get(name, "")
-        if ref.startswith("refs/heads/"):
-            return ref.removeprefix("refs/heads/")
+    # CI first: in a PR build HEAD is a detached merge commit.
+    branch = ci.source_branch(env)
+    if branch:
+        return branch
     try:
         p = subprocess.run(
             ["git", "-C", str(root), "symbolic-ref", "--short", "-q", "HEAD"],

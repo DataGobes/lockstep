@@ -8,16 +8,16 @@ into main runs the full gate, with nothing excused.
   python -m lockstep_checks.red_phase [--target <PR target branch>] [--main origin/main]
 
 Prints one file per line, nothing when the target is not a feature branch. The target defaults to Azure Pipelines'
-``SYSTEM_PULLREQUEST_TARGETBRANCH``.
+PR target (Azure Pipelines or GitHub Actions).
 """
 
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 from pathlib import Path
 
+from . import ci
 from .gitdiff import GitError, changed_files
 
 FEATURE = "feature/"
@@ -38,7 +38,7 @@ def expected_red(root: Path, target: str | None, main: str = "origin/main") -> l
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="python -m lockstep_checks.red_phase", description=__doc__.splitlines()[0])
     ap.add_argument("--root", type=Path, default=Path.cwd())
-    ap.add_argument("--target", default=os.environ.get("SYSTEM_PULLREQUEST_TARGETBRANCH", ""))
+    ap.add_argument("--target", default=ci.target_branch())
     ap.add_argument("--main", default="origin/main", help="the branch red tests must never reach")
     args = ap.parse_args(argv)
     try:

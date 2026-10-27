@@ -35,3 +35,25 @@ class Repo:
 @pytest.fixture
 def repo(tmp_path) -> Repo:
     return Repo(tmp_path)
+
+
+CI_ENV = (
+    "TF_BUILD",
+    "SYSTEM_PULLREQUEST_TARGETBRANCH",
+    "SYSTEM_PULLREQUEST_SOURCEBRANCH",
+    "SYSTEM_PULLREQUEST_SOURCECOMMITID",
+    "BUILD_SOURCEBRANCH",
+    "GITHUB_ACTIONS",
+    "GITHUB_BASE_REF",
+    "GITHUB_HEAD_REF",
+    "GITHUB_REF",
+    "GITHUB_EVENT_PATH",
+    "GITHUB_STEP_SUMMARY",
+)
+
+
+@pytest.fixture(autouse=True)
+def no_ci_env(monkeypatch):
+    """Tests run in CI themselves: the runner's own PR variables must not leak into the code under test."""
+    for name in CI_ENV:
+        monkeypatch.delenv(name, raising=False)

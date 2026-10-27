@@ -6,12 +6,13 @@ the PR. Renames are detected so that renaming an existing test counts as touchin
 
 from __future__ import annotations
 
-import os
 import re
 import subprocess
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
+
+from . import ci
 
 
 class GitError(RuntimeError):
@@ -37,14 +38,11 @@ class ChangedFile:
 
 
 def base_ref(arg: str | None, env: Mapping[str, str] | None = None) -> str:
-    """The branch to diff against: --base, then the PR target in Azure Pipelines, then origin/main."""
+    """The branch to diff against: --base, then the PR target in CI, then origin/main."""
     if arg:
         return arg
-    env = os.environ if env is None else env
-    target = env.get("SYSTEM_PULLREQUEST_TARGETBRANCH", "")
-    if target:
-        return "origin/" + target.removeprefix("refs/heads/")
-    return "origin/main"
+    target = ci.target_branch(env)
+    return f"origin/{target}" if target else "origin/main"
 
 
 def changed_files(root: Path, base: str, head: str = "HEAD") -> list[ChangedFile]:

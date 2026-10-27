@@ -1,0 +1,13 @@
+id = "spec-first"
+title = "A short spec with numbered acceptance criteria before code"
+prevents = "The agent builds the wrong thing, or more than was asked, because nobody wrote down what done means."
+kind = "instruction"
+cost = "medium"
+start = "evidence"
+signals = []
+failures = ["built the wrong thing", "scope creep", "rework after review", "requirements misunderstood"]
+review_after_days = 120
+
+[render]
+agents_md = ["For a change in behaviour, write or update a spec in `specs/` with numbered acceptance criteria first, and get a yes."]
+recommend = ["lockstep-core: /spec"]

@@ -1,0 +1,13 @@
+id = "baseline-pin"
+title = "Pin existing behaviour with passing tests before changing it"
+prevents = "An agent changes legacy code nobody understood and silently breaks behaviour that callers rely on."
+kind = "instruction"
+cost = "medium"
+start = "evidence"
+signals = ["no_tests"]
+failures = ["broke existing behaviour", "regression in legacy code", "nobody knew what the code did"]
+review_after_days = 180
+
+[render]
+agents_md = ["Before you change code without tests, pin what it does today with tests that pass now."]
+recommend = ["lockstep-core: baseline"]

@@ -1,0 +1,13 @@
+id = "dbt-impact"
+title = "Check downstream impact before changing a dbt model"
+prevents = "A model change breaks downstream models, dashboards or consumers outside dbt."
+kind = "instruction"
+cost = "medium"
+start = "evidence"
+signals = ["dbt"]
+failures = ["broke a downstream model", "dashboard broke after a model change", "contract change not versioned"]
+review_after_days = 120
+
+[render]
+agents_md = ["Before changing a dbt model, list its downstream models and consumers and say which change."]
+recommend = ["lockstep-data: dbt-impact"]

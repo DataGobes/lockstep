@@ -1,0 +1,15 @@
+{
+  "name": "lockstep-seed",
+  "description": "Grow a team's agentic workflow instead of adopting a fixed one: seed the smallest safe setup from the repo and a short interview, then add or remove one practice per observed failure, with every change logged.",
+  "version": "0.1.0",
+  "author": {
+    "name": "DataGobes"
+  },
+  "repository": "https://github.com/DataGobes/lockstep",
+  "keywords": [
+    "lockstep",
+    "workflow",
+    "agents-md",
+    "bootstrap"
+  ]
+}

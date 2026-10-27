@@ -5,7 +5,7 @@ Run [`/lockstep`](lockstep.md) when unsure which one comes next.
 
 | Step | Skill |
 |---|---|
-| Set up a repo | [bootstrap-repo](bootstrap-repo.md) |
+| Set up a repo | [bootstrap-repo](bootstrap-repo.md), or grow a smaller workflow: [seed-workflow](seed-workflow.md), [grow-workflow](grow-workflow.md) |
 | Write the spec | [spec](spec.md) |
 | Lock the tests | [tests-first](tests-first.md), [eval-case](eval-case.md) |
 | Build it | [implement](implement.md), [dbt-impact](dbt-impact.md) |

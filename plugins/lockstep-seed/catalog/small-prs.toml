@@ -1,0 +1,12 @@
+id = "small-prs"
+title = "Keep agent PRs small enough to review"
+prevents = "Agent PRs are too big to review properly, so they are skimmed and approved, or stall."
+kind = "instruction"
+cost = "low"
+start = "evidence"
+signals = []
+failures = ["PR too big to review", "review stalled", "rubber-stamp approvals"]
+review_after_days = 120
+
+[render]
+agents_md = ["Keep a PR under about 400 changed lines, tests excluded; split the work and say how."]

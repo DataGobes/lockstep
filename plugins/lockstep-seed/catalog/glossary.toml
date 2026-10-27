@@ -1,0 +1,23 @@
+id = "glossary"
+title = "A glossary of business terms the code doesn't explain"
+prevents = "The agent reads a business term differently from the team (\"active customer\", \"net revenue\") and computes the wrong thing."
+kind = "instruction"
+cost = "low"
+start = "evidence"
+signals = ["dbt", "lang_sql"]
+failures = ["wrong metric definition", "misread a business term", "numbers didn't match the report"]
+review_after_days = 180
+
+[render]
+agents_md = ["Look up business terms in `GLOSSARY.md`; if a term isn't there, ask instead of guessing, then add it."]
+
+[render.create]
+"GLOSSARY.md" = """# Glossary
+
+Business terms the code doesn't explain. One entry per term; add one whenever an agent or a person had to ask.
+
+## <Term>
+Means: <one sentence, with the rule: which rows, which period>.
+Not: <what people often confuse it with>.
+Source: <the model, report or person that owns it>.
+"""

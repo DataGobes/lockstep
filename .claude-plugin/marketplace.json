@@ -28,6 +28,13 @@
       "keywords": ["lockstep", "evals", "llm", "golden-dataset"]
     },
     {
+      "name": "lockstep-seed",
+      "source": "./plugins/lockstep-seed",
+      "description": "Experimental. Grow a team's agentic workflow instead of adopting a fixed one: seed the smallest safe setup from the repo and a short interview, then add or remove one practice per observed failure, with every change logged.",
+      "version": "0.1.0",
+      "keywords": ["lockstep", "workflow", "agents-md", "bootstrap"]
+    },
+    {
       "name": "copilot-review-instructions",
       "source": "./plugins/copilot-review-instructions",
       "description": "Generate and maintain repo-specific Copilot code review instructions (.github/copilot-instructions.md and path-scoped *.instructions.md) on top of project-wide rules.",

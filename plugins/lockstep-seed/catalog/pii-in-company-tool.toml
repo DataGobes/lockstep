@@ -1,0 +1,13 @@
+id = "pii-in-company-tool"
+title = "Work on personal data only in the approved company tool"
+prevents = "Personal data is processed by a tool the company has not approved for it."
+kind = "instruction"
+cost = "low"
+start = "risk"
+signals = []
+answers = ["pii"]
+failures = ["personal data sent to an unapproved tool"]
+review_after_days = 365
+
+[render]
+agents_md = ["If a change touches personal data and you are not the company-approved assistant, stop and say so."]

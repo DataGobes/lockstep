@@ -1,0 +1,13 @@
+id = "tests-first-red"
+title = "Tests are written and shown failing before the code"
+prevents = "Tests written after the code pass trivially and test what was built, not what was asked."
+kind = "instruction"
+cost = "medium"
+start = "evidence"
+signals = ["has_tests"]
+failures = ["tests always pass", "tests mirror the implementation", "bug slipped past green tests"]
+review_after_days = 120
+
+[render]
+agents_md = ["Write the tests for a criterion first and show them failing for the right reason before you write code."]
+recommend = ["lockstep-core: /tests-first"]

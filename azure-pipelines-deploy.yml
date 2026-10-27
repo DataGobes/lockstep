@@ -1,0 +1,44 @@
+# Deploy pipeline for a Lockstep product repo. Save as azure-pipelines-deploy.yml in the repo root and create a
+# pipeline from it. It runs on every merge to main: staging first, then prod through the prod environment's approval.
+#
+# Before the first run, in Azure DevOps:
+#   - Pipelines > Environments: create <repo>-staging and <repo>-prod. On <repo>-prod add an Approvals check with one
+#     approver group, and untick "Allow approvers to approve their own runs".
+#   - Pipelines > Library: variable groups lockstep-staging and lockstep-prod with DATABRICKS_HOST,
+#     DATABRICKS_HTTP_PATH and DATABRICKS_TOKEN (secret) for a deploy service principal per environment.
+# Agents never deploy to prod: the guard_bash hook blocks it locally, and only this pipeline does it.
+
+trigger:
+  branches:
+    include: [main]
+pr: none
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+  - stage: staging
+    displayName: Staging
+    variables:
+      - group: lockstep-staging
+    jobs:
+      - template: .lockstep/pipelines/lockstep-deploy.yml
+        parameters:
+          target: staging
+          environment: <repo>-staging
+          smokeCommand: uv run pytest tests/smoke
+          evalCommand: ""   # e.g. uv run python -m evals.run --thresholds evals/thresholds.yml
+
+  - stage: prod
+    displayName: Prod
+    dependsOn: staging
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    variables:
+      - group: lockstep-prod
+    jobs:
+      - template: .lockstep/pipelines/lockstep-deploy.yml
+        parameters:
+          target: prod
+          environment: <repo>-prod
+          smokeCommand: uv run pytest tests/smoke
+          publishState: true

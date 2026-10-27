@@ -1,0 +1,191 @@
+"""Fail a PR that changes code without a spec, unless it is a chore or a bugfix.
+
+Spec-first only holds if CI enforces it: the ``implement`` skill checks the spec
+locally, but only when the agent uses it. Changes under ``[lanes] no_spec_needed``
+(specs, docs) never need one. Any other change must be on one of these lanes:
+
+  feature/<id>-   the spec is tests-locked (or implemented); the PR into main sets it implemented, so a merged spec
+                  never reads as still to do (a warning when run locally, an error in the PR pipeline)
+  test/<id>-      the spec is approved or tests-locked; the test PR adds stubs and merges into feature/<id>-.
+                  A [test-change] PR uses test/<id>-<slug>-<what> too, into the feature branch while the spec is
+                  built, into main once it is implemented.
+                  By default the spec arrives in this PR too, reviewed with its tests. A spec over the
+                  [specs] thresholds (spec_pr_above_criteria, spec_pr_for) needs its own spec PR first.
+  spec/<id>-      specs and docs only, for a spec that needs a spec PR first; code waits for the test PR
+  baseline/<id>-  a baseline spec (kind: baseline) pins behaviour the code already has: tests, specs and docs only,
+                  and the spec is implemented once its tests are in (they pass on today's code)
+  bugfix/, hotfix/  a bug report under ``bug_reports_dir`` and a new regression test
+  chore/          no spec; dependency bumps, config and tooling, no behaviour change
+
+The chore exemption and the bug lane follow SDTRD (Fast-Track Protocol, Gates B1 to B3).
+"""
+
+from __future__ import annotations
+
+import os
+
+from .cli import PrContext, main_for
+from .config import Config
+from .gitdiff import ChangedFile, changed_files
+from .paths import matches, matches_any
+from .report import Finding
+from .spec import Resolution, resolve_spec
+from .spec_pr import reasons
+from .status import LOCKED_STATES
+
+# test/ with an implemented spec: a [test-change] PR into main for tests that have shipped.
+_ALLOWED = {"test": ("approved", *LOCKED_STATES), "feature": LOCKED_STATES}
+BASELINE = "baseline"
+
+
+def check_spec_required(
+    files: list[ChangedFile], branch: str | None, spec: Resolution, cfg: Config, into_main: str | None = None
+) -> list[Finding]:
+    """``into_main``: "error" or "warning" when the PR goes into main rather than into a feature branch, else None."""
+    lanes = cfg.lanes
+    code = [f.path for f in files if f.status != "D" and not matches_any(f.path, lanes.no_spec_needed)]
+    if not code:
+        return []
+    branch = branch or ""
+    first = code[0] + (f" and {len(code) - 1} more" if len(code) > 1 else "")
+    if branch.startswith(lanes.chore):
+        return []
+    if branch.startswith(lanes.bugfix):
+        return _bug_lane(files, cfg)
+    if spec.state == "no-match" and branch.startswith(f"{BASELINE}/"):
+        return [Finding("error", f"branch_pattern in lockstep.toml does not match {branch}; add '{BASELINE}' to it")]
+    if spec.state == "no-match":
+        lane_list = ", ".join((*lanes.bugfix, *lanes.chore))
+        return [
+            Finding(
+                "error",
+                f"changes code ({first}) on a branch with no spec. Use feature/<id>- for a tests-locked spec, "
+                f"or one of {lane_list} for a bug or a chore",
+            )
+        ]
+    if spec.state == "missing":
+        return [
+            Finding("error", f"branch names spec {spec.spec_id} but {cfg.specs_dir}/{spec.spec_id}-*/ does not exist")
+        ]
+    kind = branch.split("/", 1)[0]
+    status = spec.status.status if spec.status else None
+    where = f"{cfg.specs_dir}/{spec.spec_dir.name}/status.yml" if spec.spec_dir else None
+    if kind == "spec":
+        return [Finding("error", f"a spec PR changes only specs and docs; {first} belongs in the test or feature PR")]
+    if kind == BASELINE:
+        return _baseline_lane(code, spec, status, where, cfg)
+    if spec.status and spec.status.baseline:
+        return [
+            Finding(
+                "error",
+                f"spec {spec.spec_id} is a baseline (it pins existing behaviour); its tests go on "
+                f"{BASELINE}/{spec.spec_dir.name}, and new behaviour needs its own change spec",
+                path=where,
+            )
+        ]
+    allowed = _ALLOWED.get(kind, _ALLOWED["feature"])
+    if status not in allowed:
+        return [
+            Finding(
+                "error",
+                f"spec {spec.spec_id} is {status}; a {kind} PR that changes code needs it {' or '.join(allowed)}",
+                path=where,
+            )
+        ]
+    if kind == "test" and spec.spec_dir is not None:
+        return _spec_in_test_pr(files, spec, cfg)
+    if kind == "feature" and into_main and status == "tests-locked":
+        return [
+            Finding(
+                into_main,
+                f"spec {spec.spec_id} is still tests-locked; as the last commit before the PR into main, set "
+                "status: implemented, so once this merges /lockstep shows the spec as done",
+                path=where,
+            )
+        ]
+    return []
+
+
+def _spec_in_test_pr(files: list[ChangedFile], spec: Resolution, cfg: Config) -> list[Finding]:
+    """A test PR that adds its own spec: the default one-PR flow, unless the spec crosses a [specs] threshold."""
+    rel = f"{cfg.specs_dir}/{spec.spec_dir.name}/spec.md"
+    if not any(f.path == rel and f.status == "A" for f in files):
+        return []
+    try:
+        text = (spec.spec_dir / "spec.md").read_text(encoding="utf-8")
+    except OSError:
+        return []  # the traceability check reports a missing spec.md
+    why = reasons(text, spec.status, cfg)
+    if not why:
+        return []
+    return [
+        Finding(
+            "error",
+            f"spec {spec.spec_id} arrives in this test PR, but it needs a spec PR of its own first: {'; '.join(why)}. "
+            f"Move the spec to spec/{spec.spec_dir.name} and open that PR into main; the tests follow once it merges",
+            path=rel,
+        )
+    ]
+
+
+def _baseline_lane(code: list[str], spec: Resolution, status: str | None, where: str | None, cfg: Config):
+    if not (spec.status and spec.status.baseline):
+        return [
+            Finding(
+                "error",
+                f"spec {spec.spec_id} is not a baseline; set 'kind: baseline' in status.yml, or use feature/ for new "
+                "behaviour",
+                path=where,
+            )
+        ]
+    product = [p for p in code if not matches_any(p, cfg.protect.globs)]
+    if product:
+        more = f" and {len(product) - 1} more" if len(product) > 1 else ""
+        return [
+            Finding(
+                "error",
+                f"a baseline PR pins behaviour the code already has, so it changes only tests, specs and docs; "
+                f"{product[0]}{more} belongs in a feature, bugfix or chore PR",
+            )
+        ]
+    if status != "implemented":
+        return [
+            Finding(
+                "error",
+                f"spec {spec.spec_id} is {status}; once its tests pass on today's code, set status: implemented and "
+                "locked_at_commit to the commit that added them, in this PR",
+                path=where,
+            )
+        ]
+    return []
+
+
+def _bug_lane(files: list[ChangedFile], cfg: Config) -> list[Finding]:
+    reports = cfg.lanes.bug_reports_dir.rstrip("/")
+    findings = []
+    # _template.md is the blank template, not a report.
+    is_report = [matches(f.path, f"{reports}/*.md") and not f.path.endswith("/_template.md") for f in files]
+    if not any(f.status != "D" and ok for f, ok in zip(files, is_report, strict=True)):
+        findings.append(
+            Finding("error", f"a bugfix PR needs its bug report: add {reports}/<KEY>-<slug>.md from the template")
+        )
+    if not any(f.status == "A" and matches_any(f.path, cfg.protect.globs) for f in files):
+        findings.append(Finding("error", "a bugfix PR needs a new regression test file that failed before the fix"))
+    return findings
+
+
+def _into_main(base: str) -> str | None:
+    """An error in a PR build into main; a warning locally, where the implementation may still be under way."""
+    if base.removeprefix("origin/").startswith("feature/"):
+        return None
+    return "error" if os.environ.get("SYSTEM_PULLREQUEST_TARGETBRANCH") else "warning"
+
+
+def _run(ctx: PrContext) -> list[Finding]:
+    files = changed_files(ctx.root, ctx.base)
+    spec = resolve_spec(ctx.root, ctx.branch, ctx.cfg)
+    return check_spec_required(files, ctx.branch, spec, ctx.cfg, _into_main(ctx.base))
+
+
+if __name__ == "__main__":
+    main_for("check_spec_required", __doc__.splitlines()[0], _run)

@@ -1,0 +1,57 @@
+# Lockstep PR checks for Azure Pipelines: a steps template.
+# A product repo gets this file with the rest of core/ in .lockstep/ and includes it from
+# its PR pipeline (see templates/azure-pipelines-pr.yml in the Lockstep repo):
+#
+#   steps:
+#     - template: .lockstep/pipelines/lockstep-pr.yml
+#
+# Azure Repos ignores `pr:` triggers in YAML. Run the pipeline from a branch policy on main
+# (Build validation), and make it required so a red check blocks the merge.
+
+parameters:
+  - name: lockstepDir
+    displayName: Folder that holds the Lockstep core, relative to the repo root
+    type: string
+    default: .lockstep
+  - name: pythonVersion
+    type: string
+    default: "3.11"
+  - name: checks
+    displayName: Checks to run, in this order
+    type: object
+    default: [pr_size, jira_key, spec_required, test_tamper, ac_traceability, review_rules, living_specs, team_rules]
+
+steps:
+  # The checks diff against the target branch, so they need full history, not the default shallow clone.
+  - checkout: self
+    fetchDepth: 0
+    fetchTags: false
+
+  - task: UsePythonVersion@0
+    displayName: "Lockstep: use Python ${{ parameters.pythonVersion }}"
+    inputs:
+      versionSpec: ${{ parameters.pythonVersion }}
+
+  # Sets LOCKSTEP_PR_TITLE for the checks. The title is only ever read from the environment,
+  # never pasted into a script with $(...), so a title cannot inject commands.
+  - script: python -m lockstep_checks.ado_pr_title
+    displayName: "Lockstep: read PR title"
+    env:
+      PYTHONPATH: $(Build.SourcesDirectory)/${{ parameters.lockstepDir }}/src
+      SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+
+  # Every check runs even when an earlier one fails, so the author sees all findings at once.
+  - ${{ each check in parameters.checks }}:
+      - script: python -m lockstep_checks.check_${{ check }}
+        displayName: "Lockstep: ${{ check }}"
+        condition: succeededOrFailed()
+        env:
+          PYTHONPATH: $(Build.SourcesDirectory)/${{ parameters.lockstepDir }}/src
+          LOCKSTEP_EVIDENCE_DIR: $(Build.ArtifactStagingDirectory)/lockstep-evidence
+
+  # What the checks found, for the trust summary job (trust-summary.yml).
+  - publish: $(Build.ArtifactStagingDirectory)/lockstep-evidence
+    artifact: lockstep-evidence-$(System.JobName)
+    displayName: "Lockstep: publish evidence for the summary"
+    condition: always()
+    continueOnError: true

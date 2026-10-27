@@ -1,0 +1,59 @@
+# PR pipeline for a Lockstep product repo. Save as azure-pipelines-pr.yml in the repo root,
+# create a pipeline from it, then add it to main's branch policy as a required Build validation.
+# Azure Repos ignores the `pr:` key, so the branch policy is what runs it on every PR.
+#
+# Keep the jobs for the repo's tracks and delete the rest (the bootstrap-repo skill does this):
+# data track: dbt and bundle; ai track: evals. The Databricks jobs read DATABRICKS_HOST,
+# DATABRICKS_HTTP_PATH and DATABRICKS_TOKEN from the variable group below; use a CI service
+# principal that has no SELECT on tables with personal data.
+#
+# The summary stage runs after the checks stage whether its jobs passed or failed, and posts one Lockstep summary
+# comment on the PR from the evidence the jobs published (see docs/trust-summary.md). The build service needs
+# "Contribute to pull requests" on the repository for that; it never fails the PR.
+
+trigger: none
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  - group: lockstep-ci   # create it in Pipelines > Library; mark the token as secret
+
+stages:
+  - stage: checks
+    displayName: Checks
+    jobs:
+      - job: lockstep
+        displayName: Lockstep checks
+        timeoutInMinutes: 10
+        steps:
+          - template: .lockstep/pipelines/lockstep-pr.yml
+
+      - job: quality
+        displayName: Lint, types, tests and security
+        timeoutInMinutes: 30
+        steps:
+          - template: .lockstep/pipelines/python-quality.yml
+            parameters:
+              sourceDir: core/src
+              coverage: 80
+
+      # Report only: shows how many mutants the tests catch, never fails the PR. Delete it to skip the extra minutes.
+      - job: mutation
+        displayName: Mutation report
+        timeoutInMinutes: 30
+        steps:
+          - template: .lockstep/pipelines/mutation-report.yml
+            parameters:
+              sourceDir: core/src
+
+  - stage: summary
+    displayName: Lockstep summary
+    dependsOn: checks
+    condition: always()
+    jobs:
+      - job: summary
+        displayName: Lockstep summary on the PR
+        timeoutInMinutes: 10
+        steps:
+          - template: .lockstep/pipelines/trust-summary.yml

@@ -65,54 +65,57 @@ def hook(event: Event) -> Decision:
 
 
 _SEPARATOR = re.compile(r"(\|\||&&|[;|&\n])")
-# Shell that moves a command to a folder this parser doesn't follow: subshells, command substitution, the directory
-# stack, commands that run other shell code, and git's own ways to name another repo or set its config.
-_UNFOLLOWED = re.compile(
-    r"[()`{}]|\$\(|\b(?:pushd|popd|eval|exec|source|builtin|command)\b|(?:^|[;&|\n])\s*\.\s"
-    r"|\b(?:CDPATH|GIT_(?:DIR|WORK_TREE|COMMON_DIR|CONFIG\w*))=|--git-dir\b|--work-tree\b"
-)
+# Syntax that makes the segments below differ from what the shell runs: subshells, groups, command substitution,
+# comments and heredocs.
+_UNFOLLOWED = re.compile(r"[()`{}#]|\$\(|<<")
+# Git commands that change what a later command in the same line works on: HEAD, the config, the worktrees.
+_MOVES_GIT = {"checkout", "switch", "config", "worktree", "init", "clone"}
 
 
 def _history_folders(cmd: str, cwd: Path) -> tuple[list[Path], bool]:
-    """The folder each history-rewriting git command runs in, after any `cd` before it and its own `-C`s, and whether
-    every folder change was one this follows. Only plain `cd <folder> &&` / `;` and git's `-C` are; anything else, and
-    the caller blocks: from a feature branch, the session's own folder says nothing about where the command lands."""
+    """The folder each history-rewriting git command runs in, and whether all of them could be followed. An
+    allowlist, not a denylist: only `cd <folder>` joined by `&&` / `;`, and git commands that don't move HEAD or change
+    config, are trusted before a rewrite. Anything else could have moved it, and the caller blocks: from a feature
+    branch, the session's own folder says nothing about where the command lands."""
     parts = _SEPARATOR.split(cmd)
-    folders, here, followed = [], cwd, not _UNFOLLOWED.search(cmd)
+    folders, here, followed, trusted = [], cwd, not _UNFOLLOWED.search(cmd), True
     for segment, after in zip(parts[0::2], parts[1::2] + [""]):
         try:
             words = shlex.split(segment)
         except ValueError:
             words, followed = segment.split(), False
-        if words[:1] == ["cd"]:
+        if not words:
+            continue
+        if _HISTORY.search(segment):
+            at, _ = _git_command(words, here)
+            followed &= trusted and at is not None
+            folders.append(at or here)
+        elif words[0] == "cd":
             # Only `cd <folder> && ...` or `cd <folder>; ...` carries over to the next command.
             target = _cd_folder(here, words[1]) if len(words) == 2 and after in ("&&", ";", "\n") else None
-            followed &= target is not None
+            trusted &= target is not None
             here = target or here
-        elif "cd" in words:
-            followed = False  # a cd inside shell syntax: `then cd ...`, `time cd ...`
-        elif _HISTORY.search(segment):
-            at = _git_folder(words, here)
-            followed &= at is not None
-            folders.append(at or here)
+        else:
+            at, subcommand = _git_command(words, here)
+            trusted &= at is not None and subcommand not in _MOVES_GIT
     return folders, followed
 
 
-def _git_folder(words: list[str], here: Path) -> Path | None:
-    """The folder a command that starts with git runs in, after its `-C` options applied in order as git does, or None
-    when it doesn't start with git (`bash -c`, `xargs`) or has another option before the subcommand (`-c` can set
-    core.worktree)."""
+def _git_command(words: list[str], here: Path) -> tuple[Path | None, str | None]:
+    """For a command that starts with git: the folder it runs in, after its `-C` options applied in order as git does,
+    and its subcommand. The folder is None when it doesn't start with git (`bash -c`, `xargs`, `FOO=1 git`) or has
+    another option before the subcommand (`-c` can set core.worktree)."""
     if words[:1] != ["git"]:
-        return None
+        return None, None
     i = 1
     while i < len(words) and words[i].startswith("-"):
         if words[i] != "-C" or i + 1 == len(words):
-            return None
+            return None, None
         here = _folder(here, words[i + 1])
         if here is None:
-            return None
+            return None, None
         i += 2
-    return here
+    return here, words[i] if i < len(words) else None
 
 
 def _folder(here: Path, target: str) -> Path | None:

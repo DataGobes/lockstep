@@ -34,7 +34,7 @@ jobs:
           red=$(PYTHONPATH=core/src python -m lockstep_checks.red_phase --target "$TARGET")
           ignore=()
           for f in $red; do ignore+=("--ignore=$f"); done
-          python -m pytest -q "${ignore[@]}" core/tests plugins/lockstep-core plugins/lockstep-data plugins/lockstep-ai tools/tests
+          python -m pytest -q "${ignore[@]}" core/tests plugins/lockstep-core plugins/lockstep-data plugins/lockstep-ai plugins/lockstep-seed tools/tests
           if [ -n "$red" ]; then
             echo "Expected red until the implementation lands:"
             python -m pytest -q $red || true

@@ -1,0 +1,12 @@
+id = "no-invented-apis"
+title = "Check that an API exists before using it"
+prevents = "The agent calls a function, flag or endpoint that does not exist."
+kind = "instruction"
+cost = "low"
+start = "evidence"
+signals = []
+failures = ["invented an API", "hallucinated a function", "used a flag that doesn't exist"]
+review_after_days = 120
+
+[render]
+agents_md = ["Before you call a library function or CLI flag you haven't seen in this repo, check its docs or source."]

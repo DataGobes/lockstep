@@ -1,0 +1,16 @@
+id = "commands"
+title = "Tell the agent the real commands"
+prevents = "The agent guesses how to run the tests, lint or build, and runs the wrong thing or nothing."
+kind = "instruction"
+cost = "low"
+start = "context"
+signals = []
+failures = ["ran the wrong test command", "didn't run the tests", "guessed the build command"]
+review_after_days = 180
+
+[render]
+agents_md = [
+  "Run the tests with `{test}` before you say a change is done.",
+  "Lint with `{lint}`.",
+  "Build with `{build}`.",
+]

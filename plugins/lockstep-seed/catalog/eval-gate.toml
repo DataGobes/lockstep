@@ -1,0 +1,13 @@
+id = "eval-gate"
+title = "Prompt and model changes pass a golden eval set"
+prevents = "A prompt or model change quietly makes answers worse, and nobody notices until users do."
+kind = "mechanical"
+cost = "high"
+start = "evidence"
+signals = ["llm_sdk", "prompts", "evals"]
+failures = ["prompt change made answers worse", "model upgrade regressed", "hallucination in production"]
+review_after_days = 120
+
+[render]
+agents_md = ["A change to a prompt or model setting runs the eval set and reports the score before and after."]
+recommend = ["lockstep-ai: eval-case"]

@@ -1,0 +1,21 @@
+id = "guard-prod"
+title = "Agents never deploy to production"
+prevents = "An agent deploys to, or runs a destructive command against, production."
+kind = "mechanical"
+cost = "low"
+start = "risk"
+signals = ["prod_target", "terraform", "helm"]
+answers = ["prod_reachable"]
+failures = ["agent deployed to prod", "agent ran terraform apply", "agent touched production"]
+review_after_days = 365
+
+[render]
+agents_md = ["Never deploy to production or apply infrastructure changes; a person does that through the pipeline."]
+deny = [
+  "Bash(databricks bundle deploy -t prod*)",
+  "Bash(terraform apply*)",
+  "Bash(terraform destroy*)",
+  "Bash(helm upgrade*prod*)",
+  "Bash(kubectl delete*)",
+]
+ask = ["Bash(git push*)"]

@@ -1,0 +1,12 @@
+id = "review-rules"
+title = "Turn repeated review comments into rules the reviewer bot applies"
+prevents = "People leave the same review comment on agent PRs again and again."
+kind = "instruction"
+cost = "low"
+start = "evidence"
+signals = []
+failures = ["same review comment again", "reviewer keeps correcting the same thing"]
+review_after_days = 120
+
+[render]
+recommend = ["copilot-review-instructions"]

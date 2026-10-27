@@ -8,6 +8,11 @@ tag the merge commit `v<version>`.
 
 ## Unreleased
 
+- New, experimental plugin `lockstep-seed` (0.1.0): instead of one workflow for every team, `/seed-workflow` probes
+  the repo, interviews the team and sets up the smallest safe workflow (a fixed core plus only the practices the repo's
+  risks or the team's observed failures justify); `/grow-workflow` adds or removes one practice per failure, and every
+  change is logged in `.workflow/ledger.jsonl`. Practices are TOML files in a layered catalogue. Design:
+  `docs/seed/architecture.md`.
 - `lockstep-checks` runs in GitHub Actions as well as Azure Pipelines: the checks read the PR's target branch, source
   branch and head commit from either system's variables (one module, `ci.py`), and findings show as GitHub annotations.
   New workflow template `templates/github-actions-pr.yml`. First step towards running Lockstep on SDTRD repos.

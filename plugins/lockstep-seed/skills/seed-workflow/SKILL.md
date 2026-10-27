@@ -39,9 +39,14 @@ Write the answers to `answers.toml` in the scratch folder (not the repo), in the
 python3 ../../scripts/compose.py plan --root <repo> --answers <answers.toml>
 ```
 
+If the interview turned up a risk, fact or failure that passes the start rule and no catalogue practice covers it,
+write a practice for it first, as SEED.md section 2 ("When nothing in the catalogue fits") describes, in
+`.workflow/practices/<id>.toml` with `authored_by = "agent"`, and re-run `plan`.
+
 Show the person the proposal it prints: the practices to start with and why, the ones left for later, and the exact
 `AGENTS.md` block. Then ask them to edit it: drop a practice (add it to `[[decline]]` with their reason), add one
-they have evidence for, or correct a command. Re-run `plan` after each change. If it reports over budget, remove
+they have evidence for, or correct a command. Point out each practice marked agent-written and ask them to read its
+lines word for word. Re-run `plan` after each change. If it reports over budget, remove
 something; never raise the budget.
 
 Stop until the person says yes to the proposal.

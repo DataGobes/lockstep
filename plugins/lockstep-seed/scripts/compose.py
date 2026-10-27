@@ -35,6 +35,8 @@ BEGIN = "<!-- seed:begin: generated from .workflow/workflow.toml; change it with
 END = "<!-- seed:end -->"
 MAX_LINES = 40
 MAX_PRACTICES = 5
+MAX_AUTHORED = 2  # practices the agent wrote itself, at seeding
+MAX_AUTHORED_LINES = 2
 STARTS = {"risk", "context", "evidence"}
 CORE_LINES = [
     "Tests listed in `.workflow/locks.toml` are locked: never edit one to make code pass. If it looks wrong, stop and say so.",
@@ -73,9 +75,34 @@ def load_catalog(layers: list[Path]) -> dict[str, dict]:
                     raise ComposeError(f"{f}: missing `{key}`")
             if p["start"] not in STARTS:
                 raise ComposeError(f"{f}: start must be one of {sorted(STARTS)}")
+            if p.get("authored_by") == "agent":
+                check_authored(f, p, catalog)
             p["_layer"] = str(layer)
+            p["_file"] = str(f)
             catalog[p["id"]] = p
     return catalog
+
+
+def check_authored(f: Path, p: dict, catalog: dict[str, dict]) -> None:
+    """A practice the agent wrote is held to SEED.md section 2b: new id, a named failure, one or two short lines."""
+    if p["id"] in catalog:
+        raise ComposeError(
+            f"{f}: agent-written practice reuses the id {p['id']!r}; give it a new id, and decline the shipped one "
+            "if it should not apply"
+        )
+    if not p.get("failures"):
+        raise ComposeError(f"{f}: agent-written practice needs `failures`: what goes wrong without it")
+    lines = p.get("render", {}).get("agents_md", [])
+    if len(lines) > MAX_AUTHORED_LINES:
+        raise ComposeError(
+            f"{f}: agent-written practice has {len(lines)} AGENTS.md lines; at most {MAX_AUTHORED_LINES}"
+        )
+    if not lines and not any(p.get("render", {}).get(k) for k in ("deny", "ask", "create")):
+        raise ComposeError(f"{f}: agent-written practice renders nothing")
+
+
+def authored(p: dict) -> bool:
+    return p.get("authored_by") == "agent"
 
 
 def layers(root: Path, extra: list[Path]) -> list[Path]:
@@ -112,7 +139,7 @@ def plan(profile: dict, answers: dict, catalog: dict[str, dict]) -> dict:
         if reason and pid in declined:
             candidates.append({"id": pid, "why": f"declined by the team: {declined[pid] or 'no reason given'}"})
         elif reason:
-            selected.append({"id": pid, "reason": reason, "source": source})
+            selected.append({"id": pid, "reason": reason, "source": source, "authored": authored(p)})
         elif relevant:
             candidates.append({"id": pid, "why": "add when the team sees: " + "; ".join(p.get("failures", [])[:2])})
     return {"selected": selected, "candidates": candidates, "declined": declined}
@@ -155,6 +182,12 @@ def budget_errors(workflow: dict, catalog: dict) -> list[str]:
     seeded = [p for p in workflow["practice"] if p.get("source") != "grow"]
     if len(seeded) > MAX_PRACTICES:
         errors.append(f"{len(seeded)} practices at seeding; the budget is {MAX_PRACTICES}. More means guessing.")
+    mine = [p["id"] for p in seeded if authored(catalog.get(p["id"], {}))]
+    if len(mine) > MAX_AUTHORED:
+        errors.append(
+            f"{len(mine)} agent-written practices at seeding ({', '.join(mine)}); the budget is {MAX_AUTHORED}. "
+            "Prefer a catalogue practice, or wait for evidence."
+        )
     return errors
 
 
@@ -332,6 +365,11 @@ def proposal(profile: dict, result: dict, catalog: dict, workflow: dict) -> str:
     for s in result["selected"]:
         p = catalog[s["id"]]
         out.append(f"- **{s['id']}**: {p['title']}. Why: {s['reason']} ({s['source']}). Cost: {p.get('cost', '?')}.")
+        if s.get("authored"):
+            rel = Path(p["_file"]).name
+            out.append(
+                f"  - Agent-written ({REPO_CATALOG.as_posix()}/{rel}): not in the shared catalogue; review its wording."
+            )
     out += ["", "## Not yet (add when the failure shows up)", ""]
     out += [f"- {c['id']}: {c['why']}" for c in result["candidates"]] or ["- none"]
     lines = agents_lines(workflow, catalog)
@@ -351,7 +389,9 @@ def initial_workflow(profile: dict, result: dict) -> dict:
         "core": dict(DEFAULT_CORE),
         "commands": profile["commands"],
         "practice": [
-            {"id": s["id"], "source": s["source"], "reason": s["reason"], "added": today} for s in result["selected"]
+            {"id": s["id"], "source": s["source"], "reason": s["reason"], "added": today}
+            | ({"authored_by": "agent"} if s.get("authored") else {})
+            for s in result["selected"]
         ],
     }
 
@@ -386,7 +426,8 @@ def main(argv: list[str] | None = None) -> int:
             write_workflow(root, workflow)
             log(root, "seed", "*", "first seeding", baseline=profile["history"], signals=profile["signals"], by=args.by)
             for p in workflow["practice"]:
-                log(root, "add", p["id"], p["reason"], source=p["source"], by=args.by)
+                mark = {"authored_by": "agent"} if p.get("authored_by") else {}
+                log(root, "add", p["id"], p["reason"], source=p["source"], by=args.by, **mark)
             for c in result["candidates"]:
                 if c["id"] in result["declined"]:
                     log(root, "decline", c["id"], result["declined"][c["id"]] or "declined at seeding", by=args.by)
@@ -403,6 +444,7 @@ def main(argv: list[str] | None = None) -> int:
                     raise ComposeError(f"{args.practice} is already part of the workflow")
                 workflow["practice"].append(
                     {"id": args.practice, "source": "grow", "reason": args.reason.strip(), "added": now()[:10]}
+                    | ({"authored_by": "agent"} if authored(catalog[args.practice]) else {})
                 )
             elif args.command == "remove":
                 if args.practice not in ids or not args.reason.strip():
@@ -411,7 +453,8 @@ def main(argv: list[str] | None = None) -> int:
             notes = render(root, workflow, catalog, set(workflow.get("signals", [])))
             if args.command != "render":
                 write_workflow(root, workflow)
-                log(root, args.command, args.practice, args.reason.strip(), evidence=args.evidence, by=args.by)
+                mark = {"authored_by": "agent"} if authored(catalog.get(args.practice, {})) else {}
+                log(root, args.command, args.practice, args.reason.strip(), evidence=args.evidence, by=args.by, **mark)
                 print(f"{args.command}: {args.practice}; logged in {LEDGER}")
             else:
                 print("rendered from " + str(CONFIG))

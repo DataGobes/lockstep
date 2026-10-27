@@ -9,14 +9,18 @@ that an agent reads before it sets up a team's agentic workflow. The agent looks
 decisions, and proposes the **smallest** setup that is safe. Everything else is added later, one practice at a time,
 when the team sees a failure that the practice prevents. Every addition and removal is logged with its reason.
 
-Three rules keep it honest:
+Four rules keep it honest:
 
 1. **Minimal start, human-curated.** The agent proposes; a person edits and approves. Research on AI-written context
    files shows they make agents worse, so the generated instructions block has a hard line budget, and holds only
    what the agent cannot find out itself (commands, irreversible risks).
 2. **A small fixed core.** Three things every team gets, untailored, so teams can be compared and lessons carried
    across: criteria become tests, agents cannot edit locked tests, and every workflow change is logged.
-3. **Measured.** Seeding records a baseline from git history (reverts, fix commits, test changes). Each later change
+3. **The catalogue is examples, not a fence.** The agent picks from the catalogue first. When this team has a risk,
+   fact or failure that nothing in it covers, the agent writes a practice for it in the same format, held to the same
+   start rule plus extra limits (new id, a named failure, at most two lines, at most two such practices at seeding).
+   The proposal and the ledger mark it as agent-written so a person reviews the wording.
+4. **Measured.** Seeding records a baseline from git history (reverts, fix commits, test changes). Each later change
    cites the failure that caused it, so a team can see whether its workflow is paying for itself.
 
 ## Moving parts

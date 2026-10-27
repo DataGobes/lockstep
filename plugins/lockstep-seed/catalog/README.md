@@ -13,5 +13,6 @@ One TOML file per practice. The engine (`scripts/compose.py`) reads every `*.tom
 | `signals` | Probe signals that make it relevant; any one is enough. Empty means always relevant. |
 | `answers` | Interview answers (true/false) that also make it apply, e.g. `pii`. |
 | `failures` | Short phrases describing the failures it prevents, for the grow skill to match against. |
+| `authored_by` | `"agent"` for a practice the agent wrote for one repo (`.workflow/practices/` only). It must have a new id, `failures`, and at most two `agents_md` lines; at most two are allowed at seeding, and the proposal and ledger mark them for review. |
 | `review_after_days` | When the grow skill should ask whether it still earns its place. |
 | `[render]` | What it writes: `agents_md` lines, `deny` / `ask` permission rules, `recommend` (skills to install), and `create` (starter files, written only if missing). Lines may use `{test}`, `{lint}`, `{build}` from the probe's commands; a line whose command is unknown is dropped. |

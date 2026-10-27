@@ -10,6 +10,8 @@ day one. It only runs when you type it.
 **Common questions.**
 - *Why so little?* Instructions an agent doesn't need make it worse. Each practice is added when a failure shows it
   is needed, with `/grow-workflow`.
+- *Does it only pick from a fixed list?* It picks from the catalogue first. When nothing there covers something the
+  team needs, it writes a practice for this repo, at most two at setup, marked as agent-written for you to review.
 - *What can't we turn off?* The fixed core: criteria become tests, agents can't edit locked tests, and workflow changes
   are logged. It is what makes teams comparable.
 - *Is it Lockstep?* Lockstep's skills are practices in its catalogue that a team grows into. See

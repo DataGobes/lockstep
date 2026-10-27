@@ -29,8 +29,8 @@ Read the `prevents` and `failures` fields of every file in `../../catalog/` and 
 practice whose `prevents` names the cause, not the symptom. Prefer `kind = "mechanical"` when the mistake is always
 wrong. Show the person the practice, its cost and the exact lines it would add to `AGENTS.md`.
 
-No practice fits? Write one in `.workflow/practices/<id>.toml`, in the format of `../../catalog/README.md`, with one
-`agents_md` line at most. Tell the person that if other teams write the same one, it belongs in the shared catalogue.
+No practice fits? Write one in `.workflow/practices/<id>.toml`, in the format of `../../catalog/README.md`, with
+`authored_by = "agent"` and one `agents_md` line at most. Tell the person that if other teams write the same one, it belongs in the shared catalogue.
 
 ## 4. Apply it
 

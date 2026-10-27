@@ -27,11 +27,26 @@ At seeding time, add a practice only when one of these holds:
 Everything else waits. "It's best practice" is not evidence. When in doubt, leave it out and write it down as a
 candidate in the proposal.
 
+### When nothing in the catalogue fits
+
+The catalogue is a set of examples, not a fence. If this team has a risk, a fact or a failure that passes the rule
+above and no catalogue practice covers it, write a practice for it in `.workflow/practices/<id>.toml`, in the
+catalogue's format, with `authored_by = "agent"`. Hold it to the same bar, and more:
+
+- A new id. To change what a shipped practice says, decline it and write your own.
+- `failures` names what goes wrong without it, in the team's words where you have them.
+- At most two `AGENTS.md` lines; prefer a `deny` rule when the mistake is always wrong.
+- At most **two** agent-written practices at seeding. The proposal marks them so a person reviews the wording.
+
+Before writing one, check again that a catalogue practice doesn't already cover the cause; tailoring the commands or
+the answers is usually enough.
+
 ## 3. Budgets
 
 - The generated block in `AGENTS.md` stays under **40 lines**. If a practice would push it over, the proposal must
   remove something first.
-- At most **five** non-core practices at seeding. More means the team is guessing.
+- At most **five** non-core practices at seeding, of which at most two are agent-written. More means the team is
+  guessing.
 - Never generate long prose for the agent. One line per rule, imperative, with the reason in a few words.
 
 ## 4. Grow from observed failures

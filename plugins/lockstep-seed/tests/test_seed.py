@@ -268,3 +268,42 @@ def test_check_core_ledger_is_append_only(repo):
     commit(repo)
     code, out = check(repo, "--base", "base")
     assert code == 1 and "may only be appended to" in out
+
+
+# ---------- agent-written practices at seeding (SEED.md, "When nothing in the catalogue fits") ----------
+
+
+def authored_practice(pid, lines=("Run notebooks on the shared dev cluster, never on prod.",), start="context"):
+    body = "\n".join(f'  "{line}",' for line in lines)
+    return (
+        f'id = "{pid}"\ntitle = "t"\nprevents = "p"\nstart = "{start}"\nauthored_by = "agent"\n'
+        f'failures = ["notebook ran against prod"]\n[render]\nagents_md = [\n{body}\n]\n'
+    )
+
+
+def test_agent_written_practice_is_picked_and_marked(repo, capsys):
+    write(repo, {".workflow/practices/notebook-cluster.toml": authored_practice("notebook-cluster")})
+    assert compose.main(["plan", "--root", str(repo)]) == 0
+    out = capsys.readouterr().out
+    assert "**notebook-cluster**" in out and "Agent-written" in out
+    seed(repo)
+    assert "shared dev cluster" in (repo / "AGENTS.md").read_text()
+    add = [e for e in ledger.events(repo) if e["practice"] == "notebook-cluster"]
+    assert add[0]["authored_by"] == "agent"
+    assert 'authored_by = "agent"' in (repo / ".workflow/workflow.toml").read_text()
+
+
+def test_agent_written_practice_is_held_to_the_bar(repo):
+    write(repo, {".workflow/practices/commands.toml": authored_practice("commands")})
+    with pytest.raises(compose.ComposeError, match="new id"):
+        catalog(repo)
+    write(repo, {".workflow/practices/commands.toml": authored_practice("long", lines=("a", "b", "c"))})
+    with pytest.raises(compose.ComposeError, match="at most 2"):
+        catalog(repo)
+
+
+def test_at_most_two_agent_written_practices_at_seeding(repo):
+    for n in range(3):
+        write(repo, {f".workflow/practices/mine-{n}.toml": authored_practice(f"mine-{n}")})
+    assert compose.main(["plan", "--root", str(repo)]) == 1
+    assert compose.main(["apply", "--root", str(repo)]) == 2

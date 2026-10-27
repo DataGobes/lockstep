@@ -25,6 +25,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol, TextIO
 
+from . import ci
 from .cli import TITLE_ENV, config_at
 from .config import Config
 from .evidence import SCHEMA_VERSION
@@ -392,14 +393,10 @@ def _git(root: Path, *args: str) -> str:
     return p.stdout if p.returncode == 0 else ""
 
 
-def _branch_env(env: Mapping[str, str], name: str) -> str:
-    return env.get(name, "").removeprefix("refs/heads/")
-
-
 def build(root: Path, evidence_dir: Path, env: Mapping[str, str]) -> Summary:
     """The summary for the PR the pipeline variables in ``env`` describe. The PR description is never read."""
-    branch = _branch_env(env, "SYSTEM_PULLREQUEST_SOURCEBRANCH") or current_branch(root, env) or ""
-    target = _branch_env(env, "SYSTEM_PULLREQUEST_TARGETBRANCH") or "main"
+    branch = current_branch(root, env) or ""
+    target = ci.target_branch(env) or "main"
     base = f"origin/{target}"
     cfg = config_at(root, base)
     evidence = load_evidence(evidence_dir)

@@ -21,6 +21,9 @@ TRACKS = ("data", "ai")
 MODES = ("warn", "enforce")
 RULE_TARGETS = ("content", "command")
 AC_FORMATS = ("any", "ears", "given-when-then")
+# How specs are laid out and how their status is recorded: "lockstep" (specs/<id>-<slug>/spec.md and status.yml) or
+# "sdtrd" (SDTRD's specs/features/<id>-<slug>/specs/<capability>/spec.md, REQ-/NFR- keys, ticked Review Gate boxes).
+SPEC_FORMATS = ("lockstep", "sdtrd")
 # Traits that send a spec through a spec PR of its own before its test PR ([specs] spec_pr_for).
 SPEC_PR_TRIGGERS = ("design", "contract", "pii")
 
@@ -69,6 +72,8 @@ class PrSize:
 class Lanes:
     # Branch prefixes for work that needs no spec. Chores: dependency bumps, config, tooling.
     chore: tuple[str, ...] = ("chore/",)
+    # Branches that build a spec's code: needs the spec tests-locked, and implemented in the PR into main.
+    feature: tuple[str, ...] = ("feature/",)
     # The bug lane: a bug report and a new regression test, then the fix, in one PR.
     bugfix: tuple[str, ...] = ("bugfix/", "hotfix/")
     bug_reports_dir: str = "specs/bug-reports"
@@ -78,6 +83,8 @@ class Lanes:
 
 @dataclass(frozen=True)
 class Specs:
+    # Spec layout and status: "lockstep" or "sdtrd" (see SPEC_FORMATS). sdtrd reads SDTRD repos as they are.
+    format: str = "lockstep"
     # How acceptance criteria are written: "ears" (WHEN ... THE SYSTEM SHALL ...), "given-when-then" (GIVEN, WHEN and
     # THEN steps under the criterion), or "any" (either, unchecked). check_ac_traceability holds every spec to it.
     ac_format: str = "any"
@@ -137,7 +144,7 @@ class Enforcement:
 
 @dataclass(frozen=True)
 class Config:
-    core_version: str = "0.4"
+    core_version: str = "0.5"
     specs_dir: str = "specs"
     # Must capture the spec id in a group named "id".
     branch_pattern: str = r"^(?:feature|bugfix|hotfix|test|spec|baseline)/(?P<id>\d{4})-"
@@ -307,8 +314,15 @@ def _validate(path: Path, cfg: Config) -> None:
             f"{path}: tracks must be a non-empty subset of {list(TRACKS)} without duplicates, got {list(cfg.tracks)}"
         )
     lanes = cfg.lanes
-    if set(lanes.chore) & set(lanes.bugfix) or not all(p.endswith("/") for p in (*lanes.chore, *lanes.bugfix)):
-        raise ConfigError(f"{path}: lanes.chore and lanes.bugfix must be distinct branch prefixes ending in '/'")
+    prefixes = (*lanes.chore, *lanes.bugfix, *lanes.feature)
+    if len(set(prefixes)) != len(prefixes) or not lanes.feature or not all(p.endswith("/") for p in prefixes):
+        raise ConfigError(
+            f"{path}: lanes.chore, lanes.bugfix and lanes.feature must be distinct branch prefixes ending in '/'"
+        )
+    if cfg.specs.format not in SPEC_FORMATS:
+        raise ConfigError(f"{path}: specs.format must be one of {', '.join(SPEC_FORMATS)}")
+    if cfg.specs.format == "sdtrd" and cfg.specs.living:
+        raise ConfigError(f"{path}: specs.living generates Lockstep living specs; SDTRD keeps its own, so leave it off")
     if cfg.specs.ac_format not in AC_FORMATS:
         raise ConfigError(f"{path}: specs.ac_format must be one of {', '.join(AC_FORMATS)}")
     if cfg.specs.design_from_criteria < 0:

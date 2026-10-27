@@ -58,19 +58,30 @@ stages:
               red=$(python -m lockstep_checks.red_phase) || exit 1
               ignore=()
               for f in $red; do ignore+=("--ignore=$f"); done
+              # The core reads Azure's build and PR variables. The tests build throwaway repos and must not see this
+              # PR's branch, commit or output format, so pytest runs without them (red_phase above still needed them).
+              # They also run the real checks, which write evidence wherever LOCKSTEP_EVIDENCE_DIR points: pytest gets
+              # a scratch folder, and only its own quality.json is copied into the evidence the summary reads.
+              scratch="$(Agent.TempDirectory)/pytest-evidence"
+              ado=(env -u TF_BUILD -u BUILD_SOURCEBRANCH -u BUILD_REPOSITORY_ID -u SYSTEM_ACCESSTOKEN
+                -u SYSTEM_COLLECTIONURI -u SYSTEM_TEAMPROJECTID -u SYSTEM_PULLREQUEST_PULLREQUESTID
+                -u SYSTEM_PULLREQUEST_SOURCEBRANCH -u SYSTEM_PULLREQUEST_SOURCECOMMITID -u SYSTEM_PULLREQUEST_TARGETBRANCH
+                LOCKSTEP_EVIDENCE_DIR="$scratch")
               status=0
-              python -m pytest -q -p lockstep_checks.pytest_evidence "${ignore[@]}" \
+              "${ado[@]}" python -m pytest -q -p lockstep_checks.pytest_evidence "${ignore[@]}" \
                 --cov=core/src --cov=plugins --cov=tools --cov-report=xml:coverage.xml --junitxml=test-results.xml \
                 core/tests plugins/lockstep-core plugins/lockstep-data plugins/lockstep-ai tools/tests || status=1
               if [ -n "$red" ]; then
                 echo "Red on purpose until the feature branch is implemented (report only):"
-                python -m pytest -q -p lockstep_checks.pytest_evidence -p no:cacheprovider $red \
+                "${ado[@]}" python -m pytest -q -p lockstep_checks.pytest_evidence -p no:cacheprovider $red \
                   || echo "##vso[task.logissue type=warning]Spec tests still red in this PR into a feature branch; expected until the implementation is done"
                 diff-cover coverage.xml --compare-branch="$base" --fail-under=80 --json-report diff-cover.json \
                   || echo "##vso[task.logissue type=warning]Coverage of changed lines below 80%; enforced on the PR into main"
               else
                 diff-cover coverage.xml --compare-branch="$base" --fail-under=80 --json-report diff-cover.json || status=1
               fi
+              mkdir -p "$LOCKSTEP_EVIDENCE_DIR"
+              cp "$scratch/quality.json" "$LOCKSTEP_EVIDENCE_DIR/" || echo "##vso[task.logissue type=warning]pytest wrote no quality evidence"
               python -m lockstep_checks.evidence coverage --report diff-cover.json --minimum 80
               python tools/check_release.py || status=1
               exit $status
@@ -83,7 +94,9 @@ stages:
               LOCKSTEP_EVIDENCE_DIR: $(Build.ArtifactStagingDirectory)/lockstep-evidence
 
           - publish: $(Build.ArtifactStagingDirectory)/lockstep-evidence
-            artifact: lockstep-evidence-$(System.JobName)
+            # A fixed name: $(System.JobName) resolved to __default for this job and the Lockstep job alike, so the
+            # second upload failed and the summary lost the test evidence.
+            artifact: lockstep-evidence-tests
             displayName: "Tests: publish evidence for the summary"
             condition: always()
             continueOnError: true

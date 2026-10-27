@@ -13,6 +13,8 @@ Nothing new goes into `specs/`: Lockstep reads the folders, keys and ticked Revi
 4. Start in warn mode (the profile's default). Switch a check to `enforce` once its numbers say it is right
    ([enforcement modes](enforcement-modes.md)).
 
+To see it on five example PRs, run [`examples/sdtrd-demo/demo.py`](../examples/sdtrd-demo/README.md).
+
 ## What each gate means to Lockstep
 
 | SDTRD | Lockstep reads it as |

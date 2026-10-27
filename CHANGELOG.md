@@ -15,6 +15,8 @@ tag the merge commit `v<version>`.
   `specs/archive/`, REQ-/NFR- keys named by tests (`@REQ-AUTH-1`), status from ticked Review Gate boxes (Gate 2, 4, 6,
   B1). New `[lanes] feature` setting (default `["feature/"]`). Profile `templates/sdtrd/lockstep.toml`, guide
   `docs/sdtrd.md`.
+- `examples/sdtrd-demo/demo.py`: builds a project with SDTRD's `sdtrd init`, adds Lockstep with the SDTRD profile and
+  runs the checks on five PRs (four blocked for different reasons, one clean).
 
 ## 0.4.0
 

@@ -20,8 +20,8 @@ jobs:
         run: |
           ruff check core
           ruff format --check core
-          ruff check --line-length 120 plugins/lockstep-* tools
-          ruff format --check --line-length 120 plugins/lockstep-* tools
+          ruff check --line-length 120 plugins/lockstep-* tools examples
+          ruff format --check --line-length 120 plugins/lockstep-* tools examples
       # Lockstep builds itself the Lockstep way: a PR into a feature branch carries the spec's new tests, red on
       # purpose until the implementation lands. Those files run as a report; every other test must pass, and the PR
       # from the feature branch into main runs everything with nothing excused.

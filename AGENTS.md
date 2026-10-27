@@ -81,6 +81,7 @@ Plain `pip` and `python -m`, as `.github/workflows/ci.yml` runs them; there is n
 ## Lockstep review rules
 
 - Flag a new test that does not name its criterion: `@pytest.mark.ac("<spec>/AC-<n>")`, a dbt unit test named `ac_<spec>_<n>_...`, or `meta: {ac: <spec>/AC-<n>}`.
+- Never offer a code suggestion that edits a test file the spec's `status.yml` has locked (one that existed at `locked_at_commit`), not even to add a criterion tag: accepting it breaks the lock. Comment instead that the change needs a `[test-change]` PR.
 - Flag a test that cannot fail: it only checks that no exception is raised, asserts a constant, compares a value with itself, or mocks the code it tests.
 - Flag a test whose expected value is computed by the code under test or a copy of its logic; expected values come from a literal, a worked example or the spec.
 - Flag implementation code that branches on literal values from test fixtures, or on signs of a test run such as `PYTEST_CURRENT_TEST` or an environment named `test`.

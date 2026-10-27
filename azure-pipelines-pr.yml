@@ -1,11 +1,9 @@
-# PR pipeline for a Lockstep product repo. Save as azure-pipelines-pr.yml in the repo root,
-# create a pipeline from it, then add it to main's branch policy as a required Build validation.
-# Azure Repos ignores the `pr:` key, so the branch policy is what runs it on every PR.
+# PR pipeline for the Lockstep repo itself. Create a pipeline from it, then add it to main's and feature/*'s branch
+# policies as a required Build validation. Azure Repos ignores the `pr:` key, so the branch policy is what runs it.
 #
-# Keep the jobs for the repo's tracks and delete the rest (the bootstrap-repo skill does this):
-# data track: dbt and bundle; ai track: evals. The Databricks jobs read DATABRICKS_HOST,
-# DATABRICKS_HTTP_PATH and DATABRICKS_TOKEN from the variable group below; use a CI service
-# principal that has no SELECT on tables with personal data.
+# Lockstep has no root pyproject.toml or uv.lock, so the template's quality and mutation jobs (which start with
+# `uv sync`) don't fit. The tests job below runs what .github/workflows/ci.yml runs, with the same pinned tools, and
+# publishes evidence the way the quality template does, so the summary comment still shows tests and coverage.
 #
 # The summary stage runs after the checks stage whether its jobs passed or failed, and posts one Lockstep summary
 # comment on the PR from the evidence the jobs published (see docs/trust-summary.md). The build service needs
@@ -15,9 +13,6 @@ trigger: none
 
 pool:
   vmImage: ubuntu-latest
-
-variables:
-  - group: lockstep-ci   # create it in Pipelines > Library; mark the token as secret
 
 stages:
   - stage: checks
@@ -29,23 +24,76 @@ stages:
         steps:
           - template: .lockstep/pipelines/lockstep-pr.yml
 
-      - job: quality
-        displayName: Lint, types, tests and security
+      - job: tests
+        displayName: Lint, tests and coverage
         timeoutInMinutes: 30
         steps:
-          - template: .lockstep/pipelines/python-quality.yml
-            parameters:
-              sourceDir: core/src
-              coverage: 80
+          # diff-cover and red_phase compare with the target branch, so they need full history.
+          - checkout: self
+            fetchDepth: 0
+            fetchTags: false
 
-      # Report only: shows how many mutants the tests catch, never fails the PR. Delete it to skip the extra minutes.
-      - job: mutation
-        displayName: Mutation report
-        timeoutInMinutes: 30
-        steps:
-          - template: .lockstep/pipelines/mutation-report.yml
-            parameters:
-              sourceDir: core/src
+          - task: UsePythonVersion@0
+            displayName: "Tests: use Python 3.11"
+            inputs:
+              versionSpec: "3.11"
+
+          - script: python -m pip install --quiet pytest==9.1.1 ruff==0.17.2 pytest-cov==7.1.0 diff-cover==11.0.0
+            displayName: "Tests: install the pinned tools"
+
+          - script: |
+              ruff check core
+              ruff format --check core
+              ruff check --line-length 120 plugins/lockstep-* tools
+              ruff format --check --line-length 120 plugins/lockstep-* tools
+            displayName: "Tests: ruff"
+
+          # A PR into a feature branch carries the spec's tests red on purpose: the test files the feature branch adds
+          # compared with main run as a report, and changed-line coverage is a warning. The PR into main runs all.
+          - script: |
+              base="origin/${SYSTEM_PULLREQUEST_TARGETBRANCH#refs/heads/}"
+              [ "$base" = "origin/" ] && base=origin/main
+              git config --global user.email ci@example.invalid
+              git config --global user.name "Lockstep CI"
+              red=$(python -m lockstep_checks.red_phase) || exit 1
+              ignore=()
+              for f in $red; do ignore+=("--ignore=$f"); done
+              status=0
+              python -m pytest -q -p lockstep_checks.pytest_evidence "${ignore[@]}" \
+                --cov=core/src --cov=plugins --cov=tools --cov-report=xml:coverage.xml --junitxml=test-results.xml \
+                core/tests plugins/lockstep-core plugins/lockstep-data plugins/lockstep-ai tools/tests || status=1
+              if [ -n "$red" ]; then
+                echo "Red on purpose until the feature branch is implemented (report only):"
+                python -m pytest -q -p lockstep_checks.pytest_evidence -p no:cacheprovider $red \
+                  || echo "##vso[task.logissue type=warning]Spec tests still red in this PR into a feature branch; expected until the implementation is done"
+                diff-cover coverage.xml --compare-branch="$base" --fail-under=80 --json-report diff-cover.json \
+                  || echo "##vso[task.logissue type=warning]Coverage of changed lines below 80%; enforced on the PR into main"
+              else
+                diff-cover coverage.xml --compare-branch="$base" --fail-under=80 --json-report diff-cover.json || status=1
+              fi
+              python -m lockstep_checks.evidence coverage --report diff-cover.json --minimum 80
+              python tools/check_release.py || status=1
+              exit $status
+            displayName: "Tests: pytest, coverage of changed lines (80%) and release metadata"
+            condition: succeededOrFailed()
+            env:
+              # core/src, not the vendored .lockstep/src: the evidence plugin loads before the tests, and the core
+              # tests must import the source they test, not the copy pinned to the last release.
+              PYTHONPATH: $(Build.SourcesDirectory)/core/src
+              LOCKSTEP_EVIDENCE_DIR: $(Build.ArtifactStagingDirectory)/lockstep-evidence
+
+          - publish: $(Build.ArtifactStagingDirectory)/lockstep-evidence
+            artifact: lockstep-evidence-$(System.JobName)
+            displayName: "Tests: publish evidence for the summary"
+            condition: always()
+            continueOnError: true
+
+          - task: PublishTestResults@2
+            displayName: "Tests: publish test results"
+            condition: succeededOrFailed()
+            inputs:
+              testResultsFiles: test-results.xml
+              failTaskOnMissingResultsFile: false
 
   - stage: summary
     displayName: Lockstep summary

@@ -1,0 +1,69 @@
+# Lockstep PR checks for GitHub Actions. Save as .github/workflows/lockstep.yml in a product repo that has the
+# Lockstep core in .lockstep/ (as bootstrap-repo puts it), then make the "Lockstep checks" job a required status
+# check in main's branch protection so a red check blocks the merge.
+#
+# The same checks as the Azure Pipelines template (core/pipelines/lockstep-pr.yml), with the same lockstep.toml.
+# Findings show as annotations on the PR's files; in warn mode a ::notice titled lockstep-would-block-<check> marks
+# what would have blocked. The PR trust summary comment is Azure DevOps only for now.
+
+name: Lockstep
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lockstep:
+    name: Lockstep checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PYTHONPATH: ${{ github.workspace }}/.lockstep/src
+      # Read from the environment only, never pasted into a script, so a PR title cannot inject commands.
+      LOCKSTEP_PR_TITLE: ${{ github.event.pull_request.title }}
+      LOCKSTEP_EVIDENCE_DIR: ${{ runner.temp }}/lockstep-evidence
+    steps:
+      # The checks diff against the target branch, so they need full history, not the default shallow clone.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # Every check runs even when an earlier one fails, so the author sees all findings at once.
+      # Delete the lines for checks the repo doesn't use (jira_key without Jira, review_rules without Copilot).
+      - name: "Lockstep: pr_size"
+        if: ${{ !cancelled() }}
+        run: python -m lockstep_checks.check_pr_size
+      - name: "Lockstep: jira_key"
+        if: ${{ !cancelled() }}
+        run: python -m lockstep_checks.check_jira_key
+      - name: "Lockstep: spec_required"
+        if: ${{ !cancelled() }}
+        run: python -m lockstep_checks.check_spec_required
+      - name: "Lockstep: test_tamper"
+        if: ${{ !cancelled() }}
+        run: python -m lockstep_checks.check_test_tamper
+      - name: "Lockstep: ac_traceability"
+        if: ${{ !cancelled() }}
+        run: python -m lockstep_checks.check_ac_traceability
+      - name: "Lockstep: review_rules"
+        if: ${{ !cancelled() }}
+        run: python -m lockstep_checks.check_review_rules
+      - name: "Lockstep: living_specs"
+        if: ${{ !cancelled() }}
+        run: python -m lockstep_checks.check_living_specs
+      - name: "Lockstep: team_rules"
+        if: ${{ !cancelled() }}
+        run: python -m lockstep_checks.check_team_rules
+
+      - name: "Lockstep: keep the evidence"
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: lockstep-evidence
+          path: ${{ runner.temp }}/lockstep-evidence
+          if-no-files-found: ignore

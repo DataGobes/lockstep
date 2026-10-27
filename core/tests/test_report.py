@@ -54,3 +54,31 @@ def test_pipeline_tags_the_run_so_the_team_can_count():
     out = io.StringIO()
     emit([Finding("warning", "big")], "check_x", env={"TF_BUILD": "True"}, out=out)
     assert "addbuildtag" not in out.getvalue()
+
+
+GITHUB = {"GITHUB_ACTIONS": "true"}
+
+
+def test_github_output_uses_annotations():
+    out = io.StringIO()
+    code = emit([Finding("error", "bad\nline 100%", "tests/a,b.py", 3)], "check_x", env=GITHUB, out=out)
+    assert code == 1
+    assert (
+        out.getvalue().splitlines()[0] == "::error file=tests/a%2Cb.py,line=3,title=lockstep check_x::bad%0Aline 100%25"
+    )
+
+
+def test_github_annotation_without_a_file():
+    out = io.StringIO()
+    emit([Finding("warning", "big")], "check_x", env=GITHUB, out=out)
+    assert out.getvalue().splitlines()[0] == "::warning title=lockstep check_x::big"
+
+
+def test_github_marks_blocked_and_would_block_with_a_notice():
+    out = io.StringIO()
+    emit([Finding("error", "bad")], "check_x", env=GITHUB, out=out)
+    assert "::notice title=lockstep-blocked-x::check_x fired" in out.getvalue()
+    out = io.StringIO()
+    emit(apply_mode([Finding("error", "bad")], "warn"), "check_x", env=GITHUB, out=out)
+    assert "::notice title=lockstep-would-block-x::check_x fired" in out.getvalue()
+    assert "lockstep-blocked-x" not in out.getvalue()

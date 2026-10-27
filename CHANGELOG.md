@@ -8,6 +8,10 @@ tag the merge commit `v<version>`.
 
 ## Unreleased
 
+- `lockstep-checks` runs in GitHub Actions as well as Azure Pipelines: the checks read the PR's target branch, source
+  branch and head commit from either system's variables (one module, `ci.py`), and findings show as GitHub annotations.
+  New workflow template `templates/github-actions-pr.yml`. First step towards running Lockstep on SDTRD repos.
+
 ## 0.4.0
 
 Ready for the first pilot: a trust summary on every PR, baseline specs for existing code, team rules, one spec-and-tests PR

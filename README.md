@@ -94,7 +94,7 @@ the two can never disagree. It starts with:
 
 ### PR checks
 
-Each check runs as `python -m lockstep_checks.<check>` from the repo root, locally or in Azure Pipelines, where
+Each check runs as `python -m lockstep_checks.<check>` from the repo root, locally, in Azure Pipelines or in GitHub Actions, where
 findings show up on the PR with file and line. The checks read `lockstep.toml` from the base branch, so a PR cannot loosen the rules it is
 checked by; only the PR that sets Lockstep up uses its own. Common options: `--base` (default: the PR target branch, else
 `origin/main`) and `--title` (or `$LOCKSTEP_PR_TITLE`; Azure Pipelines has no built-in variable for the PR title).
@@ -154,6 +154,14 @@ staging, then prod, each a deployment job from `core/pipelines/lockstep-deploy.y
 changed since the last prod deploy, smoke tests, evals). Prod waits for the approval on its Azure DevOps environment,
 which must not let the person who merged approve their own run, and publishes the dbt manifest that Slim CI defers to.
 
+
+### GitHub Actions
+
+[`templates/github-actions-pr.yml`](templates/github-actions-pr.yml) runs the same checks with the same
+`lockstep.toml`. Save it as `.github/workflows/lockstep.yml` and make the *Lockstep checks* job a required status check
+on main. The checks read the PR's branches and head commit from GitHub's variables, the title comes from the workflow's
+event, and findings appear as annotations on the PR's files. Warn mode adds a `lockstep-would-block-<check>` notice
+instead of a run tag. The trust summary comment is Azure DevOps only for now.
 ### Templates for a product repo
 
 The `bootstrap-repo` skill copies these and merges them with files the repo already has.

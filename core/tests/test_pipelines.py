@@ -41,3 +41,23 @@ def test_root_pipeline_references_existing_templates_with_known_parameters(root_
         section = re.split(r"- (?:job|stage):", use, maxsplit=1)[0]
         given = set(re.findall(r"^          (\w+):", section, re.MULTILINE))
         assert given <= declared(template.read_text(encoding="utf-8")), f"{name}: {given}"
+
+
+GITHUB_PR = ROOT / "templates" / "github-actions-pr.yml"
+
+
+def test_github_workflow_runs_the_same_checks_as_azure():
+    azure = (ROOT / "core" / "pipelines" / "lockstep-pr.yml").read_text(encoding="utf-8")
+    checks = re.search(r"default: \[([^\]]+)\]", azure.split("name: checks", 1)[1])[1].split(", ")
+    github = GITHUB_PR.read_text(encoding="utf-8")
+    assert re.findall(r"python -m lockstep_checks\.check_(\w+)", github) == checks
+    for check in re.findall(r"^      - name: \"Lockstep: (\w+)\"\n        if: (.+)$", github, re.MULTILINE):
+        assert check[1] == "${{ !cancelled() }}", check[0]
+
+
+def test_github_workflow_never_pastes_the_pr_title_into_a_script():
+    github = GITHUB_PR.read_text(encoding="utf-8")
+    assert "\t" not in github
+    assert "LOCKSTEP_PR_TITLE: ${{ github.event.pull_request.title }}" in github
+    runs = re.findall(r"run: (.+)", github)
+    assert runs and not any("${{" in r for r in runs)

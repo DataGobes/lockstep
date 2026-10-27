@@ -148,6 +148,9 @@ def _check(root: Path, rels: list[str]) -> Decision:
 
     base = base_ref(None)
     lock = lock_commit(root, base, spec, cfg)
+    # An implemented spec's tests are locked on every branch. Its locked_at_commit still says which, when the base
+    # doesn't have them yet and no lock commit is on this branch's first parents (work merged in from another remote).
+    pinned = spec.status.locked_at_commit if spec.status.status == "implemented" else None
     warnings = []
     existing = []
     for rel in protected:
@@ -155,7 +158,7 @@ def _check(root: Path, rels: list[str]) -> Decision:
         if on_base is None:
             on_base = _exists_on(root, "HEAD", rel)
             warnings.append(f"{base} is not fetched; judged {rel} against HEAD instead")
-        if on_base or (lock and _exists_on(root, lock, rel)):
+        if on_base or (lock and _exists_on(root, lock, rel)) or (pinned and _exists_on(root, pinned, rel)):
             existing.append(rel)
     if not existing:
         return Decision.allow(*warnings)

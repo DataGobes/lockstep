@@ -59,7 +59,8 @@ def hook(event: Event) -> Decision:
             cmd, "rewrites history in a checkout lockstep can't work out; run it as plain git in that checkout"
         )
     for folder in folders:
-        if current_branch(repo_root(folder)) in PROTECTED_BRANCHES:
+        # The branch git has checked out: a CI job's variables name the PR's branch, not the agent's checkout.
+        if current_branch(repo_root(folder), env={}) in PROTECTED_BRANCHES:
             return _deny(cmd, "rewrites history on main; work on a feature branch")
     return Decision.allow()
 

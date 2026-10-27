@@ -136,7 +136,7 @@ def _check(root: Path, rels: list[str]) -> Decision:
     if not protected:
         return Decision.allow()
 
-    branch = current_branch(root)
+    branch = current_branch(root, env={})  # the checkout's branch, also when an agent runs inside CI
     try:
         spec = resolve_spec(root, branch, cfg)
     except SpecError as e:

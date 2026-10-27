@@ -12,11 +12,11 @@ Only feature branches have a lock commit. On a test branch the tests are still u
 
 from __future__ import annotations
 
-import os
 import subprocess
 from collections.abc import Mapping
 from pathlib import Path
 
+from . import ci
 from .config import Config
 from .spec import Resolution
 from .status import SpecStatusError, parse_status
@@ -25,14 +25,15 @@ LOCKED_BRANCH_KIND = "feature"
 
 
 def branch_tip(env: Mapping[str, str] | None = None) -> str:
-    """The PR's own last commit. In an Azure Pipelines PR build HEAD is a merge with the target branch."""
-    env = os.environ if env is None else env
-    return env.get("SYSTEM_PULLREQUEST_SOURCECOMMITID") or "HEAD"
+    """The PR's own last commit. In a CI PR build HEAD is a merge with the target branch."""
+    return ci.source_commit(env) or "HEAD"
 
 
 def lock_commit(root: Path, base: str, spec: Resolution, cfg: Config, tip: str = "HEAD") -> str | None:
     """The commit that locked the spec's tests on this feature branch, or None if there is none since ``base``."""
     if spec.state != "found" or not (spec.branch or "").startswith(f"{LOCKED_BRANCH_KIND}/") or spec.spec_dir is None:
+        return None
+    if cfg.specs.format != "lockstep":  # SDTRD commits each slice's red tests with its green code: no lock commit
         return None
     rel = (spec.spec_dir / "status.yml").relative_to(root).as_posix()
     # No pathspec: with one, git's history simplification drops the test PR's merge commit as soon as main has been

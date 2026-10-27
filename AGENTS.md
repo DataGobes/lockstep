@@ -100,7 +100,8 @@ Plain `pip` and `python -m`, as `.github/workflows/ci.yml` runs them; there is n
   tag to upgrade the copy.
 - Tests live next to what they test: `core/tests/`, `plugins/<plugin>/skills/<skill>/tests/`, `tools/tests/`. The
   `[protect]` globs in `lockstep.toml` cover those paths.
-- CI runs on GitHub Actions (`.github/workflows/ci.yml`). The Azure DevOps pipeline files in the root are the
-  templates a product repo uses; they are not wired up here. PRs are on GitHub and need no Jira key.
+- GitHub (`origin`) is home: PRs go there, need no Jira key, and CI runs on GitHub Actions (`.github/workflows/ci.yml`).
+  `azure-pipelines-pr.yml` is this repo's own PR pipeline for an Azure DevOps mirror, where Lockstep is tried out the
+  way a product repo uses it; `azure-pipelines-deploy.yml` there is the unused template.
 - A release is a CHANGELOG section, `python3 tools/check_release.py --set-version <version>`, a merge, then the tag
   `v<version>` on the merge commit.

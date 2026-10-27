@@ -7,8 +7,11 @@ block costs a retry, a missed one can cost production.
 
 from __future__ import annotations
 
+import os
 import re
+import shlex
 import sys
+from pathlib import Path
 
 from ..spec import current_branch
 from . import Decision, Event, repo_root, run
@@ -50,9 +53,92 @@ def hook(event: Event) -> Decision:
     for pattern, why in _RULES:
         if pattern.search(cmd):
             return _deny(cmd, why)
-    if _HISTORY.search(cmd) and current_branch(repo_root(event.cwd)) in PROTECTED_BRANCHES:
-        return _deny(cmd, "rewrites history on main; work on a feature branch")
+    folders, followed = _history_folders(cmd, event.cwd)
+    if folders and not followed:
+        return _deny(
+            cmd, "rewrites history in a checkout lockstep can't work out; run it as plain git in that checkout"
+        )
+    for folder in folders:
+        if current_branch(repo_root(folder)) in PROTECTED_BRANCHES:
+            return _deny(cmd, "rewrites history on main; work on a feature branch")
     return Decision.allow()
+
+
+_SEPARATOR = re.compile(r"(\|\||&&|[;|&\n])")
+# Syntax that makes the segments below differ from what the shell runs: subshells, groups, command substitution,
+# comments and heredocs.
+_UNFOLLOWED = re.compile(r"[()`{}#]|\$\(|<<")
+# Git subcommands trusted before a rewrite: they leave HEAD, branches and config alone. Anything else, an alias
+# included, could change what the rewrite works on.
+_READ_ONLY_GIT = {"status", "log", "diff", "show", "fetch", "add"}
+# Options that make one of those run a command or write a file.
+_RUNS_OR_WRITES = re.compile(r"--(?:upload-pack|output|ext-diff|textconv)\b")
+# The subcommands _HISTORY matches. A match anywhere else in the segment, such as inside an argument, isn't followed.
+_REWRITES = {"rebase", "reset", "commit", "filter-branch", "filter-repo"}
+
+
+def _history_folders(cmd: str, cwd: Path) -> tuple[list[Path], bool]:
+    """The folder each history-rewriting git command runs in, and whether all of them could be followed. An
+    allowlist, not a denylist: only `cd <folder>` joined by `&&` / `;`, and the git subcommands in `_READ_ONLY_GIT`,
+    are trusted before a rewrite. Anything else could have moved it, and the caller blocks: from a feature
+    branch, the session's own folder says nothing about where the command lands."""
+    parts = _SEPARATOR.split(cmd)
+    folders, here, followed, trusted = [], cwd, not _UNFOLLOWED.search(cmd), True
+    for segment, after in zip(parts[0::2], parts[1::2] + [""]):
+        try:
+            words = shlex.split(segment)
+        except ValueError:
+            words, followed = segment.split(), False
+        if not words:
+            continue
+        if _HISTORY.search(segment):
+            at, subcommand = _git_command(words, here)
+            followed &= trusted and at is not None and subcommand in _REWRITES
+            folders.append(at or here)
+        elif words[0] == "cd":
+            # Only `cd <folder> && ...` or `cd <folder>; ...` carries over to the next command.
+            target = _cd_folder(here, words[1]) if len(words) == 2 and after in ("&&", ";", "\n") else None
+            trusted &= target is not None
+            here = target or here
+        else:
+            at, subcommand = _git_command(words, here)
+            runs = any(_RUNS_OR_WRITES.match(w) for w in words) or (subcommand == "fetch" and "-u" in words)
+            trusted &= at is not None and subcommand in _READ_ONLY_GIT and not runs
+    return folders, followed
+
+
+def _git_command(words: list[str], here: Path) -> tuple[Path | None, str | None]:
+    """For a command that starts with git: the folder it runs in, after its `-C` options applied in order as git does,
+    and its subcommand. The folder is None when it doesn't start with git (`bash -c`, `xargs`, `FOO=1 git`) or has
+    another option before the subcommand (`-c` can set core.worktree)."""
+    if words[:1] != ["git"]:
+        return None, None
+    i = 1
+    while i < len(words) and words[i].startswith("-"):
+        if words[i] != "-C" or i + 1 == len(words):
+            return None, None
+        here = _folder(here, words[i + 1])
+        if here is None:
+            return None, None
+        i += 2
+    return here, words[i] if i < len(words) else None
+
+
+def _folder(here: Path, target: str) -> Path | None:
+    """Where `git -C <target>` runs: git changes into it as the OS resolves it. None when it isn't a folder (`$DIR`, a
+    typo)."""
+    folder = here / os.path.expanduser(target)
+    return folder if folder.is_dir() else None
+
+
+def _cd_folder(here: Path, target: str) -> Path | None:
+    """Where `cd <target>` lands. The shell takes `..` before symlinks (`link/..` is the folder holding the link), so
+    the path is normalised first. None when the shell could land somewhere this can't see: `~` follows the shell's
+    $HOME, and with $CDPATH set a bare name is looked up there first."""
+    if target.startswith("~") or (os.environ.get("CDPATH") and not target.startswith(("/", "."))):
+        return None
+    folder = Path(os.path.normpath(here / target))
+    return folder if folder.is_dir() else None
 
 
 def _deny(cmd: str, why: str) -> Decision:

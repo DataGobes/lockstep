@@ -43,3 +43,25 @@ def test_a_rewrite_inside_another_git_commands_argument_is_blocked(feature):
     # The rewrite is the argument of a fetch, so the fetch's folder says nothing about where it runs.
     cmd = "git fetch --upload-pack='git -C ../app reset --hard HEAD~1' ."
     assert guard_bash.hook(bash(cmd, feature)).block
+
+
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        # git takes any unambiguous prefix of a long option, and bundles short ones.
+        "git fetch --upload-p='git checkout --ignore-other-worktrees main' . && git reset --hard HEAD~1",
+        "git fetch -qu 'git checkout --ignore-other-worktrees main' . && git reset --hard HEAD~1",
+        "git diff --out=.git/HEAD && git reset --hard HEAD~1",
+        "git log --ext -p && git reset --hard HEAD~1",
+        # A refspec with a destination writes a branch; --update-head-ok lets it write the checked-out one.
+        "git fetch --update-head-ok . main:feature/0042-x && git reset --hard HEAD~1",
+    ],
+)
+def test_only_listed_options_are_trusted(feature, cmd):
+    assert guard_bash.hook(bash(cmd, feature)).block, cmd
+
+
+def test_listed_options_stay_trusted(feature):
+    cmd = "git status -sb && git diff --cached --name-only && git log --oneline -5 && git fetch -q origin main"
+    d = guard_bash.hook(bash(cmd + " && git commit --amend --no-edit", feature))
+    assert not d.block, d.message

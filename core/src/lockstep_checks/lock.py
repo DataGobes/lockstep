@@ -33,6 +33,8 @@ def lock_commit(root: Path, base: str, spec: Resolution, cfg: Config, tip: str =
     """The commit that locked the spec's tests on this feature branch, or None if there is none since ``base``."""
     if spec.state != "found" or not (spec.branch or "").startswith(f"{LOCKED_BRANCH_KIND}/") or spec.spec_dir is None:
         return None
+    if cfg.specs.format != "lockstep":  # SDTRD commits each slice's red tests with its green code: no lock commit
+        return None
     rel = (spec.spec_dir / "status.yml").relative_to(root).as_posix()
     # No pathspec: with one, git's history simplification drops the test PR's merge commit as soon as main has been
     # merged into the feature branch (the merge is TREESAME to a parent), and the lock silently disappears.

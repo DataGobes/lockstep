@@ -18,17 +18,23 @@ locally, but only when the agent uses it. Changes under ``[lanes] no_spec_needed
   chore/          no spec; dependency bumps, config and tooling, no behaviour change
 
 The chore exemption and the bug lane follow SDTRD (Fast-Track Protocol, Gates B1 to B3).
+
+With ``[specs] format = "sdtrd"`` the lanes are SDTRD's (feat/, fix/, chore/ in the profile's ``[lanes]``), the
+statuses come from ticked gate boxes (sdtrd.py), and a fix/ PR's bug report needs Gate B1 (triage and root cause)
+ticked before code changes.
 """
 
 from __future__ import annotations
 
-from . import ci
+from pathlib import Path
+
+from . import ci, sdtrd
 from .cli import PrContext, main_for
 from .config import Config
 from .gitdiff import ChangedFile, changed_files
 from .paths import matches, matches_any
 from .report import Finding
-from .spec import Resolution, resolve_spec
+from .spec import Resolution, how_to_reach, resolve_spec
 from .spec_pr import reasons
 from .status import LOCKED_STATES
 
@@ -38,9 +44,15 @@ BASELINE = "baseline"
 
 
 def check_spec_required(
-    files: list[ChangedFile], branch: str | None, spec: Resolution, cfg: Config, into_main: str | None = None
+    files: list[ChangedFile],
+    branch: str | None,
+    spec: Resolution,
+    cfg: Config,
+    into_main: str | None = None,
+    root: Path | None = None,
 ) -> list[Finding]:
-    """``into_main``: "error" or "warning" when the PR goes into main rather than into a feature branch, else None."""
+    """``into_main``: "error" or "warning" when the PR goes into main rather than into a feature branch, else None.
+    ``root``: the checkout, to read an SDTRD bug report's gates."""
     lanes = cfg.lanes
     code = [f.path for f in files if f.status != "D" and not matches_any(f.path, lanes.no_spec_needed)]
     if not code:
@@ -50,7 +62,7 @@ def check_spec_required(
     if branch.startswith(lanes.chore):
         return []
     if branch.startswith(lanes.bugfix):
-        return _bug_lane(files, cfg)
+        return _bug_lane(files, cfg, root)
     if spec.state == "no-match" and branch.startswith(f"{BASELINE}/"):
         return [Finding("error", f"branch_pattern in lockstep.toml does not match {branch}; add '{BASELINE}' to it")]
     if spec.state == "no-match":
@@ -58,17 +70,16 @@ def check_spec_required(
         return [
             Finding(
                 "error",
-                f"changes code ({first}) on a branch with no spec. Use feature/<id>- for a tests-locked spec, "
+                f"changes code ({first}) on a branch with no spec. Use {lanes.feature[0]}<id>- for a tests-locked spec, "
                 f"or one of {lane_list} for a bug or a chore",
             )
         ]
     if spec.state == "missing":
-        return [
-            Finding("error", f"branch names spec {spec.spec_id} but {cfg.specs_dir}/{spec.spec_id}-*/ does not exist")
-        ]
-    kind = branch.split("/", 1)[0]
+        folder = f"{cfg.specs_dir}/{sdtrd.FEATURES if cfg.specs.format == 'sdtrd' else ''}/".replace("//", "/")
+        return [Finding("error", f"branch names spec {spec.spec_id} but {folder}{spec.spec_id}-*/ does not exist")]
+    kind = "feature" if branch.startswith(lanes.feature) else branch.split("/", 1)[0]
     status = spec.status.status if spec.status else None
-    where = f"{cfg.specs_dir}/{spec.spec_dir.name}/status.yml" if spec.spec_dir else None
+    where = _where(spec, cfg)
     if kind == "spec":
         return [Finding("error", f"a spec PR changes only specs and docs; {first} belongs in the test or feature PR")]
     if kind == BASELINE:
@@ -87,7 +98,8 @@ def check_spec_required(
         return [
             Finding(
                 "error",
-                f"spec {spec.spec_id} is {status}; a {kind} PR that changes code needs it {' or '.join(allowed)}",
+                f"spec {spec.spec_id} is {status}; a {kind} PR that changes code needs it {' or '.join(allowed)}"
+                + (f" ({how_to_reach(allowed[0], cfg)})" if cfg.specs.format == "sdtrd" else ""),
                 path=where,
             )
         ]
@@ -97,12 +109,18 @@ def check_spec_required(
         return [
             Finding(
                 into_main,
-                f"spec {spec.spec_id} is still tests-locked; as the last commit before the PR into main, set "
-                "status: implemented, so once this merges /lockstep shows the spec as done",
+                f"spec {spec.spec_id} is still tests-locked; as the last commit before the PR into main, "
+                f"{how_to_reach('implemented', cfg)}, so once this merges the spec shows as done",
                 path=where,
             )
         ]
     return []
+
+
+def _where(spec: Resolution, cfg: Config) -> str | None:
+    if spec.status_path is not None:
+        return spec.status_path.as_posix()
+    return f"{cfg.specs_dir}/{spec.spec_dir.name}/status.yml" if spec.spec_dir else None
 
 
 def _spec_in_test_pr(files: list[ChangedFile], spec: Resolution, cfg: Config) -> list[Finding]:
@@ -159,23 +177,32 @@ def _baseline_lane(code: list[str], spec: Resolution, status: str | None, where:
     return []
 
 
-def _bug_lane(files: list[ChangedFile], cfg: Config) -> list[Finding]:
+def _bug_lane(files: list[ChangedFile], cfg: Config, root: Path | None) -> list[Finding]:
     reports = cfg.lanes.bug_reports_dir.rstrip("/")
     findings = []
     # _template.md is the blank template, not a report.
-    is_report = [matches(f.path, f"{reports}/*.md") and not f.path.endswith("/_template.md") for f in files]
-    if not any(f.status != "D" and ok for f, ok in zip(files, is_report, strict=True)):
+    found = [
+        f.path
+        for f in files
+        if f.status != "D" and matches(f.path, f"{reports}/*.md") and not f.path.endswith("/_template.md")
+    ]
+    if not found:
+        name = "<date>-<slug>.md" if cfg.specs.format == "sdtrd" else "<KEY>-<slug>.md"
+        findings.append(Finding("error", f"a bugfix PR needs its bug report: add {reports}/{name} from the template"))
+    elif cfg.specs.format == "sdtrd" and root is not None and not any(sdtrd.ticked(root / p, "B1") for p in found):
         findings.append(
-            Finding("error", f"a bugfix PR needs its bug report: add {reports}/<KEY>-<slug>.md from the template")
+            Finding(
+                "error", "the bug report's Gate B1 (triage and root cause) is not ticked; code waits for it", found[0]
+            )
         )
     if not any(f.status == "A" and matches_any(f.path, cfg.protect.globs) for f in files):
         findings.append(Finding("error", "a bugfix PR needs a new regression test file that failed before the fix"))
     return findings
 
 
-def _into_main(base: str) -> str | None:
+def _into_main(base: str, cfg: Config | None = None) -> str | None:
     """An error in a PR build into main; a warning locally, where the implementation may still be under way."""
-    if base.removeprefix("origin/").startswith("feature/"):
+    if base.removeprefix("origin/").startswith((cfg or Config()).lanes.feature):
         return None
     return "error" if ci.target_branch() else "warning"
 
@@ -183,7 +210,7 @@ def _into_main(base: str) -> str | None:
 def _run(ctx: PrContext) -> list[Finding]:
     files = changed_files(ctx.root, ctx.base)
     spec = resolve_spec(ctx.root, ctx.branch, ctx.cfg)
-    return check_spec_required(files, ctx.branch, spec, ctx.cfg, _into_main(ctx.base))
+    return check_spec_required(files, ctx.branch, spec, ctx.cfg, _into_main(ctx.base, ctx.cfg), ctx.root)
 
 
 if __name__ == "__main__":

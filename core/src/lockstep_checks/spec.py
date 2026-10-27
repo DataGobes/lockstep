@@ -1,5 +1,8 @@
 """Find the spec a branch works on: branch name -> ``specs/<id>-<slug>/`` -> status.yml.
 
+With ``[specs] format = "sdtrd"`` the folder is ``specs/features/<id>-<slug>/`` (or ``specs/archive/``) and the status
+comes from its ticked gate boxes instead (sdtrd.py).
+
 Every hook, skill and CI check asks this module which spec is active, so the
 rule lives in one place. Run ``python -m lockstep_checks.spec`` to see the answer as
 JSON, which is also how the bash hook shims read it.
@@ -24,7 +27,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from . import ci
+from . import ci, sdtrd
 from .config import Config, ConfigError, load_config
 from .status import SpecStatus, SpecStatusError, parse_status
 
@@ -42,6 +45,7 @@ class Resolution:
     spec_id: str | None = None
     spec_dir: Path | None = None
     status: SpecStatus | None = None
+    status_path: Path | None = None  # relative to the root: status.yml, or the file with the SDTRD gate that set it
 
     def to_dict(self) -> dict:
         return {
@@ -50,6 +54,7 @@ class Resolution:
             "spec_id": self.spec_id,
             "spec_dir": str(self.spec_dir) if self.spec_dir else None,
             "status": self.status.to_dict() if self.status else None,
+            "status_path": str(self.status_path) if self.status_path else None,
         }
 
 
@@ -76,21 +81,49 @@ def resolve_spec(root: Path, branch: str | None, cfg: Config) -> Resolution:
     if not m:
         return Resolution(state="no-match", branch=branch)
     spec_id = m["id"]
-    specs = Path(root) / cfg.specs_dir
-    folders = sorted(p for p in specs.glob(f"{spec_id}-*") if p.is_dir()) if specs.is_dir() else []
+    if cfg.specs.format == "sdtrd":
+        folders = sdtrd.find_folder(root, spec_id, cfg)
+    else:
+        specs = Path(root) / cfg.specs_dir
+        folders = sorted(p for p in specs.glob(f"{spec_id}-*") if p.is_dir()) if specs.is_dir() else []
     if not folders:
         return Resolution(state="missing", branch=branch, spec_id=spec_id)
     if len(folders) > 1:
-        names = ", ".join(p.name for p in folders)
+        names = ", ".join(p.relative_to(root).as_posix() if p.is_relative_to(root) else p.name for p in folders)
         raise SpecError(f"spec id {spec_id} has more than one folder: {names}")
 
     spec_dir = folders[0]
+    status = load_status(root, spec_dir, cfg)
     return Resolution(
-        state="found", branch=branch, spec_id=spec_id, spec_dir=spec_dir, status=load_status(root, spec_dir, cfg)
+        state="found",
+        branch=branch,
+        spec_id=spec_id,
+        spec_dir=spec_dir,
+        status=status,
+        status_path=_relative(status_path(spec_dir, status, cfg), Path(root)),
     )
 
 
+def status_path(spec_dir: Path, status: SpecStatus, cfg: Config) -> Path:
+    if cfg.specs.format == "sdtrd":
+        return sdtrd.status_source(spec_dir, status.status)
+    return spec_dir / STATUS_FILE
+
+
+def _relative(path: Path, root: Path) -> Path:
+    return path.relative_to(root) if path.is_relative_to(root) else path
+
+
+def how_to_reach(status: str, cfg: Config) -> str:
+    """What a person does to move a spec to ``status``, in the repo's own terms."""
+    if cfg.specs.format == "sdtrd":
+        return sdtrd.how_to_reach(status)
+    return f"set status: {status} in status.yml"
+
+
 def load_status(root: Path, spec_dir: Path, cfg: Config) -> SpecStatus:
+    if cfg.specs.format == "sdtrd":
+        return sdtrd.load_status(root, spec_dir, cfg)
     status_path = spec_dir / STATUS_FILE
     rel = status_path.relative_to(root) if status_path.is_relative_to(root) else status_path
     try:
@@ -105,6 +138,11 @@ def load_status(root: Path, spec_dir: Path, cfg: Config) -> SpecStatus:
 
 def list_specs(root: Path, cfg: Config) -> dict[str, Path]:
     """Every spec folder (``<id>-<slug>``) by id. ``_template`` and other folders are skipped."""
+    if cfg.specs.format == "sdtrd":
+        try:
+            return sdtrd.spec_folders(root, cfg)
+        except ValueError as e:
+            raise SpecError(str(e)) from e
     specs = Path(root) / cfg.specs_dir
     found: dict[str, Path] = {}
     for p in sorted(specs.iterdir()) if specs.is_dir() else []:

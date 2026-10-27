@@ -162,6 +162,12 @@ which must not let the person who merged approve their own run, and publishes th
 on main. The checks read the PR's branches and head commit from GitHub's variables, the title comes from the workflow's
 event, and findings appear as annotations on the PR's files. Warn mode adds a `lockstep-would-block-<check>` notice
 instead of a run tag. The trust summary comment is Azure DevOps only for now.
+
+### SDTRD repos
+
+`[specs] format = "sdtrd"` runs the checks on a repo that follows [SDTRD](https://github.com/mgabs/SDTRD), as it is:
+its feature folders, REQ-/NFR- keys and ticked Review Gate boxes stand in for Lockstep's spec folders, AC ids and
+`status.yml`. Start from [`templates/sdtrd/lockstep.toml`](templates/sdtrd/lockstep.toml); see [SDTRD repos](docs/sdtrd.md).
 ### Templates for a product repo
 
 The `bootstrap-repo` skill copies these and merges them with files the repo already has.

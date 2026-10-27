@@ -1,0 +1,41 @@
+# Lockstep settings for a repo that follows SDTRD (github.com/mgabs/SDTRD). Save as lockstep.toml in the repo root.
+# The repo stays as SDTRD lays it out: Lockstep reads its feature folders, REQ-/NFR- keys and ticked Review Gate
+# boxes (docs/sdtrd.md). Every key is optional and unknown keys are an error; see templates/lockstep.toml for all.
+
+[lockstep]
+core_version = "0.4"
+specs_dir = "specs"
+# feat/<id>-<slug> and its streams feat/<id>/<stream>; ids are SDTRD roadmap ids, lowercased (w1.2).
+branch_pattern = '^feat/(?P<id>[a-z0-9][a-z0-9.]*)[-/]'
+
+[jira]
+required = false   # SDTRD tracks work in specs/ROADMAP.md
+
+[protect]
+# Test files in any stack SDTRD supports. An existing one may not change without a [test-change] PR.
+globs = [
+  "tests/**",
+  "**/tests/**",
+  "**/*.feature",
+  "**/test_*.py",
+  "**/*_test.py",
+  "**/*_test.rs",
+  "**/*.test.*",
+  "**/*.spec.ts",
+  "**/*.spec.js",
+  "**/__snapshots__/**",
+]
+
+[lanes]
+feature = ["feat/"]                 # needs Gate 4 ticked in tasks.md, and Gate 6 in the PR into main
+bugfix = ["fix/"]                   # a bug report with Gate B1 ticked, and a new regression test
+chore = ["chore/"]                  # zero behaviour change; no spec
+bug_reports_dir = "specs/bug-reports"
+no_spec_needed = ["specs/**", "docs/**", ".github/**", "**/*.md"]
+
+[specs]
+format = "sdtrd"
+
+[enforcement]
+# Start on warn: every check reports what it would have blocked, and nothing blocks until the numbers say so.
+default = "warn"

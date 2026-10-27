@@ -11,6 +11,10 @@ tag the merge commit `v<version>`.
 - `lockstep-checks` runs in GitHub Actions as well as Azure Pipelines: the checks read the PR's target branch, source
   branch and head commit from either system's variables (one module, `ci.py`), and findings show as GitHub annotations.
   New workflow template `templates/github-actions-pr.yml`. First step towards running Lockstep on SDTRD repos.
+- SDTRD format: `[specs] format = "sdtrd"` reads an SDTRD repo as it is: feature folders in `specs/features/` and
+  `specs/archive/`, REQ-/NFR- keys named by tests (`@REQ-AUTH-1`), status from ticked Review Gate boxes (Gate 2, 4, 6,
+  B1). New `[lanes] feature` setting (default `["feature/"]`). Profile `templates/sdtrd/lockstep.toml`, guide
+  `docs/sdtrd.md`.
 
 ## 0.4.0
 

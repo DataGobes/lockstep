@@ -32,6 +32,19 @@ FAILED test_a_rewrite_inside_another_git_commands_argument_is_blocked
 6 failed
 ```
 
+## The fix
+A second review found the first version's option denylist incomplete: git takes any unambiguous prefix of a long
+option (`--upload-p`) and bundles short ones (`-qu`), and a fetch refspec with a destination (`main:feature/x`),
+with or without `--update-head-ok`, writes a branch. So a trusted subcommand now stays trusted only when its options
+are all on a short list (`-q`, `-s`, `-b`, `--short`, `--stat`, `--oneline`, `--cached`, `-A`, `-p`, `-<n>` and a few
+more) and, for `fetch`, no argument has a `:`. `test_only_listed_options_are_trusted` and
+`test_listed_options_stay_trusted` pin both sides.
+
+Out of reach for this hook: a single command that moves `main` without a history-rewriting subcommand
+(`git fetch . +x:main`, `git branch -f main x`, `git update-ref`), and programs the repo's own config runs
+(`diff.external`, filters). guard_bash recognises rewrites by their subcommand; the PR pipeline and branch policies
+stay the gate for those.
+
 ## Why the tests missed it
 The trusted-list tests used each subcommand with harmless options only. Found by the automated security review of
 the guard-bash-git-allowlist fix on 2026-10-27.

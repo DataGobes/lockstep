@@ -71,8 +71,13 @@ _UNFOLLOWED = re.compile(r"[()`{}#]|\$\(|<<")
 # Git subcommands trusted before a rewrite: they leave HEAD, branches and config alone. Anything else, an alias
 # included, could change what the rewrite works on.
 _READ_ONLY_GIT = {"status", "log", "diff", "show", "fetch", "add"}
-# Options that make one of those run a command or write a file.
-_RUNS_OR_WRITES = re.compile(r"--(?:upload-pack|output|ext-diff|textconv)\b")
+# The only options those may carry and stay trusted. Any other one, an abbreviation (`--upload-p`) or a bundle (`-qu`)
+# included, could run a command or write a file.
+_SAFE_OPTIONS = {
+    "-q", "--quiet", "-s", "-b", "-sb", "--short", "--porcelain", "--stat", "--name-only", "--name-status",
+    "--oneline", "--cached", "--staged", "-A", "--all", "-p", "--",
+}  # fmt: skip
+_COUNT = re.compile(r"-\d+")
 # The subcommands _HISTORY matches. A match anywhere else in the segment, such as inside an argument, isn't followed.
 _REWRITES = {"rebase", "reset", "commit", "filter-branch", "filter-repo"}
 
@@ -102,8 +107,10 @@ def _history_folders(cmd: str, cwd: Path) -> tuple[list[Path], bool]:
             here = target or here
         else:
             at, subcommand = _git_command(words, here)
-            runs = any(_RUNS_OR_WRITES.match(w) for w in words) or (subcommand == "fetch" and "-u" in words)
-            trusted &= at is not None and subcommand in _READ_ONLY_GIT and not runs
+            options = [w for w in words[1:] if w.startswith("-") and w not in _SAFE_OPTIONS and not _COUNT.fullmatch(w)]
+            # A fetch refspec with a destination (`main:feature/x`) writes that branch.
+            writes = subcommand == "fetch" and any(":" in w for w in words[2:])
+            trusted &= at is not None and subcommand in _READ_ONLY_GIT and not options and not writes
     return folders, followed
 
 

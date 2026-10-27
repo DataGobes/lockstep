@@ -8,6 +8,10 @@ tag the merge commit `v<version>`.
 
 ## Unreleased
 
+## 0.5.0
+
+Lockstep on GitHub as well as Azure DevOps, SDTRD repos read as they are, and a fix for the Lockstep summary.
+
 - `lockstep-checks` runs in GitHub Actions as well as Azure Pipelines: the checks read the PR's target branch, source
   branch and head commit from either system's variables (one module, `ci.py`), and findings show as GitHub annotations.
   New workflow template `templates/github-actions-pr.yml`. First step towards running Lockstep on SDTRD repos.
@@ -17,6 +21,8 @@ tag the merge commit `v<version>`.
   `docs/sdtrd.md`.
 - `examples/sdtrd-demo/demo.py`: builds a project with SDTRD's `sdtrd init`, adds Lockstep with the SDTRD profile and
   runs the checks on five PRs (four blocked for different reasons, one clean).
+- `/bootstrap-repo` trims the PR pipeline to the chosen tracks (spec 0003): `--tracks data` drops the `evals` job,
+  `--tracks ai` drops `dbt` and `bundle`, so there are no jobs left to delete by hand.
 - **Fix: the Lockstep summary lost the quality and mutation evidence.** The PR templates published their evidence
   as `lockstep-evidence-$(System.JobName)`, which Azure DevOps resolved to `__default` in more than one job, so the
   second upload failed and the summary showed tests and coverage as not measured. Each template now uses a fixed

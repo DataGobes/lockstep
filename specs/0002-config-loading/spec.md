@@ -44,8 +44,8 @@ the `protect_tests` and `team_rules` hooks, and the hook runner in `hooks/__init
   - Observed in: `core/src/lockstep_checks/config.py:282`, `core/src/lockstep_checks/config.py:287`
 - AC-005 WHEN values are the right type but inconsistent THE SYSTEM SHALL raise `ConfigError`: `branch_pattern`
   that is not a regex or has no `(?P<id>...)` group; `tracks` empty, with duplicates or outside `data`/`ai`;
-  `pr_size` with `warn_lines` 0 or above `fail_lines`, or `max_files` outside 1-100; `lanes.chore` and
-  `lanes.bugfix` sharing a prefix or a prefix not ending in `/`; `specs.ac_format` outside `any`/`ears`/
+  `pr_size` with `warn_lines` 0 or above `fail_lines`, or `max_files` outside 1-100; `lanes.chore`,
+  `lanes.bugfix` and `lanes.feature` sharing a prefix or a prefix not ending in `/`; `specs.ac_format` outside `any`/`ears`/
   `given-when-then`; `specs.design_from_criteria` or `specs.spec_pr_above_criteria` below 0; `specs.spec_pr_for`
   with duplicates or values outside `design`/`contract`/`pii`; an enforcement mode outside `warn`/`enforce`.
   - Observed in: `core/src/lockstep_checks/config.py:292`

@@ -57,11 +57,11 @@ def test_wrong_type_is_rejected_with_the_expected_type(tmp_path, text, message):
         ("[pr_size]\nmax_files = 0\n", "pr_size.max_files must be 1-100 (Copilot code review limit)"),
         (
             '[lanes]\nchore = ["chore/"]\nbugfix = ["chore/"]\n',
-            "lanes.chore and lanes.bugfix must be distinct branch prefixes ending in '/'",
+            "lanes.chore, lanes.bugfix and lanes.feature must be distinct branch prefixes ending in '/'",
         ),
         (
             '[lanes]\nchore = ["chore"]\n',
-            "lanes.chore and lanes.bugfix must be distinct branch prefixes ending in '/'",
+            "lanes.chore, lanes.bugfix and lanes.feature must be distinct branch prefixes ending in '/'",
         ),
         (
             "[specs]\nspec_pr_above_criteria = -1\n",

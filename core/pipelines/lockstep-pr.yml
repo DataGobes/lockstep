@@ -51,7 +51,7 @@ steps:
 
   # What the checks found, for the trust summary job (trust-summary.yml).
   - publish: $(Build.ArtifactStagingDirectory)/lockstep-evidence
-    artifact: lockstep-evidence-$(System.JobName)
+    artifact: lockstep-evidence-checks
     displayName: "Lockstep: publish evidence for the summary"
     condition: always()
     continueOnError: true

@@ -1,0 +1,64 @@
+# Lockstep dbt Slim CI: build only the models a PR changed, and their children. A steps template.
+#
+#   steps:
+#     - template: .lockstep/pipelines/dbt-slim-ci.yml
+#       parameters: { projectDir: dbt, deployPipeline: <name or id of the deploy pipeline> }
+#
+# The prod manifest comes from the latest successful run of the deploy pipeline on main (published by
+# lockstep-deploy.yml as the dbt-prod-state artifact). Without one, for example before the first deploy, it builds
+# every model and says so. Databricks credentials come from the root pipeline's variable group (see
+# templates/azure-pipelines-pr.yml), as the environment variables the repo's profiles.yml reads.
+
+parameters:
+  - name: projectDir
+    displayName: Folder with dbt_project.yml
+    type: string
+    default: .
+  - name: target
+    displayName: dbt target for CI (a non-prod schema)
+    type: string
+    default: ci
+  - name: deployPipeline
+    displayName: Deploy pipeline that publishes the prod manifest
+    type: string
+  - name: pythonVersion
+    type: string
+    default: "3.11"
+
+steps:
+  - checkout: self
+    fetchDepth: 1
+
+  - task: UsePythonVersion@0
+    displayName: "dbt: use Python ${{ parameters.pythonVersion }}"
+    inputs:
+      versionSpec: ${{ parameters.pythonVersion }}
+
+  - task: DownloadPipelineArtifact@2
+    displayName: "dbt: download the prod manifest"
+    continueOnError: true
+    inputs:
+      source: specific
+      project: $(System.TeamProjectId)
+      pipeline: ${{ parameters.deployPipeline }}
+      runVersion: latestFromBranch
+      runBranch: refs/heads/main
+      artifact: dbt-prod-state
+      path: $(Build.SourcesDirectory)/${{ parameters.projectDir }}/prod-state
+
+  - script: |
+      python -m pip install --quiet uv
+      uv sync --frozen --all-extras
+      uv run dbt deps
+      if [ -f prod-state/manifest.json ]; then
+        uv run dbt build --select state:modified+ --defer --state prod-state --target ${{ parameters.target }}
+      else
+        echo "##vso[task.logissue type=warning]dbt: no prod manifest yet, so every model is built"
+        uv run dbt build --target ${{ parameters.target }}
+      fi
+    displayName: "dbt: build changed models and their children"
+    workingDirectory: $(Build.SourcesDirectory)/${{ parameters.projectDir }}
+    env:
+      DATABRICKS_HOST: $(DATABRICKS_HOST)
+      DATABRICKS_HTTP_PATH: $(DATABRICKS_HTTP_PATH)
+      DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)

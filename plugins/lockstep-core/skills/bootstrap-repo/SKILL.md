@@ -82,9 +82,9 @@ only what is missing, and show the user the diff:
 Commit as `chore(lockstep): set up Lockstep <version>` (or `upgrade Lockstep to <version>`). Ask before pushing or
 opening a PR; the PR title needs a Jira key. Then give the user the Azure DevOps steps that only they can do:
 
-1. Create a pipeline from `azure-pipelines-pr.yml`, and one from `azure-pipelines-deploy.yml`. Delete the PR jobs
-   for tracks the repo doesn't have. Create the variable groups and environments the two files' header comments list,
-   with service principals that have no SELECT on tables holding personal data.
+1. Create a pipeline from `azure-pipelines-pr.yml`, and one from `azure-pipelines-deploy.yml`. Create the variable
+   groups and environments the two files' header comments list, with service principals that have no SELECT on
+   tables holding personal data.
 2. Branch policies on main, as listed in `docs/branch-policy.md`: fill in the variables at the top of
    `scripts/ado/branch-policy.sh` and run it (it uses `az repos policy`), or set them by hand. The user runs it, not you:
    it changes the repo's settings.

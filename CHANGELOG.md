@@ -17,6 +17,11 @@ tag the merge commit `v<version>`.
   `docs/sdtrd.md`.
 - `examples/sdtrd-demo/demo.py`: builds a project with SDTRD's `sdtrd init`, adds Lockstep with the SDTRD profile and
   runs the checks on five PRs (four blocked for different reasons, one clean).
+- **Fix: the Lockstep summary lost the quality and mutation evidence.** The PR templates published their evidence
+  as `lockstep-evidence-$(System.JobName)`, which Azure DevOps resolved to `__default` in more than one job, so the
+  second upload failed and the summary showed tests and coverage as not measured. Each template now uses a fixed
+  name: `lockstep-evidence-checks`, `-quality` and `-mutation`
+  ([bug report](specs/bug-reports/evidence-artifact-names.md)). Upgrading: run `/bootstrap-repo` with the new tag.
 
 ## 0.4.0
 

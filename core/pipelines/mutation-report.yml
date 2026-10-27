@@ -57,7 +57,7 @@ steps:
       LOCKSTEP_EVIDENCE_DIR: $(Build.ArtifactStagingDirectory)/lockstep-evidence
 
   - publish: $(Build.ArtifactStagingDirectory)/lockstep-evidence
-    artifact: lockstep-evidence-$(System.JobName)
+    artifact: lockstep-evidence-mutation
     displayName: "Mutation: publish evidence for the summary"
     condition: always()
     continueOnError: true

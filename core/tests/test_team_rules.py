@@ -48,6 +48,7 @@ def bash(root, command):
 # config
 
 
+@pytest.mark.ac("0002/AC-008")
 def test_rules_load_with_defaults(tmp_path):
     (tmp_path / "lockstep.toml").write_text(RULES)
     star, pip = load_config(tmp_path).rules
@@ -71,6 +72,7 @@ def test_rules_load_with_defaults(tmp_path):
         ),
     ],
 )
+@pytest.mark.ac("0002/AC-008")
 def test_bad_rules_are_config_errors(tmp_path, toml, fragment):
     (tmp_path / "lockstep.toml").write_text(toml)
     with pytest.raises(ConfigError, match=fragment):

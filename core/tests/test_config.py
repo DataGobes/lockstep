@@ -13,6 +13,7 @@ def write(tmp_path: Path, text: str) -> Path:
     return tmp_path
 
 
+@pytest.mark.ac("0002/AC-001")
 def test_missing_file_gives_defaults(tmp_path):
     cfg = load_config(tmp_path)
     assert cfg.source is None
@@ -23,6 +24,7 @@ def test_missing_file_gives_defaults(tmp_path):
     assert "tests/**" in cfg.protect.globs
 
 
+@pytest.mark.ac("0002/AC-002")
 def test_file_overrides_only_given_keys(tmp_path):
     cfg = load_config(write(tmp_path, "[pr_size]\nwarn_lines = 300\n"))
     assert cfg.source == tmp_path / "lockstep.toml"
@@ -40,12 +42,14 @@ def test_template_loads_and_matches_defaults():
     assert replace(cfg, enforcement=Enforcement()).without_source() == defaults.without_source()
 
 
+@pytest.mark.ac("0002/AC-006")
 def test_enforcement_defaults_to_enforce(tmp_path):
     e = load_config(tmp_path).enforcement
     assert e.mode("protect_tests") == "enforce"
     assert e.mode("check_test_tamper") == "enforce"
 
 
+@pytest.mark.ac("0002/AC-006")
 def test_enforcement_per_check_overrides_default(tmp_path):
     e = load_config(write(tmp_path, '[enforcement]\ndefault = "warn"\ntest_tamper = "enforce"\n')).enforcement
     assert e.mode("check_test_tamper") == "enforce"
@@ -53,6 +57,7 @@ def test_enforcement_per_check_overrides_default(tmp_path):
     assert e.mode("protect_tests") == "warn"
 
 
+@pytest.mark.ac("0002/AC-007")
 def test_guard_bash_always_enforces(tmp_path):
     e = load_config(write(tmp_path, '[enforcement]\ndefault = "warn"\n')).enforcement
     assert e.mode("guard_bash") == "enforce"
@@ -85,6 +90,7 @@ def test_guard_bash_always_enforces(tmp_path):
         ("this is not toml", "lockstep.toml"),
     ],
 )
+@pytest.mark.ac("0002/AC-005")
 def test_invalid_config_is_rejected(tmp_path, text, fragment):
     with pytest.raises(ConfigError, match=fragment.replace("(", r"\(")):
         load_config(write(tmp_path, text))
@@ -96,6 +102,7 @@ def test_branch_regex_is_compiled(tmp_path):
     assert m and m.group("id") == "0042"
 
 
+@pytest.mark.ac("0002/AC-010")
 def test_directory_named_like_config_is_an_error(tmp_path):
     (tmp_path / "lockstep.toml").mkdir()
     with pytest.raises(ConfigError, match="cannot read"):

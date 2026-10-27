@@ -71,6 +71,10 @@ _UNFOLLOWED = re.compile(r"[()`{}#]|\$\(|<<")
 # Git subcommands trusted before a rewrite: they leave HEAD, branches and config alone. Anything else, an alias
 # included, could change what the rewrite works on.
 _READ_ONLY_GIT = {"status", "log", "diff", "show", "fetch", "add"}
+# Options that make one of those run a command or write a file.
+_RUNS_OR_WRITES = re.compile(r"--(?:upload-pack|output|ext-diff|textconv)\b")
+# The subcommands _HISTORY matches. A match anywhere else in the segment, such as inside an argument, isn't followed.
+_REWRITES = {"rebase", "reset", "commit", "filter-branch", "filter-repo"}
 
 
 def _history_folders(cmd: str, cwd: Path) -> tuple[list[Path], bool]:
@@ -88,8 +92,8 @@ def _history_folders(cmd: str, cwd: Path) -> tuple[list[Path], bool]:
         if not words:
             continue
         if _HISTORY.search(segment):
-            at, _ = _git_command(words, here)
-            followed &= trusted and at is not None
+            at, subcommand = _git_command(words, here)
+            followed &= trusted and at is not None and subcommand in _REWRITES
             folders.append(at or here)
         elif words[0] == "cd":
             # Only `cd <folder> && ...` or `cd <folder>; ...` carries over to the next command.
@@ -98,7 +102,8 @@ def _history_folders(cmd: str, cwd: Path) -> tuple[list[Path], bool]:
             here = target or here
         else:
             at, subcommand = _git_command(words, here)
-            trusted &= at is not None and subcommand in _READ_ONLY_GIT
+            runs = any(_RUNS_OR_WRITES.match(w) for w in words) or (subcommand == "fetch" and "-u" in words)
+            trusted &= at is not None and subcommand in _READ_ONLY_GIT and not runs
     return folders, followed
 
 

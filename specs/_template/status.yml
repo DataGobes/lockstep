@@ -1,0 +1,9 @@
+status: draft          # draft | approved | tests-locked | implemented
+pii: no                # yes = Copilot-only routing
+track: data            # data | ai | mixed
+jira:                  # Jira issue key, required from approved onwards
+locked_at_commit:      # commit SHA of the tests, filled at tests-locked (a baseline: at implemented)
+design: no             # yes = research.md and design.md before approval (new_spec.py --design adds them)
+capability:            # living spec this belongs to, e.g. churn-scoring (needed when [specs] living = true)
+kind: change           # change | baseline (pins behaviour the code already has; see docs/baseline-specs.md)
+contract: no           # yes = changes an enforced data contract or an interface others use (spec PR first)

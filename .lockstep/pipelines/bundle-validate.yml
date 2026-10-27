@@ -1,0 +1,26 @@
+# Lockstep: validate the Databricks bundle (databricks.yml) for a target. A steps template.
+#
+#   steps:
+#     - template: .lockstep/pipelines/bundle-validate.yml
+#       parameters: { target: dev }
+
+parameters:
+  - name: target
+    type: string
+    default: dev
+  - name: cliVersion
+    displayName: Databricks CLI version to install
+    type: string
+    default: "0.250.0"
+
+steps:
+  - checkout: self
+    fetchDepth: 1
+
+  - script: |
+      curl -fsSL "https://raw.githubusercontent.com/databricks/setup-cli/v${{ parameters.cliVersion }}/install.sh" | sh
+      databricks bundle validate --target ${{ parameters.target }}
+    displayName: "Bundle: validate for ${{ parameters.target }}"
+    env:
+      DATABRICKS_HOST: $(DATABRICKS_HOST)
+      DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)

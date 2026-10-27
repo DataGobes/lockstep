@@ -18,9 +18,8 @@ import os
 import re
 import subprocess
 import sys
-from pathlib import Path
-
 import tomllib
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from seedcore import LEDGER, LOCKS, core_config, locks, matches, repo_root

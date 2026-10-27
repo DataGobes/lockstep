@@ -8,10 +8,9 @@ from __future__ import annotations
 import fnmatch
 import json
 import subprocess
+import tomllib
 from datetime import UTC, datetime
 from pathlib import Path
-
-import tomllib
 
 WORKFLOW = Path(".workflow")
 CONFIG = WORKFLOW / "workflow.toml"

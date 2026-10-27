@@ -18,10 +18,9 @@ import json
 import re
 import shutil
 import sys
+import tomllib
 from datetime import UTC, datetime
 from pathlib import Path
-
-import tomllib
 
 HERE = Path(__file__).resolve().parent
 PLUGIN = HERE.parent

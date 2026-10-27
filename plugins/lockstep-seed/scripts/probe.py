@@ -14,10 +14,9 @@ import json
 import re
 import subprocess
 import sys
+import tomllib
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-
-import tomllib
 
 SKIP_DIRS = {
     ".git",

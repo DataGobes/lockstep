@@ -18,9 +18,10 @@ Fixes to the agent hooks, from reviewing what they let through.
 - **Fix: `guard_bash` judged a history rewrite by the session's folder.** It now follows a plain `cd <folder> &&` and
   `git -C` to the checkout the command runs in, and blocks a rewrite whose checkout it can't work out, from any
   branch. Before a rewrite, only `cd` and the git subcommands `status`, `log`, `diff`, `show`, `fetch` and `add` are
-  trusted, so `ruff format . && git commit --amend` is now blocked: run the rewrite as its own command
+  trusted, and only without options that run a command or write a file (`--upload-pack`, `--output`, `--ext-diff`,
+  `--textconv`). So `ruff format . && git commit --amend` is now blocked: run the rewrite as its own command
   ([bug reports](specs/bug-reports/guard-bash-cd.md), [2](specs/bug-reports/guard-bash-unfollowed.md),
-  [3](specs/bug-reports/guard-bash-git-allowlist.md)).
+  [3](specs/bug-reports/guard-bash-git-allowlist.md), [4](specs/bug-reports/guard-bash-git-arguments.md)).
 - README: the hooks are an early warning that a script or an unknown tool gets past; the PR pipeline's checks are the
   gate, so make the Lockstep pipeline a required check.
 

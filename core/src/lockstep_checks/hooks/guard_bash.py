@@ -68,14 +68,15 @@ _SEPARATOR = re.compile(r"(\|\||&&|[;|&\n])")
 # Syntax that makes the segments below differ from what the shell runs: subshells, groups, command substitution,
 # comments and heredocs.
 _UNFOLLOWED = re.compile(r"[()`{}#]|\$\(|<<")
-# Git commands that change what a later command in the same line works on: HEAD, the config, the worktrees.
-_MOVES_GIT = {"checkout", "switch", "config", "worktree", "init", "clone"}
+# Git subcommands trusted before a rewrite: they leave HEAD, branches and config alone. Anything else, an alias
+# included, could change what the rewrite works on.
+_READ_ONLY_GIT = {"status", "log", "diff", "show", "fetch", "add"}
 
 
 def _history_folders(cmd: str, cwd: Path) -> tuple[list[Path], bool]:
     """The folder each history-rewriting git command runs in, and whether all of them could be followed. An
-    allowlist, not a denylist: only `cd <folder>` joined by `&&` / `;`, and git commands that don't move HEAD or change
-    config, are trusted before a rewrite. Anything else could have moved it, and the caller blocks: from a feature
+    allowlist, not a denylist: only `cd <folder>` joined by `&&` / `;`, and the git subcommands in `_READ_ONLY_GIT`,
+    are trusted before a rewrite. Anything else could have moved it, and the caller blocks: from a feature
     branch, the session's own folder says nothing about where the command lands."""
     parts = _SEPARATOR.split(cmd)
     folders, here, followed, trusted = [], cwd, not _UNFOLLOWED.search(cmd), True
@@ -97,7 +98,7 @@ def _history_folders(cmd: str, cwd: Path) -> tuple[list[Path], bool]:
             here = target or here
         else:
             at, subcommand = _git_command(words, here)
-            trusted &= at is not None and subcommand not in _MOVES_GIT
+            trusted &= at is not None and subcommand in _READ_ONLY_GIT
     return folders, followed
 
 

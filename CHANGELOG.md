@@ -8,6 +8,11 @@ tag the merge commit `v<version>`.
 
 ## Unreleased
 
+## 0.4.0
+
+Ready for the first pilot: a trust summary on every PR, baseline specs for existing code, team rules, one spec-and-tests PR
+by default, and the fixes from a full pre-pilot review.
+
 - **Lockstep summary on every PR** (spec 0001). A summary stage after the PR jobs posts one comment on the Azure
   DevOps PR and replaces it on later runs: each criterion with its tests and their results in this run, the commit
   where the tests locked and whether a protected file changed since, the test-tamper check, changed-line coverage and

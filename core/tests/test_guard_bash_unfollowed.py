@@ -65,3 +65,27 @@ def test_a_plain_rewrite_on_a_feature_branch_is_still_allowed(checkouts):
     _, feature = checkouts
     d = guard_bash.hook(bash("git rebase -i HEAD~1 && git commit --amend -m x", feature))
     assert not d.block, d.message
+
+
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        "cd ../app; true # && cd ../app-0042\ngit reset --hard HEAD~1",  # the second cd is a comment
+        "shopt -s autocd; ../app; git reset --hard HEAD~1",  # a folder name alone changes into it
+        "d=../app; read -r d <<< ../app; cd $d && git reset --hard HEAD~1",
+        "git config core.worktree ../app && git reset --hard HEAD~1",  # git config outlives its command
+        "git checkout main && git reset --hard HEAD~1",  # the branch changes before the rewrite
+        "ruff format . && git commit --amend --no-edit",  # any other command first: not followed, by design
+    ],
+)
+def test_only_cd_and_plain_git_before_a_rewrite_are_trusted(checkouts, cmd):
+    # An allowlist, not a denylist: before a history rewrite, only `cd <folder>` and git commands that don't move
+    # HEAD or change config are followed. Run the rewrite as its own command instead.
+    _, feature = checkouts
+    assert guard_bash.hook(bash(cmd, feature)).block, cmd
+
+
+def test_plain_git_before_a_rewrite_is_trusted(checkouts):
+    _, feature = checkouts
+    d = guard_bash.hook(bash("git add -A && git status --short && git commit --amend --no-edit", feature))
+    assert not d.block, d.message

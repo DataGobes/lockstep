@@ -7,7 +7,8 @@ Tests name a criterion with the spec id, because every spec numbers from AC-001:
   eval case       ac field or column: 0042/AC-001
 
 Specs with status tests-locked or implemented must have a test for every active
-criterion. ``--spec-only`` lints the specs only (sections, criteria, open questions,
+criterion. With ``[specs] format = "sdtrd"`` criteria are SDTRD's REQ-/NFR- keys, and a test names the key anywhere in
+a test file (``@REQ-AUTH-1`` in Gherkin, a test name, a comment); see check_sdtrd. ``--spec-only`` lints the specs only (sections, criteria, open questions,
 and research.md and design.md where a spec needs them): that is the gate for a spec PR. Specs
 still in draft or approved also get warnings for criteria that are hard to test (specdoc.criteria_smells).
 """
@@ -22,9 +23,11 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from . import sdtrd
 from .cli import run
 from .config import Config
 from .designdoc import design_problems
+from .paths import matches_any
 from .report import Finding
 from .spec import SpecError, list_specs, load_status
 from .specdoc import SpecDoc, criteria_smells, parse_spec
@@ -127,6 +130,8 @@ def _scan_csv(text: str, rel: str, refs: list[TestRef], problems: list[Finding])
 
 
 def check_traceability(root: Path, cfg: Config, spec_only: bool) -> list[Finding]:
+    if cfg.specs.format == "sdtrd":
+        return check_sdtrd(root, cfg, spec_only)
     findings: list[Finding] = []
     docs: dict[str, tuple[Path, SpecDoc, bool]] = {}  # spec id -> (folder, parsed spec.md, tests locked?)
     for spec_id, spec_dir in list_specs(root, cfg).items():
@@ -181,6 +186,67 @@ def check_traceability(root: Path, cfg: Config, spec_only: bool) -> list[Finding
         for ac, line in doc.criteria.items():
             if (spec_id, ac) not in covered:
                 findings.append(Finding("error", f"{spec_id}/{ac} has no test", rel_md, line))
+    return findings
+
+
+def check_sdtrd(root: Path, cfg: Config, spec_only: bool) -> list[Finding]:
+    """Every requirement of a feature past Gate 4 has a test (an error), and so does every requirement in
+    specs/living/ (a warning: shipped before Lockstep, a gap to close). Every key a test names exists."""
+    findings: list[Finding] = []
+    active: set[str] = set()
+    deprecated: set[str] = set()
+    needed: dict[str, tuple[str, str, int]] = {}  # key -> (level, spec file, line)
+
+    def read(path: Path, need: str | None) -> None:
+        rel = path.relative_to(root).as_posix()
+        try:
+            reqs = sdtrd.parse_requirements(path, path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError) as e:
+            findings.append(Finding("error", f"cannot read: {e}", rel))
+            return
+        findings.extend(Finding("error", msg, rel, line) for line, msg in reqs.problems)
+        active.update(reqs.active)
+        deprecated.update(reqs.deprecated)
+        for key, line in reqs.active.items():
+            if need and (key not in needed or needed[key][0] == "warning"):
+                needed[key] = (need, rel, line)
+
+    for path in sdtrd.spec_files(root / cfg.specs_dir / sdtrd.LIVING):
+        read(path, "warning")
+    for folder in list_specs(root, cfg).values():
+        status = load_status(root, folder, cfg)
+        files = sdtrd.spec_files(folder)
+        shipped = folder.parent.name == sdtrd.ARCHIVE  # its specs live on in specs/living/
+        if not files and status.status != "draft" and not shipped:
+            msg = f"is {status.status} but has no capability spec (specs/<capability>/spec.md)"
+            findings.append(Finding("error", msg, folder.relative_to(root).as_posix()))
+        for path in files:
+            read(path, "error" if status.tests_locked and not shipped else None)
+    if spec_only:
+        return findings
+
+    covered: set[str] = set()
+    for path in _walk(root, cfg.specs_dir):
+        rel = path.relative_to(root).as_posix()
+        if not matches_any(rel, cfg.protect.globs):
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        for key, line in sdtrd.key_refs(text):
+            if key in active:
+                covered.add(key)
+            elif key in deprecated:
+                findings.append(
+                    Finding("warning", f"{key} is deprecated; point the test at what replaced it", rel, line)
+                )
+            else:
+                findings.append(Finding("error", f"{key}: no spec in {cfg.specs_dir}/ defines it", rel, line))
+    for key, (level, rel, line) in needed.items():
+        if key not in covered:
+            where = "shipped requirement" if level == "warning" else "requirement"
+            findings.append(Finding(level, f"{where} {key} has no test (name it in a test, e.g. @{key})", rel, line))
     return findings
 
 

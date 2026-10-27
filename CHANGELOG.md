@@ -8,6 +8,14 @@ tag the merge commit `v<version>`.
 
 ## Unreleased
 
+## 0.5.2
+
+- **Fix: `guard_bash` missed abbreviated and bundled git options before a history rewrite.** git takes any
+  unambiguous prefix of a long option (`--upload-p`) and bundles short ones (`-qu`), so 0.5.1's list of options to
+  reject fell short. A read-only git command before a rewrite now stays trusted only when all its options are on a
+  short list (`-q`, `-s`, `-b`, `--short`, `--stat`, `--oneline`, `--cached`, `-A`, `-p`, `-<n>` and a few more), and
+  a `fetch` with a `src:dst` refspec isn't trusted ([bug report](specs/bug-reports/guard-bash-git-options.md)).
+
 ## 0.5.1
 
 Fixes to the agent hooks, from reviewing what they let through.

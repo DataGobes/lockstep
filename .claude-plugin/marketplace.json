@@ -3,28 +3,28 @@
   "owner": { "name": "DataGobes" },
   "metadata": {
     "description": "Lockstep: skills, hooks and shared checks for spec-first, test-locked development with coding agents. Installable in Claude Code and GitHub Copilot CLI.",
-    "version": "0.5.2"
+    "version": "0.5.3"
   },
   "plugins": [
     {
       "name": "lockstep-core",
       "source": "./plugins/lockstep-core",
       "description": "Lockstep workflow skills for any track: set up a repo, then spec, test, implement, self-review and retro for spec-first, test-locked work with coding agents.",
-      "version": "0.5.2",
+      "version": "0.5.3",
       "keywords": ["lockstep", "spec-first", "azure-devops", "bootstrap"]
     },
     {
       "name": "lockstep-data",
       "source": "./plugins/lockstep-data",
       "description": "Lockstep skills for the data track: see what a dbt change affects, from changed models to consumers outside dbt.",
-      "version": "0.5.2",
+      "version": "0.5.3",
       "keywords": ["lockstep", "dbt", "databricks", "lineage"]
     },
     {
       "name": "lockstep-ai",
       "source": "./plugins/lockstep-ai",
       "description": "Lockstep skills for the AI track: write and check golden eval cases that trace to acceptance criteria and hold no personal data.",
-      "version": "0.5.2",
+      "version": "0.5.3",
       "keywords": ["lockstep", "evals", "llm", "golden-dataset"]
     },
     {

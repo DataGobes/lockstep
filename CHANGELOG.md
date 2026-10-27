@@ -8,6 +8,18 @@ tag the merge commit `v<version>`.
 
 ## Unreleased
 
+## 0.5.3
+
+- **Fix: the hooks took the branch from CI variables.** `guard_bash`, `protect_tests` and the hook event log asked
+  for the PR branch a CI job's variables name (`GITHUB_HEAD_REF`, `SYSTEM_PULLREQUEST_SOURCEBRANCH`) before asking
+  git, so an agent running inside CI saw every checkout as the PR branch: a reset of a `main` checkout was allowed,
+  and a tests-locked spec's tests were unlocked. The hooks now judge the branch git has checked out; the checks still
+  read CI first ([bug report](specs/bug-reports/hooks-branch-from-git.md)).
+- **Fix: `guard_bash` trusted git options hidden behind a `$`.** Before a history rewrite, a git command with a word
+  containing `$` (`$'--upload-pack=...'`, `$OPT`) is no longer trusted, since only the shell knows what it becomes. A
+  `$` in the rewrite's own arguments (`-m "$MSG"`) stays allowed
+  ([bug report](specs/bug-reports/guard-bash-dollar-words.md)).
+
 ## 0.5.2
 
 - **Fix: `guard_bash` missed abbreviated and bundled git options before a history rewrite.** git takes any

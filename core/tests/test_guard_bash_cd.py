@@ -4,8 +4,8 @@ git command runs in, after a `cd` or `git -C`, not the session's own folder."""
 from pathlib import Path
 
 import pytest
-
 from conftest import Repo
+
 from lockstep_checks.hooks import Event, guard_bash
 
 

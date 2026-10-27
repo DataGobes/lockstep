@@ -7,8 +7,11 @@ block costs a retry, a missed one can cost production.
 
 from __future__ import annotations
 
+import os
 import re
+import shlex
 import sys
+from pathlib import Path
 
 from ..spec import current_branch
 from . import Decision, Event, repo_root, run
@@ -50,9 +53,36 @@ def hook(event: Event) -> Decision:
     for pattern, why in _RULES:
         if pattern.search(cmd):
             return _deny(cmd, why)
-    if _HISTORY.search(cmd) and current_branch(repo_root(event.cwd)) in PROTECTED_BRANCHES:
-        return _deny(cmd, "rewrites history on main; work on a feature branch")
+    for folder in _history_folders(cmd, event.cwd):
+        if current_branch(repo_root(folder)) in PROTECTED_BRANCHES:
+            return _deny(cmd, "rewrites history on main; work on a feature branch")
     return Decision.allow()
+
+
+_SEGMENT = re.compile(r"\|\||&&|[;|&\n]")
+
+
+def _history_folders(cmd: str, cwd: Path) -> list[Path]:
+    """The folder each history-rewriting git command runs in, after any `cd` before it and its own `-C`. A folder that
+    can't be resolved (`cd $DIR`, `cd -`) counts as the session's folder."""
+    folders, here = [], cwd
+    for segment in _SEGMENT.split(cmd):
+        try:
+            words = shlex.split(segment)
+        except ValueError:
+            words = segment.split()
+        if len(words) == 2 and words[0].lstrip("(") == "cd":
+            here = _folder(here, words[1], cwd)
+        elif _HISTORY.search(segment):
+            i = words.index("git") if "git" in words else -1
+            dash_c = i >= 0 and words[i + 1 : i + 2] == ["-C"] and len(words) > i + 2
+            folders.append(_folder(here, words[i + 2], cwd) if dash_c else here)
+    return folders
+
+
+def _folder(here: Path, target: str, fallback: Path) -> Path:
+    folder = here / os.path.expanduser(target)
+    return folder if folder.is_dir() else fallback
 
 
 def _deny(cmd: str, why: str) -> Decision:

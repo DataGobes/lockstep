@@ -2,7 +2,7 @@
 # the default shown. Unknown keys are an error, so a typo never disables a gate.
 
 [lockstep]
-core_version = "0.3"   # lockstep-checks version this repo is pinned to
+core_version = "0.4"   # lockstep-checks version this repo is pinned to
 specs_dir = "specs"
 # Branch -> spec id. Must capture the id in a group named "id".
 branch_pattern = '^(?:feature|bugfix|hotfix|test|spec|baseline)/(?P<id>\d{4})-'

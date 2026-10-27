@@ -137,7 +137,7 @@ class Enforcement:
 
 @dataclass(frozen=True)
 class Config:
-    core_version: str = "0.3"
+    core_version: str = "0.4"
     specs_dir: str = "specs"
     # Must capture the spec id in a group named "id".
     branch_pattern: str = r"^(?:feature|bugfix|hotfix|test|spec|baseline)/(?P<id>\d{4})-"

@@ -1,7 +1,7 @@
 {
   "name": "lockstep-core",
   "description": "Lockstep workflow skills for any track: set up a repo, then spec, test, implement, self-review and retro for spec-first, test-locked work with coding agents.",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "author": { "name": "DataGobes" },
   "repository": "https://github.com/DataGobes/lockstep",
   "keywords": ["lockstep", "spec-first", "azure-devops", "bootstrap"]

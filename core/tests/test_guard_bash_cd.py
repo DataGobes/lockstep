@@ -62,3 +62,26 @@ def test_git_dash_c_into_a_feature_worktree_allows_amend(checkouts):
 def test_a_folder_change_it_cannot_follow_still_checks_the_session_folder(checkouts, cmd):
     main, _ = checkouts
     assert guard_bash.hook(bash(cmd, main)).block, cmd
+
+
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        "cd -P ../app && git reset --hard HEAD~1",  # a cd with options
+        "cd $APP && git reset --hard HEAD~1",  # a folder only the shell knows
+        "(cd ../app && git reset --hard HEAD~1)",
+        "git -c core.worktree=../app reset --hard HEAD~1",  # config can point git at another checkout
+        "bash -c 'git -C ../app reset --hard HEAD~1'",  # git run by another command
+        "xargs git -C ../app reset --hard HEAD~1 < /dev/null",
+    ],
+)
+def test_a_rewrite_whose_folder_it_cannot_follow_is_blocked_from_any_branch(checkouts, cmd):
+    # From a feature worktree: checking the session's folder isn't enough, since that folder isn't on main.
+    _, feature = checkouts
+    assert guard_bash.hook(bash(cmd, feature)).block, cmd
+
+
+def test_a_plain_rewrite_on_a_feature_branch_is_still_allowed(checkouts):
+    _, feature = checkouts
+    d = guard_bash.hook(bash("git rebase -i HEAD~1 && git commit --amend -m x", feature))
+    assert not d.block, d.message

@@ -33,10 +33,15 @@ FAILED core/tests/test_guard_bash_cd.py::test_git_dash_c_into_a_feature_worktree
 
 A security review of the first fix found that trusting every `cd` opened a bypass the old rule didn't have: in
 `(cd ../app-0042 && git log); git reset --hard HEAD~1`, the `cd` stays in the subshell and the reset runs on `main`.
-The fix therefore fails closed: a folder is followed only through `cd <folder> &&` or `cd <folder>;` and git's `-C` /
-`-c` options; with a subshell, command substitution, a pipe or `||` after a `cd`, `pushd`/`popd`, `GIT_DIR`,
-`--git-dir`, `--work-tree` or another git option, the session's folder is checked as well.
-`test_a_folder_change_it_cannot_follow_still_checks_the_session_folder` covers each of these.
+A second review found that checking the session's folder as well isn't enough: from a feature worktree, that folder
+isn't on `main`, so `cd -P ../app && git reset --hard ...` or `git -c core.worktree=../app reset --hard ...` still got
+through. The fix therefore blocks any history rewrite whose folder it can't follow, from any branch. It follows only a
+plain `cd <folder> &&` or `cd <folder>;` to a folder that exists, and a segment that starts with `git` whose only
+options before the subcommand are `-C`. Anything else counts as not followed: a subshell, braces or command
+substitution; a pipe or `||` after a `cd`; `cd` with options or an unknown target; `pushd`/`popd`; `GIT_DIR`,
+`GIT_WORK_TREE` or `GIT_COMMON_DIR`; `--git-dir` or `--work-tree`; `-c`; or git started by another command
+(`bash -c`, `xargs`). The two parametrized tests in the regression file cover these, from a session on `main` and from
+one on a feature branch.
 
 Still open, and older than this fix: an earlier command in the same line that switches the target checkout to `main`
 (`git checkout main && git reset --hard ...` from a feature branch) is judged by the branch before the switch.
